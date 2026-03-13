@@ -1,0 +1,1 @@
+export { medicalRouter } from "./router";

@@ -1,0 +1,1 @@
+export { labelsRouter } from "./router";

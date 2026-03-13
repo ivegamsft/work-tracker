@@ -4,6 +4,15 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware";
 import { logger } from "./common/utils";
+import { authRouter } from "./modules/auth";
+import { employeesRouter } from "./modules/employees";
+import { labelsRouter } from "./modules/labels";
+import { hoursRouter } from "./modules/hours";
+import { documentsRouter } from "./modules/documents";
+import { qualificationsRouter } from "./modules/qualifications";
+import { medicalRouter } from "./modules/medical";
+import { standardsRouter } from "./modules/standards";
+import { notificationsRouter } from "./modules/notifications";
 
 const app = express();
 
@@ -17,15 +26,16 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "e-clat", timestamp: new Date().toISOString() });
 });
 
-// API routes (mount modules here)
-// app.use("/api/auth", authRouter);
-// app.use("/api/employees", employeesRouter);
-// app.use("/api/qualifications", qualificationsRouter);
-// app.use("/api/hours", hoursRouter);
-// app.use("/api/documents", documentsRouter);
-// app.use("/api/standards", standardsRouter);
-// app.use("/api/medical", medicalRouter);
-// app.use("/api/notifications", notificationsRouter);
+// API routes
+app.use("/api/auth", authRouter);
+app.use("/api/employees", employeesRouter);
+app.use("/api", labelsRouter);
+app.use("/api/hours", hoursRouter);
+app.use("/api/documents", documentsRouter);
+app.use("/api/qualifications", qualificationsRouter);
+app.use("/api/medical", medicalRouter);
+app.use("/api/standards", standardsRouter);
+app.use("/api/notifications", notificationsRouter);
 
 // Error handling
 app.use(errorHandler);

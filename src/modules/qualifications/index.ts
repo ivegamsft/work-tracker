@@ -1,0 +1,1 @@
+export { qualificationsRouter } from "./router";
