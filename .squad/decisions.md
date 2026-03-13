@@ -4,15 +4,15 @@
 
 ### PRD Structure for E-CLAT (2026-03-13)
 
-**Decision:** Document E-CLAT planning as a **PRD set** under `squad/prds/` instead of a single monolithic PRD.
+**Decision:** Document E-CLAT planning as a **PRD set** under `docs/prds/` instead of a single monolithic PRD.
 
 **Structure:**
-- `squad/prds/README.md`
-- `squad/prds/platform-foundation-prd.md`
-- `squad/prds/workforce-operations-prd.md`
-- `squad/prds/compliance-evidence-prd.md`
-- `squad/prds/governance-taxonomy-prd.md`
-- `squad/prds/frontend-admin-prd.md`
+- `docs/prds/README.md`
+- `docs/prds/platform-foundation-prd.md`
+- `docs/prds/workforce-operations-prd.md`
+- `docs/prds/compliance-evidence-prd.md`
+- `docs/prds/governance-taxonomy-prd.md`
+- `docs/prds/frontend-admin-prd.md`
 
 **Rationale:**
 - The codebase is already split into nine backend modules plus two app scaffolds.

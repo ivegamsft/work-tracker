@@ -13,7 +13,7 @@
 
 ## Important Status: PRDs Available
 
-📌 **As of 2026-03-13T17:10:00Z**, comprehensive PRDs for E-CLAT are now available in `squad/prds/`:
+📌 **As of 2026-03-13T17:10:00Z**, comprehensive PRDs for E-CLAT are now available in `docs/prds/`:
 - **Platform Foundation PRD** — architecture, RBAC, audit, infra
 - **Workforce Operations PRD** — employees, hours, qualifications, standards
 - **Compliance Evidence PRD** — documents, medical records, evidence chain

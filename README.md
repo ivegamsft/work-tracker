@@ -1,64 +1,63 @@
 # e-clat
 
-**Workforce Readiness & Qualification Management System**
+**Employee Compliance and Lifecycle Activity Tracker**
 
-A compliance platform for regulated industries that tracks employee certifications, experience hours, medical clearances, and internal test results to maintain continuous proof of competency.
+A workforce readiness and qualification management platform for regulated industries.
 
-## Features
+## Monorepo Structure
 
-- **Qualification Management** — Track certifications, licenses, and credentials across multiple standards
-- **Hour Aggregation** — Sync hours from clock-in/out, timesheets, job tickets, calendars, and manual entry
-- **AI Document Processing** — OCR, classification, and expiration detection with human review
-- **Medical Clearance Tracking** — Fit-for-duty status, visual acuity, and color vision results
-- **Standards Framework Mapping** — Map requirements across multiple certification frameworks
-- **RBAC** — Role-based access for employees, supervisors, managers, and compliance officers
-- **Notification System** — Manager escalation, weekly compliance digests
+```
+├── apps/
+│   ├── api/             Express REST API (64 endpoints)
+│   ├── web/             Frontend app (TBD)
+│   └── admin/           Management app (TBD)
+├── data/                Prisma schema, migrations, seeds (PostgreSQL)
+├── docs/
+│   ├── adrs/            Architecture decision records
+│   └── prds/            Product requirement documents
+├── infra/               Terraform IaC (compute, database, storage)
+├── packages/
+│   └── shared/          Shared types, errors, constants
+├── scripts/             Dev setup and repository utilities
+└── .github/workflows/   CI/CD pipelines
+```
 
 ## Getting Started
 
 ```bash
-# Install dependencies
+# Install all workspace dependencies
 npm install
 
+# Or bootstrap with the repo script
+bash scripts/setup.sh
+
 # Copy environment config
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 
-# Run in development
+# Run API in development
 npm run dev
-
-# Build for production
-npm run build
-npm start
 
 # Run tests
 npm test
+
+# Typecheck all packages
+npm run typecheck
 ```
 
-## Project Structure
+## Workspaces
 
-```
-src/
-├── config/          # Environment and app configuration
-├── common/          # Shared types, errors, utilities
-│   ├── types/       # Domain types and enums
-│   ├── errors/      # Custom error classes
-│   └── utils/       # Logger, helpers
-├── middleware/       # Auth, error handling, validation
-└── modules/         # Feature modules
-    ├── auth/        # Authentication & authorization
-    ├── employees/   # Employee management
-    ├── qualifications/  # Certification tracking
-    ├── hours/       # Hour aggregation & sync
-    ├── documents/   # AI document processing
-    ├── standards/   # Compliance framework mapping
-    ├── medical/     # Medical clearance tracking
-    └── notifications/   # Alerts & digests
-```
+| Package | Path | Description |
+|---------|------|-------------|
+| `@e-clat/api` | `apps/api/` | REST API — auth, employees, hours, documents, qualifications, medical, standards, notifications, labels |
+| `@e-clat/web` | `apps/web/` | Frontend (scaffold) |
+| `@e-clat/admin` | `apps/admin/` | Admin management (scaffold) |
+| `@e-clat/shared` | `packages/shared/` | Shared domain types and error classes |
+| `@e-clat/data` | `data/` | Prisma schema and database tooling |
 
 ## Tech Stack
 
-- **Runtime:** Node.js + TypeScript
-- **Framework:** Express
-- **Validation:** Zod
-- **Auth:** JWT + bcrypt (RBAC)
-- **Logging:** Winston
+- **API:** Node.js, TypeScript, Express, Zod
+- **Database:** PostgreSQL + Prisma
+- **Auth:** JWT + bcrypt, RBAC (5 roles)
+- **IaC:** Terraform
+- **CI/CD:** GitHub Actions
