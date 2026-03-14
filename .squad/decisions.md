@@ -359,3 +359,48 @@
 
 **Why:** User request — tightens the definition of what counts as a secret for the team's no-secrets-in-source rule.
 
+---
+
+### Prisma Workspace Integration (2026-03-14)
+
+**By:** Bunk
+
+**Context:** The Prisma schema, migrations, and seed flow are owned by the `data/` workspace. The API needs one consistent Prisma client configuration for future repository and service work.
+
+**Decision:**
+- Keep Prisma client generation anchored to `data/prisma/schema.prisma` and consume the generated `@prisma/client` directly from the API.
+- Centralize API access in `apps/api/src/config/database.ts` as a singleton with development query logging.
+- Connect the client after environment loading and disconnect it during API shutdown/startup failure handling in `apps/api/src/index.ts`.
+- Keep demo employee IDs aligned with the mock auth store by deriving them from the shared UUID v5 namespace in `data/src/seed.ts`.
+
+**Implications:**
+- After schema changes, regenerate the client from the `data` workspace before API typecheck/build runs.
+- Seeded local data remains consistent with the deterministic mock-login accounts used in the auth module.
+
+---
+
+### Audit Middleware Architecture (2026-03-14)
+
+**By:** Sydnor
+
+**Context:** The system requires consistent audit coverage for all mutating operations without duplicating code or blocking API responses. An abstraction is needed to support console logging today and persistence layer upgrades later.
+
+**Decision:**
+- Keep audit logging as an application-level middleware mounted on `/api/:entityType`, with a swappable `AuditLogger` abstraction injected from `createApp()`.
+- Every mutating route gets consistent post-response audit coverage without duplicating route-level code.
+- The logger can start with structured console output now and switch to Prisma persistence later with no route rewrites.
+- Tests can inject a fake logger and temporary routes through `createTestApp()` to validate POST/PUT/PATCH/DELETE behavior, anonymous actors, and non-blocking execution.
+- Sensitive request fields should stay redacted before they enter `changedFields`.
+
+**Impacted Files:**
+- `apps/api/src/index.ts`
+- `apps/api/src/middleware/audit.ts`
+- `apps/api/src/services/audit.ts`
+- `apps/api/tests/helpers.ts`
+- `apps/api/tests/audit.test.ts`
+
+**Consequences:**
+- Non-blocking audit failures do not block API responses.
+- Logger interface supports runtime swapping without code changes.
+- Phase 1 persistence layer upgrade requires only logger backend implementation change.
+
