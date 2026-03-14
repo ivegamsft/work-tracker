@@ -1,6 +1,13 @@
-chore(.squad): capture secret definition directive
+feat: Phase 0 foundation - JWT auth, test harness, bug fixes
 
-Secrets = passwords, tenant IDs, subscription IDs, usernames.
-Well-known public GUIDs are OK. All else uses tokens/references.
+- Implement JWT auth with access/refresh tokens (jsonwebtoken + bcryptjs)
+- Add Vitest test harness with 10 passing tests (health, auth, routing)
+- Fix labels mount path (/api -> /api/labels)
+- Fix document route ordering (review-queue before :id)
+- Add token module with sign/verify for access and refresh tokens
+- Mock user store for dev (5 roles, bcrypt hashed passwords)
+- Update .gitignore for nested .terraform dirs and Docker files
+- Add .gitattributes for squad append-only merge driver
+- Add .copilot/mcp-config.json, squad agent workflows
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

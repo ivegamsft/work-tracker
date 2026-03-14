@@ -1,61 +1,15 @@
-import { request } from "node:http";
-import type { Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import request from "supertest";
 import { Roles } from "@e-clat/shared";
-import { createApp } from "../src/index";
-import { signAccessToken } from "../src/modules/auth/tokens";
+import { describe, expect, it, vi } from "vitest";
+import { createTestApp, generateTestToken } from "./helpers";
 import { documentsService, type PaginatedResult } from "../src/modules/documents/service";
 
-function sendRequest(server: Server, path: string, headers: Record<string, string> = {}) {
-  return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
-    const address = server.address() as AddressInfo;
-    const req = request({
-      host: "127.0.0.1",
-      port: address.port,
-      path,
-      method: "GET",
-      headers,
-    }, (res) => {
-      let rawBody = "";
-      res.setEncoding("utf8");
-      res.on("data", (chunk) => {
-        rawBody += chunk;
-      });
-      res.on("end", () => {
-        const body = res.headers["content-type"]?.includes("application/json") && rawBody
-          ? JSON.parse(rawBody)
-          : rawBody;
-
-        resolve({
-          status: res.statusCode ?? 0,
-          body,
-        });
-      });
-    });
-
-    req.on("error", reject);
-    req.end();
-  });
-}
-
 describe("API routing", () => {
-  let server: Server;
-
-  beforeAll(() => {
-    server = createApp().listen(0);
-  });
-
-  afterAll((done) => {
-    server.close(done);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   it("mounts labels endpoints under /api/labels", async () => {
-    const labelsResponse = await sendRequest(server, "/api/labels/versions");
-    const wrongBaseResponse = await sendRequest(server, "/api/versions");
+    const app = createTestApp();
+
+    const labelsResponse = await request(app).get("/api/labels/versions");
+    const wrongBaseResponse = await request(app).get("/api/versions");
 
     expect(labelsResponse.status).toBe(401);
     expect(wrongBaseResponse.status).toBe(404);
@@ -69,22 +23,16 @@ describe("API routing", () => {
       limit: 50,
     };
 
-    const listReviewQueueSpy = jest
+    const listReviewQueueSpy = vi
       .spyOn(documentsService, "listReviewQueue")
       .mockResolvedValue(reviewQueue as PaginatedResult<never>);
-    const getDocumentSpy = jest
+    const getDocumentSpy = vi
       .spyOn(documentsService, "getDocument")
       .mockResolvedValue({ id: "review-queue" } as never);
 
-    const accessToken = signAccessToken({
-      id: "manager-1",
-      email: "manager@example.com",
-      role: Roles.MANAGER,
-    });
-
-    const response = await sendRequest(server, "/api/documents/review-queue", {
-      authorization: `Bearer ${accessToken}`,
-    });
+    const response = await request(createTestApp())
+      .get("/api/documents/review-queue")
+      .set("Authorization", `Bearer ${generateTestToken(Roles.MANAGER)}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(reviewQueue);

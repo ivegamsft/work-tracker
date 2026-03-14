@@ -108,3 +108,10 @@ See `.squad/orchestration-log/2026-03-13T17-10-freamon.md` for details. Read PRD
 **Blocking dependency:** Test infrastructure (test DB, factories, auth mocking) must be in place before Phase 1 accelerates. Sydnor is working on this in Phase 0.
 
 See `.squad/decisions.md` for full MVP sequencing and test infrastructure requirements.
+
+### JWT Auth + Route Safety (2026-03-14)
+
+- Auth now issues signed access and refresh JWTs with a `tokenType` claim, and protected middleware accepts only verified access tokens.
+- Until Prisma-backed users are wired, login uses deterministic mock users for each RBAC role and bcrypt password verification so auth flows stay testable.
+- Labels endpoints are namespaced under `/api/labels`, and the documents review queue route must stay ahead of `/:id` to avoid Express path shadowing.
+- API test helpers now build the real app and sign compatible access tokens, so route wiring and auth behavior are covered together.

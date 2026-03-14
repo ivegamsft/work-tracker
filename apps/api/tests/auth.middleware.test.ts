@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { UnauthorizedError, Roles } from "@e-clat/shared";
+import { describe, expect, it } from "vitest";
 import { authenticate, type AuthenticatedRequest } from "../src/middleware/auth";
 import { signAccessToken, signRefreshToken } from "../src/modules/auth/tokens";
 

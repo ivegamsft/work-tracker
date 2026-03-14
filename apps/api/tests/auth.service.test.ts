@@ -1,4 +1,5 @@
 import { Roles } from "@e-clat/shared";
+import { describe, expect, it } from "vitest";
 import { authService } from "../src/modules/auth/service";
 import { verifyAccessToken, verifyRefreshToken } from "../src/modules/auth/tokens";
 
