@@ -206,3 +206,11 @@
 
 **Why:** User request — security and quality baseline for the project. These are non-negotiable rules for all team members.
 
+
+### 2026-03-14T19:47:00Z: User directive — Secret definition scope
+**By:** ivegamsft (via Copilot)
+
+**What:** Secrets are defined as: passwords, tenant IDs, subscription IDs, usernames. Well-known public GUIDs are OK to commit/expose. Everything else that could be sensitive should use tokens (references, Key Vault refs, variable substitution) — never raw values.
+
+**Why:** User request — tightens the definition of what counts as a secret for the team's no-secrets-in-source rule.
+
