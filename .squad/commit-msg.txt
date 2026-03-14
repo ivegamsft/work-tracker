@@ -1,23 +1,9 @@
-Scribe: Document MVP planning session
+Record infrastructure layer restructuring and decisions
 
-Agents: Freamon (MVP implementation plan), Sydnor (test infrastructure assessment)
+Added orchestration logs for Freamon (architecture) and Bunk (implementation),
+session log documenting the 3-layer Terraform split (00-foundation, 10-data,
+20-compute), and merged infrastructure decisions into the canonical decisions.md.
 
-Deliverables:
-- docs/prds/mvp-implementation-plan.md (4-phase MVP sequencing)
-- .squad/orchestration-log/{2026-03-13T2325-freamon,sydnor}.md
-- .squad/log/2026-03-13T2325-mvp-planning.md
-- .squad/decisions.md (merged inbox + new decisions)
-- Updated team history for Bunk and Kima
-
-Key decisions:
-1. MVP scope: Employees + Standards + Qualifications + Medical (defer Hours/Labels/OCR)
-2. Phase 0 blockers: Fix labels mount-path, document routes; build test DB + factories
-3. Phase 1-3 sequencing: Auth → Core domain → Supporting modules
-
-Test infrastructure:
-- Phase 0: Test DB (SQLite in-memory + Postgres), factories, JWT mocking, request helpers
-- Coverage targets: 80% endpoints, 95% business logic, 100% middleware, 85% overall
-
-Team coordination: Test infrastructure unblocks API implementation.
+Updated Freamon and Bunk agent histories with infra layer knowledge.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

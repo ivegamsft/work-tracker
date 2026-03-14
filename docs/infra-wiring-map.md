@@ -28,23 +28,18 @@ This document is the contract map between bootstrap, Terraform layers, GitHub Ac
 |-------------|-------------|----------|-------------------|-------|
 | `00-foundation` | `resource_group_name` | `10-data` → `module.database.resource_group_name`, `module.storage.resource_group_name` | `terraform_remote_state.foundation.outputs.resource_group_name` | Proxy of `module.foundation.resource_group_name` in the foundation layer. |
 | `00-foundation` | `resource_group_name` | `20-compute` → `module.compute.resource_group_name` | `terraform_remote_state.foundation.outputs.resource_group_name` | Used to place the App Service plan and Linux Web App in the environment RG. |
-| `00-foundation` | `resource_group_id` | ⚠️ No consumer found | None | Dead output in current repo. |
 | `00-foundation` | `location` | `10-data` → `module.database.location`, `module.storage.location` | `terraform_remote_state.foundation.outputs.location` | Single source of truth for region. |
 | `00-foundation` | `location` | `20-compute` → `module.compute.location` | `terraform_remote_state.foundation.outputs.location` | Keeps compute in same region as foundation/data. |
 | `00-foundation` | `key_vault_name` | `20-compute` → `module.compute.key_vault_name` | `terraform_remote_state.foundation.outputs.key_vault_name` | Used to build App Service Key Vault references like `@Microsoft.KeyVault(VaultName=...;SecretName=...)`. |
 | `00-foundation` | `key_vault_id` | `10-data` → `module.database.key_vault_id` | `terraform_remote_state.foundation.outputs.key_vault_id` | Data layer stores DB connection string in the shared Key Vault. |
 | `00-foundation` | `key_vault_id` | `20-compute` → `module.compute.key_vault_id` | `terraform_remote_state.foundation.outputs.key_vault_id` | Compute layer creates the JWT secret in the same Key Vault and adds web app access policy. |
 | `00-foundation` | `key_vault_uri` | `20-compute` → `module.compute.key_vault_uri` | `terraform_remote_state.foundation.outputs.key_vault_uri` | Exposed again to the app as `KEY_VAULT_URI`. |
-| `10-data` | `postgres_fqdn` | ⚠️ No consumer found | None | Proxy of `module.database.postgres_fqdn`; useful for debugging, unused by compute. |
-| `10-data` | `postgres_database_name` | ⚠️ No consumer found | None | Proxy of `module.database.postgres_database_name`; compute uses only the secret name. |
 | `10-data` | `postgres_connection_secret_name` | `20-compute` → `module.compute.postgres_connection_secret_name` | `terraform_remote_state.data.outputs.postgres_connection_secret_name` | Compute turns this secret name into the `DATABASE_URL` Key Vault reference. |
 | `10-data` | `storage_account_name` | `20-compute` → `module.compute.storage_account_name` | `terraform_remote_state.data.outputs.storage_account_name` | Surfaced to the app as plain app setting `STORAGE_ACCOUNT_NAME`. |
 | `10-data` | `storage_blob_endpoint` | `20-compute` → `module.compute.storage_blob_endpoint` | `terraform_remote_state.data.outputs.storage_blob_endpoint` | Surfaced to the app as plain app setting `STORAGE_BLOB_ENDPOINT`. |
 | `10-data` | `documents_container_name` | `20-compute` → `module.compute.documents_container_name` | `terraform_remote_state.data.outputs.documents_container_name` | Surfaced to the app as plain app setting `DOCUMENTS_CONTAINER_NAME`. |
 | `20-compute` | `api_app_name` | `.github/workflows/deploy.yml` → job `deploy-api` | `terraform output -raw api_app_name` → job output `needs.compute.outputs.api_app_name` | Proxy of `module.compute.api_app_name`; used by `azure/webapps-deploy@v3`. |
-| `20-compute` | `api_default_hostname` | ⚠️ No consumer found | None | Proxy of `module.compute.api_default_hostname`; not referenced by workflows or app. |
 | `20-compute` | `api_url` | `.github/workflows/deploy.yml` → deployment summary | `terraform output -raw api_url` → job output `needs.compute.outputs.api_url` | Proxy of `module.compute.api_url`; currently only echoed after deployment. |
-| `20-compute` | `api_principal_id` | ⚠️ No consumer found | None | Proxy of `module.compute.api_principal_id`; the value is used internally for Key Vault access policy, but the exported layer output is unused. |
 
 ### Layer contracts by environment (dev)
 
@@ -155,12 +150,12 @@ These are real production app settings even though they are not declared in `.en
 
 ### Gaps
 
-- **Dead layer outputs**
-  - `00-foundation.resource_group_id`
-  - `10-data.postgres_fqdn`
-  - `10-data.postgres_database_name`
-  - `20-compute.api_default_hostname`
-  - `20-compute.api_principal_id`
+- **Dead layer outputs (RESOLVED):** All five dead outputs have been pruned from the remote-state contract per decision `freamon-output-justification.md`:
+  - `00-foundation.resource_group_id` — Removed; RG name is sufficient for downstream placement.
+  - `10-data.postgres_fqdn` — Removed; debuggable from portal or state; runtime uses secret name.
+  - `10-data.postgres_database_name` — Removed; database name is embedded in connection string.
+  - `20-compute.api_default_hostname` — Removed; superseded by custom `api_url`.
+  - `20-compute.api_principal_id` — Removed; module implementation detail, not a layer contract.
 
 - **App settings with no production wiring yet**
   - `OAUTH_CLIENT_ID`
@@ -194,5 +189,4 @@ These are real production app settings even though they are not declared in `.en
 1. **Promote third-party runtime credentials to first-class infra contract.** Add explicit Key Vault secrets and/or documented `extra_app_settings` conventions for OAuth, AWS, and SMTP instead of leaving them as manual drift.
 2. **Align the API env contract with production reality.** Either make `DATABASE_URL` required in `env.ts` and document the production-only defaults, or intentionally relax infrastructure expectations if DB-less startup is valid.
 3. **Resolve the document-processor split.** Choose one default (`aws-textract` vs `azure-form-recognizer`) and then wire the matching credential/config set.
-4. **Prune or justify dead outputs.** If `resource_group_id`, `postgres_fqdn`, `postgres_database_name`, `api_default_hostname`, and `api_principal_id` are kept, document the future consumer; otherwise remove them to tighten the remote-state contract.
-5. **Fix bootstrap/backend messaging.** Update the bootstrap script output (or supporting docs) so operators are told about the three real state keys, not the old single-root `terraform.tfstate` example.
+4. **Fix bootstrap/backend messaging.** Update the bootstrap script output (or supporting docs) so operators are told about the three real state keys, not the old single-root `terraform.tfstate` example.

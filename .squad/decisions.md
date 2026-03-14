@@ -165,6 +165,27 @@
 
 ---
 
+### Terraform Layer Output Pruning (2026-03-14)
+
+**Owner:** Freamon  
+**Context:** Wiring map identified 5 dead layer outputs (exports with no current consumer).
+
+**Decision:** All 5 outputs are pruned. Layer outputs form the cross-layer Terraform contract and must export only what downstream layers, workflows, or external systems actually consume.
+
+**Pruned Outputs:**
+
+| Output | Reason |
+|--------|--------|
+| `00-foundation.resource_group_id` | No consumer; RG name suffices for downstream placement. |
+| `10-data.postgres_fqdn` | No runtime consumer; debuggable from portal or state. |
+| `10-data.postgres_database_name` | No consumer; database name is in the connection string. |
+| `20-compute.api_default_hostname` | Superseded by custom `api_url`; removes false option. |
+| `20-compute.api_principal_id` | Module implementation detail, not a layer contract. |
+
+**Principle:** Layer outputs are the cross-layer contract. Speculative outputs or module implementation details belong in the module, not the layer API.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
