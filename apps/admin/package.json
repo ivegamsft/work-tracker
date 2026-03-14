@@ -1,0 +1,10 @@
+{
+  "name": "@e-clat/admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E-CLAT admin — system configuration, standards management, user management",
+  "scripts": {
+    "dev": "echo 'Admin app not yet scaffolded'",
+    "build": "echo 'No build configured yet'"
+  }
+}

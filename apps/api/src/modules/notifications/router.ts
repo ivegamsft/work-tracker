@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { notificationsService } from "./service";
 import { setPreferencesSchema, notificationQuerySchema, createEscalationRuleSchema } from "./validators";

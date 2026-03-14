@@ -1,0 +1,450 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Core ───────────────────────────────────────────────
+
+model Employee {
+  id              String   @id @default(uuid())
+  employeeNumber  String   @unique
+  firstName       String
+  lastName        String
+  email           String   @unique
+  passwordHash    String?
+  role            Role     @default(EMPLOYEE)
+  departmentId    String?
+  hireDate        DateTime
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  qualifications    Qualification[]
+  hourRecords       HourRecord[]
+  documents         Document[]
+  medicalClearances MedicalClearance[]
+  notifications     Notification[]
+  preferences       NotificationPreference[]
+
+  @@map("employees")
+}
+
+enum Role {
+  EMPLOYEE
+  SUPERVISOR
+  MANAGER
+  COMPLIANCE_OFFICER
+  ADMIN
+}
+
+// ─── Qualifications ─────────────────────────────────────
+
+model Qualification {
+  id                String              @id @default(uuid())
+  employeeId        String
+  employee          Employee            @relation(fields: [employeeId], references: [id])
+  standardId        String
+  standard          ComplianceStandard  @relation(fields: [standardId], references: [id])
+  certificationName String
+  issuingBody       String
+  issueDate         DateTime
+  expirationDate    DateTime?
+  status            QualificationStatus @default(PENDING_REVIEW)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  documents QualificationDocument[]
+
+  @@index([employeeId])
+  @@index([standardId])
+  @@index([status])
+  @@map("qualifications")
+}
+
+model QualificationDocument {
+  qualificationId String
+  qualification   Qualification @relation(fields: [qualificationId], references: [id])
+  documentId      String
+  document        Document      @relation(fields: [documentId], references: [id])
+
+  @@id([qualificationId, documentId])
+  @@map("qualification_documents")
+}
+
+enum QualificationStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  PENDING_REVIEW
+  SUSPENDED
+}
+
+// ─── Hours ──────────────────────────────────────────────
+
+model HourRecord {
+  id                    String     @id @default(uuid())
+  employeeId            String
+  employee              Employee   @relation(fields: [employeeId], references: [id])
+  source                HourSource
+  date                  DateTime   @db.Date
+  hours                 Decimal    @db.Decimal(5, 2)
+  qualificationCategory String
+  description           String     @default("")
+  labelId               String?
+  label                 Label?     @relation(fields: [labelId], references: [id])
+  verifiedBy            String?
+  verifiedAt            DateTime?
+  isDeleted             Boolean    @default(false)
+  deletedReason         String?
+  createdAt             DateTime   @default(now())
+
+  conflicts HourConflictRecord[]
+
+  @@index([employeeId, date])
+  @@index([source])
+  @@map("hour_records")
+}
+
+enum HourSource {
+  CLOCK_IN_OUT
+  TIMESHEET_IMPORT
+  JOB_TICKET_SYNC
+  CALENDAR_SYNC
+  MANUAL_ENTRY
+}
+
+model HourConflict {
+  id               String           @id @default(uuid())
+  conflictType     ConflictType
+  status           ConflictStatus   @default(PENDING)
+  resolutionMethod ResolutionMethod?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  attestation      String?
+  reason           String?
+  createdAt        DateTime         @default(now())
+
+  records HourConflictRecord[]
+
+  @@index([status])
+  @@map("hour_conflicts")
+}
+
+model HourConflictRecord {
+  conflictId String
+  conflict   HourConflict @relation(fields: [conflictId], references: [id])
+  recordId   String
+  record     HourRecord   @relation(fields: [recordId], references: [id])
+
+  @@id([conflictId, recordId])
+  @@map("hour_conflict_records")
+}
+
+enum ConflictType {
+  DUPLICATE
+  MISMATCH
+}
+
+enum ConflictStatus {
+  PENDING
+  RESOLVED
+}
+
+enum ResolutionMethod {
+  PRECEDENCE
+  OVERRIDE
+  MERGE
+}
+
+// ─── Labels / Taxonomy ──────────────────────────────────
+
+model Label {
+  id             String      @id @default(uuid())
+  code           String      @unique
+  name           String
+  description    String      @default("")
+  status         LabelStatus @default(ACTIVE)
+  effectiveDate  DateTime
+  retirementDate DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  mappings    LabelMapping[]
+  hourRecords HourRecord[]
+
+  @@map("labels")
+}
+
+enum LabelStatus {
+  ACTIVE
+  DEPRECATED
+}
+
+model LabelMapping {
+  id            String   @id @default(uuid())
+  labelId       String
+  label         Label    @relation(fields: [labelId], references: [id])
+  hourCategory  String
+  version       Int
+  effectiveDate DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([labelId, version])
+  @@map("label_mappings")
+}
+
+model TaxonomyVersion {
+  id             String   @id @default(uuid())
+  versionNumber  Int      @unique
+  changeLog      String
+  migrationRules Json     @default("{}")
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("taxonomy_versions")
+}
+
+// ─── Documents & AI Processing ──────────────────────────
+
+model Document {
+  id                 String         @id @default(uuid())
+  employeeId         String
+  employee           Employee       @relation(fields: [employeeId], references: [id])
+  fileName           String
+  mimeType           String
+  storageKey         String
+  status             DocumentStatus @default(UPLOADED)
+  classifiedType     String?
+  detectedExpiration DateTime?
+  uploadedBy         String
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  processingSteps   DocumentProcessing[]
+  extractionResults ExtractionResult[]
+  reviewQueueItems  ReviewQueueItem[]
+  qualifications    QualificationDocument[]
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("documents")
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  CLASSIFIED
+  REVIEW_REQUIRED
+  APPROVED
+  REJECTED
+}
+
+model DocumentProcessing {
+  id             String           @id @default(uuid())
+  documentId     String
+  document       Document         @relation(fields: [documentId], references: [id])
+  processingStep ProcessingStep
+  status         ProcessingStatus @default(PENDING)
+  processor      String
+  startedAt      DateTime?
+  completedAt    DateTime?
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+
+  @@index([documentId])
+  @@map("document_processing")
+}
+
+enum ProcessingStep {
+  OCR
+  CLASSIFICATION
+  EXTRACTION
+  EXPIRATION_DETECTION
+  STANDARDS_MATCHING
+}
+
+enum ProcessingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ExtractionResult {
+  id             String    @id @default(uuid())
+  documentId     String
+  document       Document  @relation(fields: [documentId], references: [id])
+  field          String
+  extractedValue String
+  confidence     Int
+  suggestedValue String?
+  correctedValue String?
+  correctedBy    String?
+  correctedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([documentId])
+  @@map("extraction_results")
+}
+
+model ReviewQueueItem {
+  id                    String       @id @default(uuid())
+  documentId            String
+  document              Document     @relation(fields: [documentId], references: [id])
+  status                ReviewStatus @default(PENDING)
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  approvalNotes         String?
+  linkedQualificationId String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([status])
+  @@map("review_queue")
+}
+
+enum ReviewStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+}
+
+// ─── Medical Clearance ──────────────────────────────────
+
+model MedicalClearance {
+  id                 String                 @id @default(uuid())
+  employeeId         String
+  employee           Employee               @relation(fields: [employeeId], references: [id])
+  clearanceType      String
+  status             MedicalClearanceStatus @default(PENDING)
+  effectiveDate      DateTime
+  expirationDate     DateTime?
+  visualAcuityResult String?
+  colorVisionResult  String?
+  issuedBy           String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("medical_clearances")
+}
+
+enum MedicalClearanceStatus {
+  CLEARED
+  PENDING
+  RESTRICTED
+  EXPIRED
+}
+
+// ─── Compliance Standards ───────────────────────────────
+
+model ComplianceStandard {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String   @default("")
+  issuingBody String
+  version     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requirements   StandardRequirement[]
+  qualifications Qualification[]
+
+  @@map("compliance_standards")
+}
+
+model StandardRequirement {
+  id                          String             @id @default(uuid())
+  standardId                  String
+  standard                    ComplianceStandard @relation(fields: [standardId], references: [id])
+  category                    String
+  description                 String
+  minimumHours                Decimal?           @db.Decimal(7, 2)
+  recertificationPeriodMonths Int?
+  requiredTests               String[]
+
+  @@index([standardId])
+  @@map("standard_requirements")
+}
+
+// ─── Audit Trail ────────────────────────────────────────
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  action        String
+  entityType    String
+  recordId      String
+  changedFields Json?
+  actor         String
+  reason        String?
+  attestation   String?
+  timestamp     DateTime @default(now())
+
+  @@index([entityType, recordId])
+  @@index([actor])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ─── Notifications ──────────────────────────────────────
+
+model Notification {
+  id              String             @id @default(uuid())
+  userId          String
+  user            Employee           @relation(fields: [userId], references: [id])
+  type            String
+  title           String
+  message         String
+  actionUrl       String?
+  status          NotificationStatus @default(SENT)
+  deliveryChannel String
+  createdAt       DateTime           @default(now())
+  readAt          DateTime?
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationStatus {
+  SENT
+  READ
+  DISMISSED
+}
+
+model NotificationPreference {
+  id               String   @id @default(uuid())
+  userId           String
+  user             Employee @relation(fields: [userId], references: [id])
+  notificationType String
+  channels         String[]
+  isEnabled        Boolean  @default(true)
+  frequency        String   @default("immediate")
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, notificationType])
+  @@map("notification_preferences")
+}
+
+model EscalationRule {
+  id              String   @id @default(uuid())
+  trigger         String
+  delayHours      Int
+  escalateToRole  String
+  maxEscalations  Int      @default(3)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("escalation_rules")
+}

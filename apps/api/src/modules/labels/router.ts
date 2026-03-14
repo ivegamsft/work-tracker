@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { labelService } from "./service";
 import {
@@ -13,7 +13,7 @@ import {
 
 const router = Router();
 
-router.post("/admin/labels", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
+router.post("/admin", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
   try {
     const input = createLabelSchema.parse(req.body);
     const label = await labelService.createLabel(input);
@@ -21,7 +21,7 @@ router.post("/admin/labels", authenticate, requireRole(Roles.ADMIN), async (req:
   } catch (err) { next(err); }
 });
 
-router.put("/admin/labels/:id", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
+router.put("/admin/:id", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
   try {
     const input = updateLabelSchema.parse(req.body);
     const label = await labelService.updateLabel(param(req, "id"), input);
@@ -29,7 +29,7 @@ router.put("/admin/labels/:id", authenticate, requireRole(Roles.ADMIN), async (r
   } catch (err) { next(err); }
 });
 
-router.post("/admin/labels/:id/deprecate", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
+router.post("/admin/:id/deprecate", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
   try {
     const input = deprecateLabelSchema.parse(req.body);
     const label = await labelService.deprecateLabel(param(req, "id"), input);
@@ -37,14 +37,14 @@ router.post("/admin/labels/:id/deprecate", authenticate, requireRole(Roles.ADMIN
   } catch (err) { next(err); }
 });
 
-router.get("/labels/versions", authenticate, async (_req: AuthenticatedRequest, res, next) => {
+router.get("/versions", authenticate, async (_req: AuthenticatedRequest, res, next) => {
   try {
     const versions = await labelService.listVersions();
     res.json(versions);
   } catch (err) { next(err); }
 });
 
-router.post("/admin/label-mappings", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
+router.post("/mappings", authenticate, requireRole(Roles.ADMIN), async (req: AuthenticatedRequest, res, next) => {
   try {
     const input = createLabelMappingSchema.parse(req.body);
     const mapping = await labelService.createMapping(input);
@@ -52,7 +52,7 @@ router.post("/admin/label-mappings", authenticate, requireRole(Roles.ADMIN), asy
   } catch (err) { next(err); }
 });
 
-router.get("/labels/resolve", authenticate, async (req: AuthenticatedRequest, res, next) => {
+router.get("/resolve", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const query = resolveLabelQuery.parse(req.query);
     const mapping = await labelService.resolveLabel(query.label, query.version);
@@ -60,7 +60,7 @@ router.get("/labels/resolve", authenticate, async (req: AuthenticatedRequest, re
   } catch (err) { next(err); }
 });
 
-router.get("/labels/audit/:id", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+router.get("/audit/:id", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
   try {
     const trail = await labelService.getAuditTrail(param(req, "id"));
     res.json(trail);

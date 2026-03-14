@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { medicalService } from "./service";
 import { createMedicalClearanceSchema, updateMedicalClearanceSchema } from "./validators";

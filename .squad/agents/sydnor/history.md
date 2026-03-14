@@ -16,6 +16,9 @@
 - **Error handling is solid** — custom error classes (`AppError`, `UnauthorizedError`, `ForbiddenError`) exist and are properly structured for testing. Middleware error handler is straightforward to test.
 - **Prisma schema is rich and testable** — 16 models with clear enums and relationships. Factories can leverage this (e.g., `QualificationStatus.EXPIRED` is explicit). SQLite factories will be simpler than mocking.
 - **RBAC boundaries are critical** — 5-role hierarchy is strict and must be tested exhaustively. Every endpoint needs 3 test variations (unauthenticated, wrong role, correct role).
+- **Vitest now works from the workspace root** — the monorepo has a root-level Vitest harness with V8 coverage, API test setup, and supertest-based smoke coverage.
+- **API tests should build the app in-process** — the safest harness pattern is a shared `createTestApp()` helper that mirrors the Express middleware/router stack without binding a real port.
+- **Current validation baseline** — the API TypeScript build succeeds and the new Vitest smoke suite passes; existing ESLint errors in API source remain a separate pre-existing issue.
 
 ## Important Status: PRDs Available
 

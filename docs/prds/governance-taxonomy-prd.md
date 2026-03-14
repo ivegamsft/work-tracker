@@ -107,11 +107,11 @@
 ## 3. Labels module
 ### What exists today
 **Endpoints (`apps/api/src/modules/labels/router.ts`)**
-- `POST /api/admin/labels`
-- `PUT /api/admin/labels/:id`
-- `POST /api/admin/labels/:id/deprecate`
+- `POST /api/labels/admin`
+- `PUT /api/labels/admin/:id`
+- `POST /api/labels/admin/:id/deprecate`
 - `GET /api/labels/versions`
-- `POST /api/admin/label-mappings`
+- `POST /api/labels/mappings`
 - `GET /api/labels/resolve`
 - `GET /api/labels/audit/:id`
 

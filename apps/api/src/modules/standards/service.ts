@@ -1,4 +1,4 @@
-import { ComplianceStandard, StandardRequirement } from "../../common/types";
+import { ComplianceStandard, StandardRequirement } from "@e-clat/shared";
 import { CreateStandardInput, UpdateStandardInput, CreateRequirementInput, UpdateRequirementInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { qualificationsService } from "./service";
 import { createQualificationSchema, updateQualificationSchema, qualificationQuerySchema } from "./validators";

@@ -3,7 +3,7 @@ import {
   ExtractionResult,
   ReviewQueueItem,
   AuditLog,
-} from "../../common/types";
+} from "@e-clat/shared";
 import { UploadDocumentInput, ReviewDocumentInput, CorrectExtractionInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

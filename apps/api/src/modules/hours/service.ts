@@ -1,4 +1,4 @@
-import { HourRecord, HourConflict, AuditLog } from "../../common/types";
+import { HourRecord, HourConflict, AuditLog } from "@e-clat/shared";
 import {
   ClockInInput,
   ClockOutInput,

@@ -10,6 +10,7 @@
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- **MVP product scope is locked (2026-03-14):** 8 open questions from the implementation plan were answered with sensible defaults (Q1: Qualifications+Medical no Hours; Q2: Manual entry no OCR; Q3: documents deferred to Phase 2 as upload+review; Q4: department stays opaque string; Q5: overallStatus is 3-state deterministic rule with 30-day warning; Q6: requiredTests informational only; Q7: single-org no tenancy; Q8: in-app notifications only). All decisions minimize Phase 0/1 scope, avoid architectural debt, and are reversible in Phase 2+. Decisions written to `.squad/decisions/inbox/freamon-mvp-defaults.md` for team ratification.
 - The backend is a contract-first skeleton: routers and Zod validators are broadly complete across 9 modules, but service methods still return `NOT_IMPLEMENTED`, so the schema and route layer are the real source of truth for current-state PRD work.
 - `data/prisma/schema.prisma` is the architectural center of gravity; it already models compliance evidence, audit logs, taxonomy versioning, notifications, and workforce readiness relationships even though the API does not use Prisma yet.
 - Cross-cutting gaps that must be handled consistently across modules: real JWT verification in `apps/api/src/middleware/auth.ts`, ownership-aware RBAC on read endpoints, and mandatory audit-log persistence for every regulated mutation.

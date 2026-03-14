@@ -1,4 +1,4 @@
-import { Employee } from "../../common/types";
+import { Employee } from "@e-clat/shared";
 import { CreateEmployeeInput, UpdateEmployeeInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

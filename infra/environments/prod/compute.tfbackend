@@ -1,0 +1,4 @@
+resource_group_name  = "eclat-prod-tfstate-rg"
+storage_account_name = "eclattfstateprod"
+container_name       = "tfstate"
+key                  = "compute.tfstate"

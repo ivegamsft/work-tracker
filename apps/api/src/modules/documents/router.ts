@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { documentsService } from "./service";
 import {
@@ -19,6 +19,15 @@ router.post("/upload", authenticate, async (req: AuthenticatedRequest, res, next
     // File buffer would come from multer or similar middleware
     const doc = await documentsService.upload(input, Buffer.alloc(0), req.user!.id);
     res.status(201).json(doc);
+  } catch (err) { next(err); }
+});
+
+// GET /api/documents/review-queue
+router.get("/review-queue", authenticate, requireMinRole(Roles.MANAGER), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const query = documentQuerySchema.parse(req.query);
+    const result = await documentsService.listReviewQueue(query.page, query.limit);
+    res.json(result);
   } catch (err) { next(err); }
 });
 
@@ -53,15 +62,6 @@ router.post("/:id/review", authenticate, requireMinRole(Roles.MANAGER), async (r
     const input = reviewDocumentSchema.parse(req.body);
     const item = await documentsService.reviewDocument(param(req, "id"), input, req.user!.id);
     res.json(item);
-  } catch (err) { next(err); }
-});
-
-// GET /api/documents/review-queue
-router.get("/review-queue", authenticate, requireMinRole(Roles.MANAGER), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const query = documentQuerySchema.parse(req.query);
-    const result = await documentsService.listReviewQueue(query.page, query.limit);
-    res.json(result);
   } catch (err) { next(err); }
 });
 

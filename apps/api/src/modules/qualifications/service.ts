@@ -1,4 +1,4 @@
-import { Qualification, AuditLog } from "../../common/types";
+import { Qualification, AuditLog } from "@e-clat/shared";
 import { CreateQualificationInput, UpdateQualificationInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

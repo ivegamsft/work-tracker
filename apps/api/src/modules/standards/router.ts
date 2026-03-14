@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "../../common/types";
+import { Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { standardsService } from "./service";
 import {

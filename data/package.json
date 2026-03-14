@@ -1,0 +1,24 @@
+{
+  "name": "@e-clat/data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E-CLAT data tier — Prisma schema, migrations, seeds",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "ts-node src/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "@e-clat/shared": "file:../packages/shared"
+  },
+  "devDependencies": {
+    "prisma": "^6.9.0",
+    "typescript": "^5.9.3",
+    "ts-node": "^10.9.2",
+    "@types/node": "^25.5.0"
+  }
+}

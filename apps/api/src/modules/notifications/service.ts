@@ -1,4 +1,4 @@
-import { Notification, NotificationPreference, EscalationRule } from "../../common/types";
+import { Notification, NotificationPreference, EscalationRule } from "@e-clat/shared";
 import { SetPreferencesInput, CreateEscalationRuleInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

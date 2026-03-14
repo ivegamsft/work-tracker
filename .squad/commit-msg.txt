@@ -1,9 +1,6 @@
-Record infrastructure layer restructuring and decisions
+chore(.squad): capture secret definition directive
 
-Added orchestration logs for Freamon (architecture) and Bunk (implementation),
-session log documenting the 3-layer Terraform split (00-foundation, 10-data,
-20-compute), and merged infrastructure decisions into the canonical decisions.md.
-
-Updated Freamon and Bunk agent histories with infra layer knowledge.
+Secrets = passwords, tenant IDs, subscription IDs, usernames.
+Well-known public GUIDs are OK. All else uses tokens/references.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

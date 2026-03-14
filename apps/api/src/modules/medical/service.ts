@@ -1,4 +1,4 @@
-import { MedicalClearance, AuditLog } from "../../common/types";
+import { MedicalClearance, AuditLog } from "@e-clat/shared";
 import { CreateMedicalClearanceInput, UpdateMedicalClearanceInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

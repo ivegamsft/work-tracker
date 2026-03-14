@@ -1,4 +1,4 @@
-import { Label, LabelMapping, TaxonomyVersion, AuditLog } from "../../common/types";
+import { Label, LabelMapping, TaxonomyVersion, AuditLog } from "@e-clat/shared";
 import { CreateLabelInput, UpdateLabelInput, DeprecateLabelInput, CreateLabelMappingInput } from "./validators";
 import { notImplemented } from "../../common/utils";
 

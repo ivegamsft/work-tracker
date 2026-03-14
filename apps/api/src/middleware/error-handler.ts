@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../common/errors";
+import { AppError } from "@e-clat/shared";
 import { logger } from "../common/utils";
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {

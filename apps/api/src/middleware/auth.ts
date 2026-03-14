@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { UnauthorizedError, ForbiddenError } from "../common/errors";
-import { Role, RoleHierarchy } from "../common/types";
+import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import { UnauthorizedError, ForbiddenError, Role, RoleHierarchy } from "@e-clat/shared";
+import { verifyAccessToken } from "../modules/auth/tokens";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -10,19 +11,31 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-// Placeholder: replace with real JWT verification
 export function authenticate(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     return next(new UnauthorizedError());
   }
 
-  // TODO: verify JWT token and attach user
-  // const token = authHeader.split(" ")[1];
-  // const decoded = jwt.verify(token, env.JWT_SECRET);
-  // req.user = decoded;
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (!token) {
+    return next(new UnauthorizedError());
+  }
 
-  next();
+  try {
+    req.user = verifyAccessToken(token);
+    next();
+  } catch (error) {
+    if (error instanceof TokenExpiredError) {
+      return next(new UnauthorizedError("Token expired"));
+    }
+
+    if (error instanceof JsonWebTokenError || error instanceof UnauthorizedError) {
+      return next(new UnauthorizedError("Invalid or expired token"));
+    }
+
+    next(error as Error);
+  }
 }
 
 export function requireRole(...allowedRoles: Role[]) {

@@ -1,0 +1,139 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  TF_IN_AUTOMATION: "true"
+  AZURE_CLIENT_ID: ${{ inputs.environment == 'dev' && secrets.AZURE_CLIENT_ID_DEV || inputs.environment == 'staging' && secrets.AZURE_CLIENT_ID_STAGING || secrets.AZURE_CLIENT_ID_PROD }}
+  AZURE_TENANT_ID: ${{ inputs.environment == 'dev' && secrets.AZURE_TENANT_ID_DEV || inputs.environment == 'staging' && secrets.AZURE_TENANT_ID_STAGING || secrets.AZURE_TENANT_ID_PROD }}
+  AZURE_SUBSCRIPTION_ID: ${{ inputs.environment == 'dev' && secrets.AZURE_SUBSCRIPTION_ID_DEV || inputs.environment == 'staging' && secrets.AZURE_SUBSCRIPTION_ID_STAGING || secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+
+jobs:
+  foundation:
+    name: Deploy foundation (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform init
+        working-directory: infra/layers/00-foundation
+        run: terraform init -input=false -backend-config="../../environments/${{ inputs.environment }}/foundation.tfbackend"
+      - name: Terraform plan
+        working-directory: infra/layers/00-foundation
+        run: terraform plan -input=false -out=tfplan -var-file="../../environments/${{ inputs.environment }}/foundation.tfvars"
+      - name: Terraform apply
+        working-directory: infra/layers/00-foundation
+        run: terraform apply -input=false -auto-approve tfplan
+
+  data:
+    name: Deploy data (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: foundation
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform init
+        working-directory: infra/layers/10-data
+        run: terraform init -input=false -backend-config="../../environments/${{ inputs.environment }}/data.tfbackend"
+      - name: Terraform plan
+        working-directory: infra/layers/10-data
+        run: terraform plan -input=false -out=tfplan -var-file="../../environments/${{ inputs.environment }}/data.tfvars"
+      - name: Terraform apply
+        working-directory: infra/layers/10-data
+        run: terraform apply -input=false -auto-approve tfplan
+
+  compute:
+    name: Deploy compute (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: data
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      api_app_name: ${{ steps.capture.outputs.api_app_name }}
+      api_url: ${{ steps.capture.outputs.api_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform init
+        working-directory: infra/layers/20-compute
+        run: terraform init -input=false -backend-config="../../environments/${{ inputs.environment }}/compute.tfbackend"
+      - name: Terraform plan
+        working-directory: infra/layers/20-compute
+        run: terraform plan -input=false -out=tfplan -var-file="../../environments/${{ inputs.environment }}/compute.tfvars"
+      - name: Terraform apply
+        working-directory: infra/layers/20-compute
+        run: terraform apply -input=false -auto-approve tfplan
+      - name: Capture compute outputs
+        id: capture
+        working-directory: infra/layers/20-compute
+        run: |
+          echo "api_app_name=$(terraform output -raw api_app_name)" >> "$GITHUB_OUTPUT"
+          echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+
+  deploy-api:
+    name: Deploy API (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: compute
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build API
+        run: npm run build -w @e-clat/api
+      - name: Package deployable artifact
+        run: zip -r api-package.zip package.json package-lock.json apps/api packages/shared
+      - name: Deploy API artifact
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.compute.outputs.api_app_name }}
+          package: api-package.zip
+      - name: Deployment summary
+        run: echo "API deployed to ${{ needs.compute.outputs.api_url }}"

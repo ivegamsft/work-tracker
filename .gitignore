@@ -4,28 +4,61 @@ node_modules/
 # Build output
 dist/
 
+# TypeScript
+*.tsbuildinfo
+*.d.ts.map
+
 # Environment
 .env
 .env.local
 .env.*.local
+data/.env*
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+.eslintcache
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Test coverage
+# Test coverage and test artifacts
 coverage/
+.jest-cache/
+.vitest/
 
-# Logs
+# Logs and debug files
 *.log
 logs/
+npm-debug.log*
+*.pid
+*.pid.lock
 
 # Temp
 tmp/
 temp/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+!*.terraform.lock.hcl
+
+# Docker (local overrides may contain secrets)
+docker-compose.override.yml
+.docker/
+
+# Prisma
+data/prisma/migrations/**/migration_lock.toml
+
+# Squad: ignore runtime state (logs, inbox, sessions)
+.squad/orchestration-log/
+.squad/log/
+.squad/decisions/inbox/
+.squad/sessions/
+# Squad: SubSquad activation file (local to this machine)
+.squad-workstream
