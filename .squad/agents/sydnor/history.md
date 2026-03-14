@@ -20,6 +20,13 @@
 - **API tests should build the app in-process** — the safest harness pattern is a shared `createTestApp()` helper that mirrors the Express middleware/router stack without binding a real port.
 - **Current validation baseline** — the API TypeScript build succeeds and the new Vitest smoke suite passes; existing ESLint errors in API source remain a separate pre-existing issue.
 
+### Docker Stack Available for Test Integration (2026-03-14T20:46:38Z)
+
+Local Docker stack fully operational: API :3000, PostgreSQL :5432, Azurite :10000. JWT auth verified (login endpoint returns tokens, protected endpoints enforce 401). Test factories for core models (Employee, Qualification, Document, Medical) should integrate with live PostgreSQL container for Phase 1 integration tests. See `.squad/orchestration-log/2026-03-14T20-46-38Z-coordinator.md` for validation details.
+
+**Next:** Implement factories alongside Phase 1 services; use container Postgres for local test runs.
+
+
 ### Phase 0 Complete: MVP Scope + Test Harness Ready (2026-03-14T20:05:00Z)
 
 📌 **Sydnor delivered test harness with 10 passing tests (health, auth middleware, auth service, routing). Freamon locked MVP scope; Bunk now owns Phase 0 blocking implementation.**

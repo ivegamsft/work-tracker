@@ -293,6 +293,44 @@
 
 ---
 
+### Terraform ACA Migration (2026-03-14)
+
+**Owner:** Bunk  
+**Context:** Platform is moving from App Service to Azure Container Apps. Infrastructure must add registry and observability, shift Key Vault to RBAC, and update compute to deploy containers.
+
+**Decision:**
+- Add Azure Container Registry, Log Analytics workspace, and ACR pull user-assigned identity to `00-foundation`
+- Enable Key Vault RBAC; grant deployment identity `Key Vault Secrets Officer`
+- Replace App Service resources in `20-compute` with Container App Environment and API Container App
+- Use system-assigned managed identity for runtime RBAC (Key Vault secrets, storage access)
+- Use user-assigned managed identity for ACR image pulls
+- Pass Key Vault secret names (`DATABASE_URL_SECRET_NAME`, `JWT_SECRET_SECRET_NAME`) into container for runtime Key Vault resolution
+
+**Consequences:**
+- Downstream consumers must update foundation and compute outputs
+- App Service-specific settings removed
+- Runtime secret access now RBAC-only
+- Container image lifecycle independent from infrastructure (image builds on CI, infra on merge)
+
+---
+
+### Workspace Runtime Artifacts (2026-03-14)
+
+**Owner:** Bunk  
+**Context:** Workspace packages consumed by the API at runtime must support container execution (compiled JavaScript only, no TypeScript).
+
+**Decision:**
+- Workspace packages that are runtime dependencies publish compiled `dist/` artifacts
+- Update `main` and `types` fields in `package.json` to point to build outputs
+- Docker builds clear stale TypeScript build-info before re-emitting `dist/` when `dist/` excluded from build context
+
+**Consequences:**
+- Shared workspace packages need a real build step (npm run build)
+- Runtime images are production-only: compiled JS + package metadata + node_modules
+- Container resolution depends on pre-built workspace artifacts (ships with image, not source)
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

@@ -154,3 +154,10 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - API configuration now initializes asynchronously: load `.env` first, then hydrate missing runtime secrets from Key Vault only when `KEY_VAULT_URI` and secret-name settings are present.
 - Container runtime depends on compiled workspace artifacts, so shared packages consumed by the API need `dist/` entrypoints in package metadata instead of source-file entrypoints.
 - Docker builds need to clear stale TypeScript build-info for shared workspace packages before rebuilding when `dist/` is excluded from the image build context.
+
+### Container-First Architecture Complete (2026-03-14T20:46:38Z)
+
+**Docker stack fully operational locally.** All three containers (API :3000, Postgres :5432, Azurite :10000) healthy. Auth login returns JWT; protected endpoints enforce 401. Terraform compute pivoted to Container Apps with managed identities. See `.squad/orchestration-log/2026-03-14T20-46-38Z-bunk.md` for full delivery summary.
+
+**Status:** Phase 0 Docker + Terraform complete. Phase 1 opens once Sydnor's test factories are confirmed.
+
