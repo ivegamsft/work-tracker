@@ -30,3 +30,26 @@
 - The current infra contract has five exported-but-unconsumed layer outputs (`resource_group_id`, `postgres_fqdn`, `postgres_database_name`, `api_default_hostname`, `api_principal_id`) and one bootstrap/backend mismatch (`terraform.tfstate` still printed even though the real split keys are `foundation.tfstate`, `data.tfstate`, and `compute.tfstate`).
 - Layer outputs are the cross-layer Terraform contract; they should export only what downstream layers, workflows, or external systems actually consume. Speculative future outputs and module implementation details (like the API's internal principal ID) belong in the module, not the layer root. All five dead outputs were pruned on 2026-03-14.
 - The container-first target architecture is Azure Container Apps for hosting, ACR in `00-foundation`, and a Log Analytics-backed ACA Environment in `20-compute`. Keep `PORT` as the runtime listener contract, replace App Service Key Vault references with application-level Key Vault reads via `DefaultAzureCredential`, and split image build/push from Terraform infra deployment so day-to-day development stays local-first while Azure remains RBAC-driven and Private Link-capable.
+
+### Phase 0 Complete: MVP Scope + Container Architecture (2026-03-14T20:05:00Z)
+
+📌 **Freamon delivered both blocking Phase 0 decisions:**
+
+1. **MVP Product Scope (8 decisions):**
+   - Q1: Qualifications + Medical primary loop; Hours deferred Phase 2+
+   - Q2: Manual qualification/medical entry acceptable; Documents deferred Phase 2
+   - Q3: Upload + manual review only; OCR pipeline deferred indefinitely
+   - Q4: Department stays opaque string, no Department entity
+   - Q5: Three-state `overallStatus` rule (compliant/at_risk/non_compliant) with 30-day warning
+   - Q6: `requiredTests` informational only; no test subsystem
+   - Q7: Single-organization only; no tenant isolation for MVP
+   - Q8: In-app notifications only; email deferred Phase 2+
+   - **Result:** All decisions unblock Phase 0/1 without architectural debt; all are reversible post-MVP
+
+2. **Container-First Architecture:**
+   - Pivot from App Service → Azure Container Apps
+   - Layer changes: ACR + Log Analytics moved to `00-foundation`, `20-compute` replaces Web App with ACA Environment + Container App
+   - Secret handling: API reads Key Vault directly at startup via `DefaultAzureCredential` (no init containers, no Dapr, no preview features)
+   - Identity: System-assigned for runtime access, user-assigned for ACR pull, GitHub OIDC for `AcrPush`
+   - Delivery: Local Docker/Compose, PR validation only, image build on merge, separate infra/image deployment
+   - **Result:** Phase 0 complete; Bunk can now implement Phase 0 blocking work; Sydnor test harness unblocks Phase 1

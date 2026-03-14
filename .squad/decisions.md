@@ -186,6 +186,113 @@
 
 ---
 
+### MVP Default Decisions (2026-03-14)
+
+**By:** Freamon  
+**Context:** 8 open product questions from MVP plan with sensible MVP-scope defaults, reversible via API changes only.
+
+**Q1 Decision: Qualifications + Medical for first demo, without Hours**
+- Readiness calculation rule-based on qualification expiry and medical status
+- Hours can be Phase 2+ without blocking demo
+- Endpoint contract and table already exist
+
+**Q2 Decision: Manual entry acceptable for MVP, documents deferred to Phase 2**
+- MVP goal is to prove compliance tracking works, not build document pipeline
+- Documents table exists; Phase 2 adds upload/review without waiting for OCR
+- Manual entry of qualifications/medical is realistic for early workflows
+
+**Q3 Decision: Upload + manual review only, OCR pipeline deferred indefinitely**
+- OCR requires provider decision, async orchestration, failure handling — all unresolved
+- Deferring OCR removes 6–8 weeks of contingent work
+- Adding OCR later is straightforward (new service module, async queue)
+
+**Q4 Decision: Department remains opaque string, no Department entity for MVP**
+- Avoids new RBAC concern (department-scoped reads, manager relationships)
+- Employees have `department` string attribute for grouping/filtering only
+- If multi-org needed post-MVP, adding Department table is schema migration + service refactor
+
+**Q5 Decision: Three-state deterministic rule for overallStatus**
+- `compliant`: All required qualifications/medical current, no constraint violations
+- `at_risk`: One or more expire within 30 days, or constraint flagged warning-level
+- `non_compliant`: Any required qualification/medical expired OR constraint violated
+- 30-day warning standard practice; rule-based and testable
+
+**Q6 Decision: requiredTests informational only, no test subsystem**
+- `requiredTests` is string/array on Standard; system does not enforce/track results
+- Implementing test subsystem would add new domain to Phase 1 (test management, exam scheduling)
+- Phase 2+ can add Test entity and attestation workflow without breaking MVP schema
+
+**Q7 Decision: Single-organization only, no tenant isolation for MVP**
+- Codebase reads as single-org; no `tenantId` or `organizationId` columns
+- Multi-org would require schema changes, RBAC refactor, testing burden
+- Post-MVP schema migration and API routes can be updated without breaking core logic
+
+**Q8 Decision: In-app notifications only, email deferred to Phase 2+**
+- In-app (list, mark-read, dismiss) quick to implement, proves trigger/delivery pattern
+- Email requires SMTP, template management, email-specific testing
+- For first demo and MVP users, in-app-only acceptable and faster to build
+
+**All decisions unblock Phase 0 and Phase 1 without architectural debt.**
+
+---
+
+### Labels API Namespace (2026-03-14)
+
+**By:** Bunk  
+**Decision:** Namespace labels module under `/api/labels`
+
+**Details:**
+- Labels read paths grouped under `/api/labels/...`
+- Labels admin operations under `/api/labels/admin/...`
+- Label mapping creation under `/api/labels/mappings`
+- Keeps module routing explicit, avoids overlap at API root
+- Makes mount-path bugs easy to catch in tests
+
+---
+
+### Container-First Architecture for E-CLAT (2026-03-14)
+
+**By:** Freamon  
+**Decision:** Pivot from Azure App Service to **Azure Container Apps** as default runtime for local and Azure hosting.
+
+**Layer Architecture:**
+- **`00-foundation`**: Resource group, Key Vault, ACR (shared platform asset), Log Analytics workspace
+- **`10-data`**: PostgreSQL, storage account, secrets to Key Vault
+- **`20-compute`**: Replace App Service with Container Apps Environment + Container App resource
+
+**Secret Handling Pattern:**
+- API reads Key Vault secrets directly at startup using Azure SDK `DefaultAzureCredential`
+- Expected runtime inputs: `KEY_VAULT_URI`, `DATABASE_URL_SECRET_NAME`, `JWT_SECRET_SECRET_NAME`
+- Avoids init containers, Dapr, or preview Key Vault references
+- Keeps secret values in Key Vault, not Terraform outputs or CI variables
+- Supports local dev via `.env` files
+
+**Identity & RBAC:**
+- Container App system-assigned identity for Key Vault and Storage runtime access
+- User-assigned managed identity for ACR pull (image pull permissions before app revision)
+- GitHub OIDC deployment identity gets `AcrPush` on ACR
+
+**Port & Delivery:**
+- Keep existing `PORT` environment-variable contract; drop App Service-only settings
+- Local dev: Docker / Compose
+- PR workflows: code validation only
+- Merge to main: container image build/push
+- Infra deploy separate from image rollout
+- MVP: use `az containerapp update` for rollout, keep Terraform for infrastructure
+
+**Guardrails:**
+- No AKS, Dapr, multi-container decomposition, or web/admin deployment for MVP
+- Security constraints (no raw secrets, RBAC preferred, Private Link for backends)
+
+---
+
+### Container-First Hosting Directive (2026-03-14)
+
+**By:** ivegamsft (via Copilot)  
+**What:** Favor containers for local dev and Azure hosting. Use Azure Container Apps (not App Service). Ensure port overrides in code. Limit GitHub Actions builds.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

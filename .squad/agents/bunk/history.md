@@ -115,3 +115,32 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Until Prisma-backed users are wired, login uses deterministic mock users for each RBAC role and bcrypt password verification so auth flows stay testable.
 - Labels endpoints are namespaced under `/api/labels`, and the documents review queue route must stay ahead of `/:id` to avoid Express path shadowing.
 - API test helpers now build the real app and sign compatible access tokens, so route wiring and auth behavior are covered together.
+
+### Phase 0 Complete: MVP Product Scope Locked (2026-03-14T20:05:00Z)
+
+📌 **Freamon delivered MVP scope defaults; Bunk now owns Phase 0 blocking implementation.**
+
+**MVP Scope Summary (8 decisions):**
+- Core loop: Qualifications + Medical primary compliance loop (no Hours for MVP)
+- Documents deferred to Phase 2 as manual upload + review only (no OCR)
+- Department stays opaque string; no Department entity; single-org only
+- `overallStatus` is deterministic 3-state rule (compliant/at_risk/non_compliant) with 30-day warning
+- `requiredTests` is informational only on Standard; no test tracking subsystem
+- In-app notifications only; email delivery deferred Phase 2+
+- All decisions unblock Phase 0/1 and are reversible post-MVP
+
+**Container-First Architecture also locked:**
+- Moving from App Service to Azure Container Apps
+- ACR + Log Analytics in `00-foundation`; Container Apps in `20-compute`
+- Runtime reads Key Vault secrets directly (no init containers, no Dapr)
+- Local-first Docker/Compose; image build on merge; separate infra deployment
+
+**Your Phase 0 implementation targets:**
+1. JWT tokens module (`apps/api/src/modules/auth/tokens.ts`) — signing + verification
+2. Mock user store — deterministic users per RBAC role with bcrypt passwords
+3. Labels routing: namespace under `/api/labels`, fix document route ordering
+4. Auth middleware verification (real JWT checks, not placeholder)
+5. Updated tests to validate routes + auth behavior
+6. Coordinate with Sydnor on test factories and mock Prisma
+
+**Phase 1 opens once Sydnor's test harness is confirmed and Bunk's Phase 0 work is tested.**

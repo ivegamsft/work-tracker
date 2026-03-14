@@ -20,6 +20,30 @@
 - **API tests should build the app in-process** — the safest harness pattern is a shared `createTestApp()` helper that mirrors the Express middleware/router stack without binding a real port.
 - **Current validation baseline** — the API TypeScript build succeeds and the new Vitest smoke suite passes; existing ESLint errors in API source remain a separate pre-existing issue.
 
+### Phase 0 Complete: MVP Scope + Test Harness Ready (2026-03-14T20:05:00Z)
+
+📌 **Sydnor delivered test harness with 10 passing tests (health, auth middleware, auth service, routing). Freamon locked MVP scope; Bunk now owns Phase 0 blocking implementation.**
+
+**Test harness status:**
+- Vitest configured at root with V8 coverage, Node environment, path aliases
+- 10 passing tests validate: Express app creation, auth middleware behavior, auth service mock, routing structure
+- Test database choice ready for phase 1 (SQLite in-memory for dev + factories, PostgreSQL container for CI)
+- Auth mocking pattern established (mock token generation, deterministic test users)
+
+**MVP Scope (Freamon's 8 decisions):**
+- Core loop: Qualifications + Medical (no Hours for MVP)
+- Documents deferred Phase 2 (no OCR)
+- Department opaque string; single-org
+- `overallStatus` 3-state rule with 30-day warning
+- In-app notifications only; email deferred
+- All decisions unblock Phase 0/1 without debt
+
+**Next phase (Phase 1 service implementation):**
+- Bunk will implement Phase 0 blocking: JWT tokens, labels routing, mock user store, auth middleware verification
+- Once Bunk's work is tested, Phase 1 opens: Prisma integration, core domain services (Employees, Standards, Qualifications, Medical)
+- Factories for core models (Employee, Qualification, Document, MedicalClearance) should be built alongside Phase 1 services
+- Coverage targets: 80% endpoints, 95% business logic, 100% middleware
+
 ## Important Status: PRDs Available
 
 📌 **As of 2026-03-13T17:10:00Z**, comprehensive PRDs for E-CLAT are now available in `docs/prds/`:

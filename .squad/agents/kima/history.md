@@ -58,3 +58,42 @@ See `.squad/orchestration-log/2026-03-13T17-10-freamon.md` for details. Read PRD
 - Freamon is sequencing phases; check `.squad/decisions.md` for phase transitions
 
 See `.squad/decisions.md` for full MVP sequencing and test infrastructure requirements.
+
+### Phase 0 Complete: MVP Scope Locked; Phase 1 Ready (2026-03-14T20:05:00Z)
+
+📌 **Freamon locked MVP product scope and container-first architecture; Sydnor delivered test harness; Bunk implementing Phase 0 blocking work. Phase 1 opens for Kima's frontend work once Bunk's Phase 0 is complete and tested.**
+
+**MVP Scope Decisions (8 locked):**
+- Core loop: Qualifications + Medical (no Hours)
+- Documents deferred Phase 2 (manual upload + review, no OCR)
+- Department opaque string; single-org
+- `overallStatus` 3-state rule (compliant/at_risk/non_compliant) with 30-day warning
+- `requiredTests` informational; no test subsystem
+- In-app notifications; email deferred
+- **Result:** Phase 0/1 unblocked; all reversible post-MVP
+
+**Container-First Architecture:**
+- Azure Container Apps (not App Service); ACR + Log Analytics in foundation
+- Runtime reads Key Vault directly; local-first Docker/Compose
+- **Result:** Infra team (Freamon) has architecture; image build/rollout separate from Terraform
+
+**Test Harness:**
+- Vitest configured, 10 passing tests (health, auth, routing)
+- Auth mocking pattern established
+- **Result:** Bunk can write Phase 0 tests; Phase 1 service tests can follow
+
+**Your Phase 1 scope (Kima - Frontend):**
+- Phase 1 opens once Bunk's Phase 0 blocking work is tested and merged
+- Start with Admin login UI (auth provider, token refresh, basic shell)
+- Work from `docs/prds/frontend-admin-prd.md`
+- Phase 2: Employee management, standards library, qualification tracking
+- Phase 3: Medical clearance workflows, notification preferences
+- Deferred: Hours workflows, document OCR, labels publishing
+
+**Team coordination:**
+- Bunk: Phase 0 blocking (JWT tokens, labels routing, mock users, auth verification)
+- Sydnor: Phase 1 factories and service-layer test patterns (core models)
+- Freamon: Infrastructure readiness, phase gating, decision updates
+- Kima: Frontend integration tests once Bunk's Phase 1 services stabilize
+
+**Blocking:** Bunk's Phase 0 work must complete and be tested before Phase 1 frontend work accelerates.
