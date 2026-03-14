@@ -191,3 +191,18 @@
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
+
+### 2026-03-14T19:43:00Z: User directives — Infrastructure & team security rules
+**By:** ivegamsft (via Copilot)
+
+**What:**
+
+1. **NO exposed connection strings.** All connection strings must go through Key Vault references — never as plain-text app settings, env vars in CI, or hardcoded values.
+2. **RBAC only.** Use Azure RBAC (managed identity role assignments) for all service-to-service auth. No access keys, no shared secrets where RBAC is available.
+3. **Private Link for non-public endpoints.** Any backend service that doesn't need public access (Postgres, Storage, Key Vault) must use Azure Private Link / private endpoints.
+4. **DO NOT check in secrets.** No secrets, tokens, passwords, or connection strings in source control — ever. Use Key Vault, GitHub Secrets, or environment-scoped config.
+5. **DO NOT expose local info in memories, commits, or decisions.** No local file paths, machine names, usernames, or environment-specific details in `.squad/` files, commit messages, or decision logs.
+6. **Tests before user verification.** Agents must write and run tests to validate their changes before presenting results to the user. Do not ask the user to verify something you haven't tested yourself.
+
+**Why:** User request — security and quality baseline for the project. These are non-negotiable rules for all team members.
+
