@@ -1,3 +1,3 @@
-environment     = "prod"
-project_name    = "eclat"
-app_service_sku = "S1"
+environment   = "prod"
+project_name  = "eclat"
+api_image_tag = "latest"

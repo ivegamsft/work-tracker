@@ -22,7 +22,7 @@
       "@e-clat/shared/*": ["../../../packages/shared/src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../../packages/shared" }

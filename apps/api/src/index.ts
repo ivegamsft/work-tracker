@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { env } from "./config/env";
+import { env, loadEnv } from "./config/env";
 import { errorHandler } from "./middleware";
 import { logger } from "./common/utils";
 import { authRouter } from "./modules/auth";
@@ -46,9 +46,19 @@ export function createApp() {
 
 const app = createApp();
 
-if (require.main === module) {
+async function startServer() {
+  await loadEnv();
+
   app.listen(env.PORT, () => {
     logger.info(`🚀 e-clat server running on port ${env.PORT} [${env.NODE_ENV}]`);
+  });
+}
+
+if (require.main === module) {
+  void startServer().catch((error: unknown) => {
+    const startupError = error instanceof Error ? error : new Error(String(error));
+    logger.error("Failed to start server", { error: startupError.message, stack: startupError.stack });
+    process.exit(1);
   });
 }
 

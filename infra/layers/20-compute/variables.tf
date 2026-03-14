@@ -14,26 +14,44 @@ variable "project_name" {
   default     = "eclat"
 }
 
-variable "app_service_sku" {
-  description = "Azure App Service Plan SKU for the API workload."
+variable "api_image_tag" {
+  description = "Container image tag for the API."
   type        = string
-  default     = "B1"
+  default     = "latest"
 }
 
-variable "node_version" {
-  description = "Node.js runtime version for the Linux Web App."
-  type        = string
-  default     = "20-lts"
+variable "container_app_target_port" {
+  description = "Container port exposed by the API container."
+  type        = number
+  default     = 8080
 }
 
-variable "app_command_line" {
-  description = "Startup command executed by the Linux Web App."
-  type        = string
-  default     = "npm run start --workspace @e-clat/api"
+variable "container_cpu" {
+  description = "CPU cores allocated per container."
+  type        = number
+  default     = 0.5
 }
 
-variable "extra_app_settings" {
-  description = "Additional application settings merged into the API web app settings."
+variable "container_memory" {
+  description = "Memory allocated per container."
+  type        = string
+  default     = "1Gi"
+}
+
+variable "min_replicas" {
+  description = "Minimum number of container replicas."
+  type        = number
+  default     = 1
+}
+
+variable "max_replicas" {
+  description = "Maximum number of container replicas."
+  type        = number
+  default     = 2
+}
+
+variable "extra_env_vars" {
+  description = "Additional environment variables merged into the API container."
   type        = map(string)
   default     = {}
 }

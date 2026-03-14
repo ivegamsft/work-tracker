@@ -165,8 +165,11 @@ Third deployable Terraform root.
 **Consumes from upstream remote state:**
 - `foundation.resource_group_name`
 - `foundation.location`
-- `foundation.key_vault_name`
 - `foundation.key_vault_uri`
+- `foundation.container_registry_id`
+- `foundation.container_registry_login_server`
+- `foundation.log_analytics_workspace_id`
+- `foundation.acr_pull_identity_id`
 - `data.postgres_connection_secret_name`
 - `data.storage_account_name`
 - `data.storage_blob_endpoint`
@@ -176,10 +179,8 @@ Third deployable Terraform root.
 - `infra\modules\compute`
 
 **Exposes:**
-- `api_app_name`
-- `api_default_hostname`
+- `api_container_app_name`
 - `api_url`
-- `api_principal_id` (or equivalent runtime identity output)
 - Later, optional `web_url` and `admin_url` when those workloads exist
 
 **Notes:**

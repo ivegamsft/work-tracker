@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "location" {
-  description = "Azure region for the App Service resources."
+  description = "Azure region for Container Apps resources."
   type        = string
 }
 
@@ -26,11 +26,6 @@ variable "project_name" {
 
 variable "key_vault_id" {
   description = "Key Vault resource ID used for runtime secrets."
-  type        = string
-}
-
-variable "key_vault_name" {
-  description = "Key Vault name used for App Service Key Vault references."
   type        = string
 }
 
@@ -59,26 +54,70 @@ variable "documents_container_name" {
   type        = string
 }
 
-variable "app_service_sku" {
-  description = "Azure App Service Plan SKU for the API workload."
+variable "container_registry_login_server" {
+  description = "ACR login server hostname."
   type        = string
-  default     = "B1"
 }
 
-variable "node_version" {
-  description = "Node.js runtime version for the Linux Web App."
+variable "container_registry_id" {
+  description = "ACR resource ID (available for future role assignments)."
   type        = string
-  default     = "20-lts"
 }
 
-variable "app_command_line" {
-  description = "Startup command executed by the Linux Web App."
+variable "acr_pull_identity_id" {
+  description = "User-assigned managed identity ID used for ACR pulls."
   type        = string
-  default     = "npm run start --workspace @e-clat/api"
 }
 
-variable "extra_app_settings" {
-  description = "Additional application settings merged into the API web app settings."
+variable "api_image_repository" {
+  description = "Container image repository for the API."
+  type        = string
+  default     = "api"
+}
+
+variable "api_image_tag" {
+  description = "Container image tag for the API."
+  type        = string
+  default     = "latest"
+}
+
+variable "container_app_target_port" {
+  description = "Container port exposed by the API container."
+  type        = number
+  default     = 8080
+}
+
+variable "container_cpu" {
+  description = "CPU cores allocated per container."
+  type        = number
+  default     = 0.5
+}
+
+variable "container_memory" {
+  description = "Memory allocated per container."
+  type        = string
+  default     = "1Gi"
+}
+
+variable "min_replicas" {
+  description = "Minimum number of container replicas."
+  type        = number
+  default     = 1
+}
+
+variable "max_replicas" {
+  description = "Maximum number of container replicas."
+  type        = number
+  default     = 2
+}
+
+variable "log_analytics_workspace_id" {
+  description = "Log Analytics workspace ID for Container Apps."
+  type        = string
+}
+
+variable "extra_env_vars" {
+  description = "Additional environment variables merged into the API container."
   type        = map(string)
   default     = {}
 }

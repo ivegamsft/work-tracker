@@ -27,18 +27,21 @@ This document is the contract map between bootstrap, Terraform layers, GitHub Ac
 | Source Layer | Output Name | Consumer | Consumption Method | Notes |
 |-------------|-------------|----------|-------------------|-------|
 | `00-foundation` | `resource_group_name` | `10-data` → `module.database.resource_group_name`, `module.storage.resource_group_name` | `terraform_remote_state.foundation.outputs.resource_group_name` | Proxy of `module.foundation.resource_group_name` in the foundation layer. |
-| `00-foundation` | `resource_group_name` | `20-compute` → `module.compute.resource_group_name` | `terraform_remote_state.foundation.outputs.resource_group_name` | Used to place the App Service plan and Linux Web App in the environment RG. |
+| `00-foundation` | `resource_group_name` | `20-compute` → `module.compute.resource_group_name` | `terraform_remote_state.foundation.outputs.resource_group_name` | Used to place the Container App Environment and Container App in the environment RG. |
 | `00-foundation` | `location` | `10-data` → `module.database.location`, `module.storage.location` | `terraform_remote_state.foundation.outputs.location` | Single source of truth for region. |
 | `00-foundation` | `location` | `20-compute` → `module.compute.location` | `terraform_remote_state.foundation.outputs.location` | Keeps compute in same region as foundation/data. |
-| `00-foundation` | `key_vault_name` | `20-compute` → `module.compute.key_vault_name` | `terraform_remote_state.foundation.outputs.key_vault_name` | Used to build App Service Key Vault references like `@Microsoft.KeyVault(VaultName=...;SecretName=...)`. |
 | `00-foundation` | `key_vault_id` | `10-data` → `module.database.key_vault_id` | `terraform_remote_state.foundation.outputs.key_vault_id` | Data layer stores DB connection string in the shared Key Vault. |
-| `00-foundation` | `key_vault_id` | `20-compute` → `module.compute.key_vault_id` | `terraform_remote_state.foundation.outputs.key_vault_id` | Compute layer creates the JWT secret in the same Key Vault and adds web app access policy. |
+| `00-foundation` | `key_vault_id` | `20-compute` → `module.compute.key_vault_id` | `terraform_remote_state.foundation.outputs.key_vault_id` | Compute layer creates the JWT secret in the same Key Vault and assigns RBAC for runtime access. |
 | `00-foundation` | `key_vault_uri` | `20-compute` → `module.compute.key_vault_uri` | `terraform_remote_state.foundation.outputs.key_vault_uri` | Exposed again to the app as `KEY_VAULT_URI`. |
-| `10-data` | `postgres_connection_secret_name` | `20-compute` → `module.compute.postgres_connection_secret_name` | `terraform_remote_state.data.outputs.postgres_connection_secret_name` | Compute turns this secret name into the `DATABASE_URL` Key Vault reference. |
+| `00-foundation` | `container_registry_id` | `20-compute` → `module.compute.container_registry_id` | `terraform_remote_state.foundation.outputs.container_registry_id` | Registry resource ID for image pull role assignments. |
+| `00-foundation` | `container_registry_login_server` | `20-compute` → `module.compute.container_registry_login_server` | `terraform_remote_state.foundation.outputs.container_registry_login_server` | Used to configure the registry and image URL. |
+| `00-foundation` | `log_analytics_workspace_id` | `20-compute` → `module.compute.log_analytics_workspace_id` | `terraform_remote_state.foundation.outputs.log_analytics_workspace_id` | Required by the Container App Environment. |
+| `00-foundation` | `acr_pull_identity_id` | `20-compute` → `module.compute.acr_pull_identity_id` | `terraform_remote_state.foundation.outputs.acr_pull_identity_id` | User-assigned identity for ACR image pulls. |
+| `10-data` | `postgres_connection_secret_name` | `20-compute` → `module.compute.postgres_connection_secret_name` | `terraform_remote_state.data.outputs.postgres_connection_secret_name` | Compute passes this name as `DATABASE_URL_SECRET_NAME` for runtime Key Vault lookups. |
 | `10-data` | `storage_account_name` | `20-compute` → `module.compute.storage_account_name` | `terraform_remote_state.data.outputs.storage_account_name` | Surfaced to the app as plain app setting `STORAGE_ACCOUNT_NAME`. |
 | `10-data` | `storage_blob_endpoint` | `20-compute` → `module.compute.storage_blob_endpoint` | `terraform_remote_state.data.outputs.storage_blob_endpoint` | Surfaced to the app as plain app setting `STORAGE_BLOB_ENDPOINT`. |
 | `10-data` | `documents_container_name` | `20-compute` → `module.compute.documents_container_name` | `terraform_remote_state.data.outputs.documents_container_name` | Surfaced to the app as plain app setting `DOCUMENTS_CONTAINER_NAME`. |
-| `20-compute` | `api_app_name` | `.github/workflows/deploy.yml` → job `deploy-api` | `terraform output -raw api_app_name` → job output `needs.compute.outputs.api_app_name` | Proxy of `module.compute.api_app_name`; used by `azure/webapps-deploy@v3`. |
+| `20-compute` | `api_container_app_name` | `.github/workflows/deploy.yml` → job `deploy-api` | `terraform output -raw api_container_app_name` → job output `needs.compute.outputs.api_container_app_name` | Proxy of `module.compute.api_container_app_name`; used when updating the Container App image. |
 | `20-compute` | `api_url` | `.github/workflows/deploy.yml` → deployment summary | `terraform output -raw api_url` → job output `needs.compute.outputs.api_url` | Proxy of `module.compute.api_url`; currently only echoed after deployment. |
 
 ### Layer contracts by environment (dev)
@@ -47,25 +50,25 @@ This document is the contract map between bootstrap, Terraform layers, GitHub Ac
 |------|--------------|-----------|---------------|-------|
 | `00-foundation` | `infra/environments/dev/foundation.tfbackend` | `foundation.tfstate` | `infra/environments/dev/foundation.tfvars` | `environment = "dev"`, `location = "eastus2"`, `project_name = "eclat"` |
 | `10-data` | `infra/environments/dev/data.tfbackend` | `data.tfstate` | `infra/environments/dev/data.tfvars` | `db_sku = "B_Standard_B1ms"`, `database_name = "eclat"` |
-| `20-compute` | `infra/environments/dev/compute.tfbackend` | `compute.tfstate` | `infra/environments/dev/compute.tfvars` | `app_service_sku = "B1"`; no `extra_app_settings` supplied in dev. |
+| `20-compute` | `infra/environments/dev/compute.tfbackend` | `compute.tfstate` | `infra/environments/dev/compute.tfvars` | `api_image_tag = "latest"`; no `extra_env_vars` supplied in dev. |
 
 ## 2. Secret Flow Map
 
 | Secret | Origin | Storage | Consumer | Access Method |
 |--------|--------|---------|----------|--------------|
-| `DATABASE_URL` | `10-data` / `modules/database`: assembled from PostgreSQL FQDN, database name, generated admin login, and `random_password.administrator` | Azure Key Vault secret `eclat-dev-postgres-connection` (pattern: `${project_name}-${environment}-postgres-connection`) | API App Service | `20-compute` sets `DATABASE_URL = @Microsoft.KeyVault(VaultName=${key_vault_name};SecretName=${postgres_connection_secret_name})` |
+| `DATABASE_URL` | `10-data` / `modules/database`: assembled from PostgreSQL FQDN, database name, generated admin login, and `random_password.administrator` | Azure Key Vault secret `eclat-dev-postgres-connection` (pattern: `${project_name}-${environment}-postgres-connection`) | API Container App | API runtime uses `KEY_VAULT_URI` + `DATABASE_URL_SECRET_NAME` to read from Key Vault via `DefaultAzureCredential`. |
 | PostgreSQL admin password (raw) | `modules/database.random_password.administrator` | ⚠️ Not stored as a standalone secret; only embedded inside the Key Vault connection string value | PostgreSQL server creation + indirect app use via `DATABASE_URL` | Terraform uses the raw password for server creation; app only ever sees the connection string secret |
-| `JWT_SECRET` | `20-compute` / `modules/compute.random_password.jwt_secret` | Azure Key Vault secret `eclat-dev-jwt-secret` (pattern: `${project_name}-${environment}-jwt-secret`) | API App Service | `20-compute` sets `JWT_SECRET = @Microsoft.KeyVault(VaultName=${key_vault_name};SecretName=${azurerm_key_vault_secret.jwt_secret.name})` |
-| `OAUTH_CLIENT_SECRET` | ⚠️ External/manual provision | ⚠️ No storage wired in repo today | API runtime, if OAuth calendar sync is enabled | ⚠️ No production wiring; would need manual App Service setting or Key Vault-backed `extra_app_settings` |
+| `JWT_SECRET` | `20-compute` / `modules/compute.random_password.jwt_secret` | Azure Key Vault secret `eclat-dev-jwt-secret` (pattern: `${project_name}-${environment}-jwt-secret`) | API Container App | API runtime uses `KEY_VAULT_URI` + `JWT_SECRET_SECRET_NAME` to read from Key Vault via `DefaultAzureCredential`. |
+| `OAUTH_CLIENT_SECRET` | ⚠️ External/manual provision | ⚠️ No storage wired in repo today | API runtime, if OAuth calendar sync is enabled | ⚠️ No production wiring; would need manual setting or Key Vault-backed `extra_env_vars` |
 | `AWS_ACCESS_KEY_ID` | ⚠️ External/manual provision | ⚠️ No storage wired in repo today | API runtime, if AWS Textract is used | ⚠️ No production wiring |
 | `AWS_SECRET_ACCESS_KEY` | ⚠️ External/manual provision | ⚠️ No storage wired in repo today | API runtime, if AWS Textract is used | ⚠️ No production wiring |
 | `SMTP_PASS` | ⚠️ External/manual provision | ⚠️ No storage wired in repo today | API runtime, if SMTP notifications are implemented | ⚠️ No production wiring |
 
 **Key Vault access path:**
-- `00-foundation` creates the shared environment Key Vault and grants the deploying identity secret `Set/Get/List/...` rights through the inline access policy in `infra/modules/foundation/main.tf`.
+- `00-foundation` creates the shared environment Key Vault with RBAC authorization and grants the deploy identity `Key Vault Secrets Officer`.
 - `10-data` writes the DB connection string into that vault.
 - `20-compute` writes the JWT secret into that vault.
-- `20-compute` grants the API system-assigned managed identity `Get` and `List` on the vault so App Service Key Vault references can resolve at runtime.
+- `20-compute` grants the API system-assigned managed identity `Key Vault Secrets User` so the container can read secrets at runtime.
 
 ## 3. GitHub Secrets & Variables
 
@@ -92,16 +95,16 @@ This document is the contract map between bootstrap, Terraform layers, GitHub Ac
 
 | App Setting | `.env.example` Key | Source in Production | Wiring |
 |------------|--------------------|----------------------|--------|
-| `PORT` | `PORT` | `20-compute` hardcoded value `8080` | `modules/compute` sets both `PORT = "8080"` and `WEBSITES_PORT = "8080"`; `apps/api/src/index.ts` listens on `env.PORT`. |
+| `PORT` | `PORT` | `20-compute` container target port (`8080` default) | `modules/compute` sets `PORT = var.container_app_target_port`; `apps/api/src/index.ts` listens on `env.PORT`. |
 | `NODE_ENV` | `NODE_ENV` | `20-compute` derived from Terraform environment | `NODE_ENV = var.environment == "dev" ? "development" : "production"`. |
-| `DATABASE_URL` | `DATABASE_URL` | Key Vault secret created by `10-data` | `modules/compute` sets a Key Vault reference using `postgres_connection_secret_name`. ⚠️ `env.ts` marks this optional even though production wiring assumes it exists. |
-| `JWT_SECRET` | `JWT_SECRET` | Key Vault secret created by `20-compute` | `modules/compute` sets a Key Vault reference to the JWT secret it creates. |
+| `DATABASE_URL` | `DATABASE_URL` | Key Vault secret created by `10-data` | API runtime fetches this value from Key Vault using `KEY_VAULT_URI` + `DATABASE_URL_SECRET_NAME`. ⚠️ `env.ts` marks this optional even though production wiring assumes it exists. |
+| `JWT_SECRET` | `JWT_SECRET` | Key Vault secret created by `20-compute` | API runtime fetches this value from Key Vault using `KEY_VAULT_URI` + `JWT_SECRET_SECRET_NAME`. |
 | `JWT_EXPIRES_IN` | `JWT_EXPIRES_IN` | `20-compute` hardcoded `1h` | Direct app setting in `modules/compute`. |
 | `JWT_REFRESH_EXPIRES_IN` | `JWT_REFRESH_EXPIRES_IN` | `20-compute` hardcoded `7d` | Direct app setting in `modules/compute`. |
-| `OAUTH_CLIENT_ID` | `OAUTH_CLIENT_ID` | ⚠️ Not wired | No current Terraform app setting. Only possible escape hatch is `extra_app_settings`. |
+| `OAUTH_CLIENT_ID` | `OAUTH_CLIENT_ID` | ⚠️ Not wired | No current Terraform app setting. Only possible escape hatch is `extra_env_vars`. |
 | `OAUTH_CLIENT_SECRET` | `OAUTH_CLIENT_SECRET` | ⚠️ Not wired | No current Terraform app setting. Should be Key Vault-backed if added. |
 | `OAUTH_REDIRECT_URI` | `OAUTH_REDIRECT_URI` | ⚠️ Not wired | No current Terraform app setting. Expected value likely needs to follow `${api_url}/api/auth/oauth/callback`. |
-| `DOCUMENT_PROCESSOR` | `DOCUMENT_PROCESSOR` | `20-compute` hardcoded `azure-form-recognizer` | Direct app setting in `modules/compute`. ⚠️ `.env.example` / `env.ts` default is `aws-textract`, so the documented local default and production default diverge. |
+| `DOCUMENT_PROCESSOR` | `DOCUMENT_PROCESSOR` | ⚠️ Not wired | No current Terraform app setting. |
 | `AWS_REGION` | `AWS_REGION` | ⚠️ Not wired | Present in `.env.example`, absent from `env.ts`, and absent from compute app settings. |
 | `AWS_ACCESS_KEY_ID` | `AWS_ACCESS_KEY_ID` | ⚠️ Not wired | Present in `.env.example`, absent from `env.ts`, and absent from compute app settings. |
 | `AWS_SECRET_ACCESS_KEY` | `AWS_SECRET_ACCESS_KEY` | ⚠️ Not wired | Present in `.env.example`, absent from `env.ts`, and absent from compute app settings. |
@@ -118,12 +121,11 @@ These are real production app settings even though they are not declared in `.en
 | App Setting | Source in Production | Wiring | Notes |
 |------------|----------------------|--------|-------|
 | `KEY_VAULT_URI` | `00-foundation.key_vault_uri` | `20-compute` passes `key_vault_uri` into `modules/compute`, which sets the app setting | Not currently validated in `env.ts`; available to runtime if needed. |
+| `DATABASE_URL_SECRET_NAME` | `10-data.postgres_connection_secret_name` | `terraform_remote_state.data` → `module.compute.postgres_connection_secret_name` → app setting | Used with `KEY_VAULT_URI` to resolve `DATABASE_URL` at runtime. |
+| `JWT_SECRET_SECRET_NAME` | `20-compute` generated secret name | `module.compute` sets this app setting to the created Key Vault secret name | Used with `KEY_VAULT_URI` to resolve `JWT_SECRET` at runtime. |
 | `STORAGE_ACCOUNT_NAME` | `10-data.storage_account_name` | `terraform_remote_state.data` → `module.compute.storage_account_name` → app setting | Not validated in `env.ts`. |
 | `STORAGE_BLOB_ENDPOINT` | `10-data.storage_blob_endpoint` | `terraform_remote_state.data` → `module.compute.storage_blob_endpoint` → app setting | Not validated in `env.ts`. |
 | `DOCUMENTS_CONTAINER_NAME` | `10-data.documents_container_name` | `terraform_remote_state.data` → `module.compute.documents_container_name` → app setting | Not validated in `env.ts`. |
-| `WEBSITES_PORT` | `20-compute` hardcoded `8080` | Direct app setting in `modules/compute` | Azure platform setting for Linux Web Apps. |
-| `ENABLE_ORYX_BUILD` | `20-compute` hardcoded `true` | Direct app setting in `modules/compute` | Enables Oryx build behavior during deployment. |
-| `SCM_DO_BUILD_DURING_DEPLOYMENT` | `20-compute` hardcoded `true` | Direct app setting in `modules/compute` | Build-on-deploy flag for App Service deployment. |
 
 ### API startup behavior
 
@@ -180,13 +182,13 @@ These are real production app settings even though they are not declared in `.en
   - ⚠️ `DOCUMENT_PROCESSOR` defaults diverge: `.env.example` and `env.ts` default to `aws-textract`, while production hardcodes `azure-form-recognizer`.
   - ⚠️ `DATABASE_URL` is optional in `apps/api/src/config/env.ts`, but infrastructure treats it as a required production dependency.
   - ⚠️ `.env.example` includes AWS and SMTP settings that are not represented in `env.ts` or production Terraform wiring.
-  - ⚠️ `compute.tfvars` currently does not use `extra_app_settings`, so the repository has no codified production path for optional third-party credentials.
+- ⚠️ `compute.tfvars` currently does not use `extra_env_vars`, so the repository has no codified production path for optional third-party credentials.
   - ⚠️ `bootstrap/01-tf-state-storage.sh` prints `key = "terraform.tfstate"`, but the real backend contract is split across `foundation.tfstate`, `data.tfstate`, and `compute.tfstate`.
   - ⚠️ `OAUTH_REDIRECT_URI` is not derived from `20-compute.api_url`; if OAuth is enabled, that linkage is still manual.
 
 ### Recommendations
 
-1. **Promote third-party runtime credentials to first-class infra contract.** Add explicit Key Vault secrets and/or documented `extra_app_settings` conventions for OAuth, AWS, and SMTP instead of leaving them as manual drift.
+1. **Promote third-party runtime credentials to first-class infra contract.** Add explicit Key Vault secrets and/or documented `extra_env_vars` conventions for OAuth, AWS, and SMTP instead of leaving them as manual drift.
 2. **Align the API env contract with production reality.** Either make `DATABASE_URL` required in `env.ts` and document the production-only defaults, or intentionally relax infrastructure expectations if DB-less startup is valid.
 3. **Resolve the document-processor split.** Choose one default (`aws-textract` vs `azure-form-recognizer`) and then wire the matching credential/config set.
 4. **Fix bootstrap/backend messaging.** Update the bootstrap script output (or supporting docs) so operators are told about the three real state keys, not the old single-root `terraform.tfstate` example.

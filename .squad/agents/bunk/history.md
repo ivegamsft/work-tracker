@@ -11,6 +11,10 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
+### Azure Container Apps Terraform Shift (2026-03-15)
+
+Migrated the foundation and compute Terraform layers to support Azure Container Apps: added ACR + Log Analytics + ACR pull identity, switched Key Vault to RBAC, and rewired compute to deploy a Container App with managed identity-based access and Key Vault secret name wiring.
+
 ### Bootstrap Scripts for Azure Infrastructure (2026-03-13)
 
 Created `bootstrap/` at repo root with Azure CLI scripts for one-time infrastructure setup:
@@ -144,3 +148,9 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 6. Coordinate with Sydnor on test factories and mock Prisma
 
 **Phase 1 opens once Sydnor's test harness is confirmed and Bunk's Phase 0 work is tested.**
+
+### Docker local dev + runtime Key Vault bootstrap (2026-03-14)
+
+- API configuration now initializes asynchronously: load `.env` first, then hydrate missing runtime secrets from Key Vault only when `KEY_VAULT_URI` and secret-name settings are present.
+- Container runtime depends on compiled workspace artifacts, so shared packages consumed by the API need `dist/` entrypoints in package metadata instead of source-file entrypoints.
+- Docker builds need to clear stale TypeScript build-info for shared workspace packages before rebuilding when `dist/` is excluded from the image build context.

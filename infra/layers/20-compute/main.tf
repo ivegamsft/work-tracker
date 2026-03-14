@@ -33,14 +33,20 @@ module "compute" {
   resource_group_name             = data.terraform_remote_state.foundation.outputs.resource_group_name
   project_name                    = var.project_name
   key_vault_id                    = data.terraform_remote_state.foundation.outputs.key_vault_id
-  key_vault_name                  = data.terraform_remote_state.foundation.outputs.key_vault_name
   key_vault_uri                   = data.terraform_remote_state.foundation.outputs.key_vault_uri
   postgres_connection_secret_name = data.terraform_remote_state.data.outputs.postgres_connection_secret_name
   storage_account_name            = data.terraform_remote_state.data.outputs.storage_account_name
   storage_blob_endpoint           = data.terraform_remote_state.data.outputs.storage_blob_endpoint
   documents_container_name        = data.terraform_remote_state.data.outputs.documents_container_name
-  app_service_sku                 = var.app_service_sku
-  node_version                    = var.node_version
-  app_command_line                = var.app_command_line
-  extra_app_settings              = var.extra_app_settings
+  container_registry_id           = data.terraform_remote_state.foundation.outputs.container_registry_id
+  container_registry_login_server = data.terraform_remote_state.foundation.outputs.container_registry_login_server
+  log_analytics_workspace_id      = data.terraform_remote_state.foundation.outputs.log_analytics_workspace_id
+  acr_pull_identity_id            = data.terraform_remote_state.foundation.outputs.acr_pull_identity_id
+  api_image_tag                   = var.api_image_tag
+  container_app_target_port       = var.container_app_target_port
+  container_cpu                   = var.container_cpu
+  container_memory                = var.container_memory
+  min_replicas                    = var.min_replicas
+  max_replicas                    = var.max_replicas
+  extra_env_vars                  = var.extra_env_vars
 }
