@@ -28,7 +28,40 @@ Created `bootstrap/` at repo root with Azure CLI scripts for one-time infrastruc
 - Auto-sets GitHub secrets if `gh` CLI is available
 - Bash scripts with `set -euo pipefail` for safety
 
+### Terraform Infrastructure Layers (2026-03-14)
+
+Designed three-layer Terraform architecture:
+- **`00-foundation`** — Resource group, Key Vault, shared locals/tags
+- **`10-data`** — PostgreSQL Flexible Server, storage account, secrets in Key Vault
+- **`20-compute`** — Linux Web App (API hosting), future web/admin hosting
+
+**State & Secrets:**
+- Per-environment backend storage (from bootstrap), split by layer state key (foundation.tfstate, data.tfstate, compute.tfstate)
+- Outputs carry identifiers + secret names, not raw values
+- 10-data writes secrets to KV; 20-compute reads via Key Vault references
+
+**CI/CD:** One infra workflow with staged jobs (foundation → data → compute) + separate app deployment workflow
+
+**Future:** APIM/edge resources deploy as a new downstream layer after compute.
+
+**Cross-layer contract:** Layer outputs define inputs for downstream dependents. Remote state protected from raw secret exposure.
+
 **Files:** `bootstrap/{variables.sh, 01-tf-state-storage.sh, 02-entra-spns.sh, 03-gh-oidc.sh, README.md}`
+
+### Terraform Layers + Bootstrap Naming Contract (2026-03-14)
+
+Infra is now split into three Terraform layer roots under `infra/layers/`:
+- `00-foundation` — resource group + Key Vault
+- `10-data` — PostgreSQL Flexible Server + application storage
+- `20-compute` — App Service plan + Linux Web App for the API
+
+**Important implementation details:**
+- Remote state stays in the bootstrap-created storage accounts and uses keys `foundation.tfstate`, `data.tfstate`, and `compute.tfstate` inside a single `tfstate` container per environment.
+- Backend naming must match `bootstrap/variables.sh`: resource groups `eclat-{env}-tfstate-rg` and storage accounts `eclattfstate{env}`.
+- Cross-layer outputs carry resource identifiers and Key Vault secret names, not raw secret values.
+- The compute layer generates the API JWT secret in Key Vault and wires App Service settings through Key Vault references so runtime secrets stay out of layer outputs.
+
+**Files:** `infra/modules/{foundation,database,storage,compute}` and `infra/layers/{00-foundation,10-data,20-compute}` with per-layer env files in `infra/environments/{dev,staging,prod}/`
 
 ## Important Status: PRDs Available
 

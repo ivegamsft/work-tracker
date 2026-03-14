@@ -110,6 +110,61 @@
 
 ---
 
+### Terraform Infrastructure Layering (2026-03-14)
+
+**Owner:** Freamon  
+**Context:** `infra/` was a single Terraform root with placeholder modules. Deployment order was implicit, not enforced.
+
+**Decision:** Restructure into three deployable Terraform roots ordered by dependency:
+1. **`00-foundation`** — Resource group, Key Vault, shared naming/tags
+2. **`10-data`** — PostgreSQL, storage account, secrets to Key Vault  
+3. **`20-compute`** — API hosting (Web App layer)
+
+**Remote State Contract:**
+- Per-environment backend storage accounts (from `bootstrap\`)
+- Split by state key: `foundation.tfstate`, `data.tfstate`, `compute.tfstate`
+- Outputs carry resource IDs and secret names, not raw values
+- `10-data` writes secrets to Key Vault; `20-compute` reads via references
+
+**Deployment Order:**
+1. `bootstrap/01-tf-state-storage.sh`
+2. `bootstrap/02-entra-spns.sh`
+3. `bootstrap/03-gh-oidc.sh`
+4. `infra/layers/00-foundation`
+5. `infra/layers/10-data`
+6. `infra/layers/20-compute`
+7. Application artifact deployment
+
+**GitHub Actions:** One infra workflow with staged jobs (foundation → data → compute). Keep app deployment in separate workflow.
+
+**Future:** When APIM/edge resources are added, they deploy **after** `20-compute` as a new layer.
+
+**Consequences:**
+- Deployment order explicit and enforceable
+- Data and compute can evolve independently
+- Bootstrap stays one-time prerequisite
+- Clear insertion point for future integration layer
+
+---
+
+### API Runtime Secret Handling (2026-03-14)
+
+**Owner:** Bunk  
+**Context:** Compute layer needs JWT secret at startup. Cross-layer remote state must not expose raw values.
+
+**Decision:** Create API JWT signing secret inside `infra/modules/compute` and store it in environment Key Vault. Linux Web App reads both `DATABASE_URL` and `JWT_SECRET` via Key Vault references.
+
+**Rationale:**
+- Raw secrets stay out of Terraform outputs and cross-layer state
+- Compute layer self-sufficient for application runtime
+- Matches platform rule: downstream consumers use Key Vault references
+
+**Consequences:**
+- Compute layer needs Key Vault write access via deployment identity
+- Runtime secret rotation happens in Key Vault without cross-layer contract changes
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
