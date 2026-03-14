@@ -155,6 +155,13 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Container runtime depends on compiled workspace artifacts, so shared packages consumed by the API need `dist/` entrypoints in package metadata instead of source-file entrypoints.
 - Docker builds need to clear stale TypeScript build-info for shared workspace packages before rebuilding when `dist/` is excluded from the image build context.
 
+### Prisma workspace bootstrap + demo seed (2026-03-15)
+
+- Prisma generation and migrations are owned by `data/prisma/schema.prisma` and `data/prisma/migrations/`; the API consumes the generated client through a singleton in `apps/api/src/config/database.ts`.
+- API startup now connects Prisma only after environment loading, logs queries in development, and disconnects cleanly on shutdown or startup failure from `apps/api/src/index.ts`.
+- Demo seed data lives in `data/src/seed.ts` and uses UUID v5 IDs derived from the mock auth emails so seeded employees stay aligned with the deterministic login store.
+- Local validation for this repo should include `node ../../node_modules/typescript/lib/tsc.js`-based typechecks plus the existing Vitest suite after Prisma changes.
+
 ### Container-First Architecture Complete (2026-03-14T20:46:38Z)
 
 **Docker stack fully operational locally.** All three containers (API :3000, Postgres :5432, Azurite :10000) healthy. Auth login returns JWT; protected endpoints enforce 401. Terraform compute pivoted to Container Apps with managed identities. See `.squad/orchestration-log/2026-03-14T20-46-38Z-bunk.md` for full delivery summary.

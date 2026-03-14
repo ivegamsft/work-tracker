@@ -19,6 +19,10 @@
 - **Vitest now works from the workspace root** — the monorepo has a root-level Vitest harness with V8 coverage, API test setup, and supertest-based smoke coverage.
 - **API tests should build the app in-process** — the safest harness pattern is a shared `createTestApp()` helper that mirrors the Express middleware/router stack without binding a real port.
 - **Current validation baseline** — the API TypeScript build succeeds and the new Vitest smoke suite passes; existing ESLint errors in API source remain a separate pre-existing issue.
+- **Audit logging is now middleware-driven** — `apps/api/src/middleware/audit.ts` hooks mutating `/api/*` requests, logs after `finish`, and keeps the logger behind an `AuditLogger` abstraction so Prisma persistence can be swapped in later without route changes.
+- **Audit payloads should redact sensitive write fields** — request bodies can safely populate `changedFields` when password/token/secret-style keys are masked before logging.
+- **`createTestApp()` now accepts app-construction options** — audit tests can inject a fake `AuditLogger` and temporary routes through `apps/api/tests/helpers.ts`, keeping middleware coverage in-process and deterministic.
+- **Key audit files** — app wiring lives in `apps/api/src/index.ts`, logger implementations live in `apps/api/src/services/audit.ts`, and comprehensive Vitest coverage lives in `apps/api/tests/audit.test.ts`.
 
 ### Docker Stack Available for Test Integration (2026-03-14T20:46:38Z)
 

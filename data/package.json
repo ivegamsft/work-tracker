@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
-    "@e-clat/shared": "file:../packages/shared"
+    "@e-clat/shared": "file:../packages/shared",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "prisma": "^6.9.0",

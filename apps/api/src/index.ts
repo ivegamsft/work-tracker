@@ -1,8 +1,9 @@
-import express from "express";
+import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { env, loadEnv } from "./config/env";
-import { errorHandler } from "./middleware";
+import { disconnectDatabase, prisma } from "./config/database";
+import { createAuditMiddleware, errorHandler } from "./middleware";
 import { logger } from "./common/utils";
 import { authRouter } from "./modules/auth";
 import { employeesRouter } from "./modules/employees";
@@ -13,14 +14,22 @@ import { qualificationsRouter } from "./modules/qualifications";
 import { medicalRouter } from "./modules/medical";
 import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
+import { ConsoleAuditLogger, type AuditLogger } from "./services/audit";
 
-export function createApp() {
+export interface CreateAppOptions {
+  auditLogger?: AuditLogger;
+  registerRoutes?: (app: Express) => void;
+}
+
+export function createApp(options: CreateAppOptions = {}) {
   const app = express();
+  const auditLogger = options.auditLogger ?? new ConsoleAuditLogger();
 
   // Global middleware
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: "10mb" }));
+  app.use("/api/:entityType", createAuditMiddleware({ auditLogger }));
 
   // Health check
   app.get("/health", (_req, res) => {
@@ -37,6 +46,7 @@ export function createApp() {
   app.use("/api/medical", medicalRouter);
   app.use("/api/standards", standardsRouter);
   app.use("/api/notifications", notificationsRouter);
+  options.registerRoutes?.(app);
 
   // Error handling
   app.use(errorHandler);
@@ -48,17 +58,35 @@ const app = createApp();
 
 async function startServer() {
   await loadEnv();
+  await prisma.$connect();
 
-  app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, () => {
     logger.info(`🚀 e-clat server running on port ${env.PORT} [${env.NODE_ENV}]`);
   });
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    logger.info(`Received ${signal}. Shutting down API server.`);
+
+    server.close((error) => {
+      if (error) {
+        logger.error("Failed to close HTTP server", { error: error.message, stack: error.stack });
+        void disconnectDatabase(signal).finally(() => process.exit(1));
+        return;
+      }
+
+      void disconnectDatabase(signal).finally(() => process.exit(0));
+    });
+  };
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
 }
 
 if (require.main === module) {
   void startServer().catch((error: unknown) => {
     const startupError = error instanceof Error ? error : new Error(String(error));
     logger.error("Failed to start server", { error: startupError.message, stack: startupError.stack });
-    process.exit(1);
+    void disconnectDatabase("startup-failure").finally(() => process.exit(1));
   });
 }
 

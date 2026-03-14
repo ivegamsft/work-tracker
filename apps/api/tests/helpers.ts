@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { Roles, type Role } from "@e-clat/shared";
-import { createApp } from "../src/index";
+import { createApp, type CreateAppOptions } from "../src/index";
 import { signAccessToken } from "../src/modules/auth/tokens";
 
-export function createTestApp(): Express {
-  return createApp();
+export function createTestApp(options: CreateAppOptions = {}): Express {
+  return createApp(options);
 }
 
 export function generateTestToken(role: Role = Roles.EMPLOYEE) {
