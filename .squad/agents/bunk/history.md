@@ -212,3 +212,12 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Notification ownership verification required on mark-as-read and dismiss operations: fetch by ID, validate userId matches, throw `NotFoundError` if missing or ownership mismatch.
 - Key backend file paths: `apps/api/src/modules/notifications/{service.ts,validators.ts}`, `data/prisma/schema.prisma` (Notification, NotificationPreference, EscalationRule models).
 
+### CI/CD Pipeline Refactor for Monorepo + Container Build (2026-03-15)
+
+- `.github/workflows/ci.yml` now covers full monorepo: typecheck (API + Web), separate test jobs (API with Postgres service container, Web), build all workspaces, and Docker build validation.
+- API tests require Postgres service container with health checks, Prisma client generation, migrations, and seed data before running the Vitest suite — all environment variables and working directory paths must align with the data workspace structure.
+- Dockerfile build stage now runs `npx prisma generate --schema=data/prisma/schema.prisma` before building the API to ensure the Prisma client exists in node_modules for compilation.
+- Dockerfile runtime stage must copy `data/prisma/` directory to support Prisma client runtime operations and migrations in production containers.
+- Web app tests added as placeholder script (`echo 'No tests yet' && exit 0`) to satisfy CI job without blocking pipeline — will be replaced when component tests are implemented.
+- Key file paths: `.github/workflows/ci.yml`, `apps/api/Dockerfile`, `apps/web/package.json`.
+
