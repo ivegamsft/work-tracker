@@ -13,7 +13,8 @@ RUN npm ci
 
 FROM deps AS build
 COPY . .
-RUN rm -f packages/shared/tsconfig.tsbuildinfo \
+RUN npx prisma generate --schema=data/prisma/schema.prisma \
+ && rm -f packages/shared/tsconfig.tsbuildinfo \
  && npm run build -w @e-clat/shared \
  && rm -rf node_modules/@e-clat/shared \
  && mkdir -p node_modules/@e-clat/shared \
@@ -38,5 +39,6 @@ COPY --from=build /workspace/apps/api/package.json ./apps/api/package.json
 COPY --from=build /workspace/apps/api/dist ./apps/api/dist
 COPY --from=build /workspace/packages/shared/package.json ./packages/shared/package.json
 COPY --from=build /workspace/packages/shared/dist ./packages/shared/dist
+COPY --from=build /workspace/data/prisma ./data/prisma
 EXPOSE 8080
 CMD ["node", "apps/api/dist/index.js"]
