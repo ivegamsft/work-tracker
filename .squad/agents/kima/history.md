@@ -97,3 +97,41 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Kima: Frontend integration tests once Bunk's Phase 1 services stabilize
 
 **Blocking:** Bunk's Phase 0 work must complete and be tested before Phase 1 frontend work accelerates.
+
+### Frontend Scaffold Complete (2026-03-15)
+
+📌 **apps/web/ now has a complete React + Vite + TypeScript foundation ready for Phase 1 work.**
+
+**What was built:**
+- **Build system:** Vite config with React plugin, dev server proxy to `/api`, TypeScript strict mode
+- **App shell:** React Router setup, auth context with JWT token handling, protected routes
+- **Core pages:** Login, Dashboard (compliance stats), Employee List (paginated, searchable), Employee Detail (readiness dashboard)
+- **Layout:** Responsive sidebar navigation, header with user info, logout functionality
+- **API client:** Centralized fetch wrapper with token attachment, error handling, 401 redirect
+- **Styling:** Plain CSS with custom properties for color scheme (compliant/at-risk/non-compliant indicators)
+- **Docker integration:** `web` service added to docker-compose.yml, proxies to API container
+- **Dependencies:** React 19, React Router 7, Vite 8, TypeScript 5 — all installed and verified
+
+**TypeScript build:** Clean typecheck (no errors), production build successful (243KB gzipped)
+
+**Color scheme (CSS custom properties):**
+- `--color-success: #22c55e` (compliant)
+- `--color-warning: #f59e0b` (at risk)
+- `--color-danger: #ef4444` (non-compliant)
+- `--color-primary: #3b82f6`
+
+**API contracts assumed (from PRD):**
+- `POST /api/auth/login` → `{ token, user }`
+- `GET /api/employees` → Employee list with `overallStatus`
+- `GET /api/employees/:id` → Employee detail
+- `GET /api/employees/:id/readiness` → Qualifications + medical status with expiry dates
+
+**Ready for:**
+- Phase 1: Integration with live API once Bunk's auth endpoints are deployed
+- Phase 2: Additional pages (Standards, Qualifications CRUD)
+- Phase 3: Medical clearance workflows, notification preferences UI
+
+**Development workflow:**
+- `npm run dev -w @e-clat/web` — starts Vite dev server on port 5173
+- `docker compose up web` — runs web service in container
+- API proxy: `/api/*` → `http://localhost:3000` (or `http://api:3000` in Docker)
