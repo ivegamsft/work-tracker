@@ -526,3 +526,334 @@ For Vitest API integration runs from repo root, default `DATABASE_URL` in `apps/
 - Docker e2e validation complete
 - CI can use same pattern for automated testing
 
+
+
+## Test Data Seeding Strategy (2026-03-16)
+
+# Decision: Test Data Seeding Strategy for E-CLAT
+
+**Date:** 2026-03-16  
+**Author:** Freamon (Lead/Architect)  
+**Status:** Final  
+**Decision Type:** Architecture  
+**Affected Layers:** All (Local Dev, CI/CD, Deployed)
+
+---
+
+## Context
+
+E-CLAT test data spans two independent layers with different lifecycles and deployment contexts:
+
+1. **Entra Directory Data** (identity plane): Test users, security groups, app role assignments in Entra ID
+2. **Application Data** (data plane): Employees, qualifications, standards, medical clearances in PostgreSQL
+
+These exist in three environments with conflicting constraints:
+- **Local dev (Docker):** No Entra access; uses mock auth; ephemeral Postgres
+- **CI/CD:** No Entra access; ephemeral Postgres; needs reproducible seeds
+- **Deployed (dev/staging):** Real Entra with real test users; persistent Postgres; must be idempotent and production-safe
+
+Existing gaps:
+- Current `data/src/seed.ts` handles PostgreSQL only (hardcoded mock test users)
+- No Entra test user provisioning mechanism
+- No clear strategy for three-environment execution
+- Terraform `05-identity` layer (Entra resources) not yet designed
+
+The team needed clarity: Should test data be IaC, a script, a workflow, or a combination?
+
+---
+
+## Decision
+
+**Adopt a layered three-tier approach:**
+
+### Tier 1: Prisma Seed Script (Application Data — All Environments)
+
+**Use:** `data/src/seed.ts` (enhanced)
+
+**What it does:**
+- Upserts 5 test employees (email-keyed for idempotency)
+- Upserts 3 compliance standards + 3 labels
+- Upserts qualifications + medical clearances linked to test employees
+- Runs in all three environments (local, CI, deployed)
+
+**How to execute:**
+```bash
+npm run seed --workspace=data
+```
+
+**Idempotency:** All Prisma operations use `upsert` with unique email keys.
+
+### Tier 2: Terraform `05-identity` Layer (Entra Directory Data — Deployed Only)
+
+**Use:** `infra/layers/05-identity/` (new layer between foundation and data)
+
+**What it creates:**
+- 5 Entra security groups (one per E-CLAT role: employee, supervisor, manager, compliance officer, admin)
+- 5 test users (email-keyed, randomized passwords in Key Vault)
+- Group → App Role assignments (enables role claims in tokens)
+
+**How to execute:**
+```bash
+cd infra/layers/05-identity
+terraform apply -var-file="../../environments/{dev|staging}.tfvars"
+```
+
+**Idempotency:** Terraform state file manages; re-apply is safe.
+
+**Not for local dev:** Uses `azuread` provider; requires Azure credentials. Local dev uses mock auth instead.
+
+### Tier 3: Bootstrap API Endpoint (Optional — Phase 2+)
+
+**Use:** `POST /api/admin/seed-test-data` (admin-only, disabled in production)
+
+**When:** Staging environment convenience; enables manual resets without Terraform.
+
+**Not MVP:** Defer to Phase 2 after Entra auth core is proven.
+
+---
+
+## Rationale
+
+### Why Prisma Seed (Not Terraform for DB Data)?
+
+❌ **Terraform for PostgreSQL = Wrong Tool**
+- Terraform azurerm provider has `azurerm_postgresql_flexible_server_database` but no first-class data seeding
+- Would require external `local_exec` provisioner → shell scripts → messy and unmaintainable
+- Conflicts with Prisma's migration/schema ownership
+- DB schema changes (migrations) are already Prisma's responsibility
+
+✅ **Prisma Seed = Correct Tool**
+- Built-in `prisma db seed` command
+- Integrates with Prisma schema; schema is source of truth
+- Runs in CI, local dev, and deployed environments
+- Already proven in codebase (seed.ts exists)
+
+### Why Terraform `05-identity` (Not Bootstrap Script for Entra)?
+
+❌ **Bootstrap Script (az CLI) = Drift Risk**
+- One-shot script; hard to detect/repair infrastructure drift
+- No state file; re-running script may fail idempotency checks
+- Manual updates to Entra resources break script assumptions
+- Team members may make portal changes, breaking IaC consistency
+
+✅ **Terraform = State + Idempotency**
+- Terraform state file is source of truth for Entra resources
+- Drift detection: `terraform plan` shows what changed in Entra since last apply
+- Idempotent: `terraform apply` safe to run multiple times
+- IaC principle: all infrastructure (Entra + Azure) managed uniformly
+- Audit trail: git history + state file + plan diffs
+
+### Why Separate `05-identity` Layer (Not in `00-foundation` or `10-data`)?
+
+**Layer boundaries are API provider boundaries:**
+- `00-foundation` = azurerm only (resource groups, Key Vault, storage)
+- `05-identity` = azuread only (app registrations, users, groups)
+- `10-data` = azurerm only (PostgreSQL, networking)
+- `20-compute` = azurerm only (Container Apps, logging)
+
+**Rationale:**
+- Entra (azuread) resources have different permission requirements than Azure platform resources
+- Identity changes don't require compute/network redeploys (can update groups without touching infrastructure)
+- Blast radius limited: Entra outage doesn't affect storage/database layers
+- Different lifecycle: Entra configuration changes more frequently than platform infrastructure
+
+### Why Test Users in Entra (Not in Database)?
+
+❌ **Store test users as Employee records in PostgreSQL = Data Confusion**
+- Blurs line between identity (Entra) and business entity (Employee)
+- Auth tokens come from Entra; Employee records come from database
+- Requires manual synchronization (Entra user → Employee row)
+- Test data cleanup becomes complex
+
+✅ **Test users in Entra Only = Clean Separation**
+- Entra is sole identity provider; test users live there
+- Employee records in PostgreSQL represent real organizational entities
+- Token → employee lookup is still via email or `oid` (Entra user object ID)
+- Easier to clean up: delete Entra users, keep historical Employee records if needed
+
+### Why Email-Based Idempotency?
+
+**Entra perspective:** Users are uniquely identified by `userPrincipalName` (email)  
+**Database perspective:** Employees are uniquely identified by `email` + `employeeNumber`  
+**Terraform perspective:** Resource IDs are deterministic based on email
+
+Using email as the idempotency key across all layers ensures:
+- Same user in Entra and PostgreSQL is same test user
+- Re-running seed (Prisma) or Terraform doesn't duplicate records
+- Team can easily reason about test data identity
+
+---
+
+## Alternatives Considered and Rejected
+
+### Alt 1: GitHub Actions Workflow for Everything
+
+**Idea:** Single `seed-test-data.yml` workflow does both Entra + DB seeding
+
+**Why rejected:**
+- Workflow dispatch doesn't integrate with IaC workflow (TF applies are separate)
+- Creates two paths: workflow for seeding, Terraform for infrastructure (inconsistent)
+- Harder to validate what actually exists in Entra/DB (no state file)
+- Drift detection impossible without Terraform
+
+**When to use:** Optional convenience layer (Phase 2+) on top of existing Terraform + Prisma
+
+### Alt 2: Separate Bootstrap Script (`04-seed-test-data.sh`)
+
+**Idea:** Shell script using `az` CLI to create Entra users + call API for DB seeding
+
+**Why rejected:**
+- No state file; drift risk
+- Idempotency requires custom logic in shell (fragile)
+- Audit trail poor (script execution logs vs. Terraform state + git)
+- Harder to review changes (shell script diff vs. Terraform plan)
+
+**When to use:** Quick manual testing (developers can write ad-hoc scripts locally)
+
+### Alt 3: All Test Data in Entra (No PostgreSQL Employees)
+
+**Idea:** Query Entra at runtime for employee identity; no Employee records in DB
+
+**Why rejected:**
+- Breaks existing Prisma schema (Employee table is core)
+- Employee is a business entity (hire date, department, qualifications) not just identity
+- Database query patterns expect Employee records (can't replace with Graph API calls)
+- Unnecessary coupling of auth layer to business logic
+
+**When to use:** Future refactoring (post-MVP); not viable for Phase 0/1
+
+### Alt 4: Everything in Docker (No Entra for Any Environment)
+
+**Idea:** Use mock auth + seeded employees everywhere; avoid Entra
+
+**Why rejected:**
+- Defeats purpose of Entra auth design
+- Can't validate real Entra token flows before prod
+- Staging environment unable to test real identity scenarios
+- Doesn't address requirement for real test users in deployed environments
+
+**When to use:** Might have been viable pre-Entra-auth-design; now incompatible with Phase 2+
+
+---
+
+## Consequences
+
+### Positive
+
+✅ **Clear execution paths:** Developers know exactly what to run in each environment (see runbook)
+
+✅ **IaC consistency:** Identity resources (Entra) managed same way as infrastructure (Terraform)
+
+✅ **Idempotency guaranteed:** Both Prisma upserts and Terraform state ensure safe re-runs
+
+✅ **Separation of concerns:** Entra (layer 05-identity) independent from compute (20-compute) and data (10-data)
+
+✅ **Production safety:** IaC prevents test data in prod; code-level checks (`NODE_ENV`) enforce policy
+
+✅ **Testability:** Each layer can be tested independently (Prisma seed on ephemeral DB; Terraform against dev Entra tenant)
+
+✅ **Scalability:** Adding new test users = 2 small edits (Prisma + Terraform); no code refactoring
+
+### Negative
+
+⚠️ **Requires Terraform knowledge:** Team must understand layer composition + state management
+
+⚠️ **Two tools to learn:** Terraform for Entra; Prisma for DB seeding
+
+⚠️ **Manual coordination in deployed environments:** Terraform, then Prisma (or via API endpoint); not a single `apply all` command
+
+⚠️ **Key Vault dependency:** Test user passwords stored in Key Vault; requires Azure access to retrieve
+
+### Risks Mitigated
+
+| Risk | Mitigation |
+|------|-----------|
+| Test data in production | IaC `enable_test_users = false` default; code checks `NODE_ENV` |
+| Entra users not matching DB employees | Single source of truth (`seed-config.ts`); alignment tests |
+| Accidental schema changes by test data | All Prisma upserts idempotent; no hard deletes during seed |
+| Terraform state corruption | State locking + state file backups in storage account |
+
+---
+
+## Implementation Plan
+
+### Phase 0 (MVP — Before Entra Auth Deployment)
+
+- [ ] Document test data strategy (this decision + `test-data-strategy.md`) ✅
+- [ ] Review Prisma seed script; ensure email-keyed idempotency
+- [ ] Create `data/src/seed-config.ts` (centralized test data constants)
+- [ ] Validate Docker Compose runs `npm run seed` on startup
+- [ ] Add safety check to seed: prevent running in `NODE_ENV=production`
+
+### Phase 1 (Entra Auth Core — Weeks 1-2 of Identity Implementation)
+
+- [ ] Create `infra/layers/05-identity/` structure (main.tf, variables.tf, outputs.tf)
+- [ ] Implement `azuread_user` resources for 5 test users (email-keyed)
+- [ ] Implement `azuread_group` resources for 5 role groups
+- [ ] Implement `azuread_app_role_assignment` (group → app role)
+- [ ] Test against dev Entra tenant
+- [ ] Document execution steps in runbook
+
+### Phase 2+ (Convenience Features — Post-Entra Proof)
+
+- [ ] Implement `POST /api/admin/seed-test-data` endpoint
+- [ ] Create GitHub Actions dispatch workflow
+- [ ] Add optional API-level test data markers (`isTestData` in Employee model)
+
+---
+
+## Validation
+
+How to verify this design works:
+
+**Local Dev:**
+```bash
+docker-compose up
+# → Should see: "✅ Seed complete: 5 employees, 3 standards..."
+# → Should be able to login as eclat-test-employee@example.onmicrosoft.com (mock mode)
+```
+
+**CI/CD:**
+```bash
+npm test  # CI setup should call npm run seed before tests
+# → Tests should pass with known test data
+```
+
+**Deployed Dev:**
+```bash
+# After Terraform apply + Prisma seed:
+az ad user list --filter "displayName eq 'Test Employee'"
+# → Should find eclat-test-employee@example.onmicrosoft.com in Entra
+
+curl https://api-dev.eclat.example.com/api/employees?role=employee \
+  -H "Authorization: Bearer $(get-test-token employee)"
+# → Should return 5+ employees including test data
+```
+
+---
+
+## Related Decisions
+
+- **Entra Auth Architecture (2026-03-16):** Defines token flows, scope structure, role mapping. Test data must align with 5 app roles and group structure.
+- **MVP Defaults (2026-03-14):** Single-org, no tenancy. Test data assumes single tenant throughout.
+- **Container Architecture (2026-03-14):** Container Apps on ACA with Image build/push separation. Test data endpoint optional in Phase 2+.
+
+---
+
+## Owners and Stakeholders
+
+- **Owner:** Freamon (Lead/Architect)
+- **Implementers:** Bunk (backend), Sydnor (test harness)
+- **Review:** Team consensus on GitHub issue / squad channel before Phase 1
+
+---
+
+## References
+
+- `docs/architecture/test-data-strategy.md` — Full design document
+- `docs/architecture/entra-auth-design.md` — Identity architecture (token flows, scopes, roles)
+- `data/src/seed.ts` — Current Prisma seed script (to be enhanced)
+- `infra/layers/` — Existing layer structure (00-foundation, 10-data, 20-compute)
+- `bootstrap/` — Bootstrap scripts (for context; test data different from bootstrap)
+
+
