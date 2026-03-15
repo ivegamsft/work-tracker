@@ -184,3 +184,31 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Router/service alignment matters here: standards routes now call `create/list/getById/update`, requirement creation passes `standardId` separately, and employee/standard list routes let the service own the 20-item default when pagination params are omitted.
 - Key backend file paths for this phase: `apps/api/src/modules/employees/{service.ts,router.ts}`, `apps/api/src/modules/standards/{service.ts,router.ts}`, `apps/api/src/modules/*/validators.ts`, and `data/src/seed.ts`.
 
+### PrismaAuditLogger implementation (2026-03-15)
+
+- `apps/api/src/services/audit.ts` now contains a fully functional `PrismaAuditLogger` that persists audit entries to the `AuditLog` table via Prisma, replacing the stub implementation.
+- Audit logging errors must never fail a request: the `log()` method wraps all persistence in try/catch and logs errors without throwing, preserving non-blocking behavior required by the audit middleware.
+- Type safety for Prisma JSON fields requires explicit casting: `changedFields` (typed as `unknown` in `AuditEntry`) must be cast to `Prisma.InputJsonValue | undefined` to satisfy Prisma's generated types.
+- Default audit logger in production is now `PrismaAuditLogger` (wired in `apps/api/src/index.ts`), while `ConsoleAuditLogger` remains available as a named export for test injection.
+- Key files: `apps/api/src/services/audit.ts` (implementation), `apps/api/src/index.ts` (wiring), `data/prisma/schema.prisma` (AuditLog model).
+
+### Documents Service — Manual Upload + Review Only (2026-03-15)
+
+- `apps/api/src/modules/documents/service.ts` implements manual document upload and review workflow following Prisma patterns from medical/employees services.
+- **OCR pipeline deferred indefinitely (Q3 decision)** — no extraction, no document processing pipeline. `getExtraction()` returns empty array; `correctExtraction()` throws ValidationError with clear message.
+- Upload flow: Generate UUID-based `storageKey`, create Document with UPLOADED status, and automatically create ReviewQueueItem with PENDING status in a single transaction.
+- Review flow: Update both ReviewQueueItem (status, reviewedBy, reviewedAt, approvalNotes, linkedQualificationId) and Document (status, reviewedBy, reviewedAt) atomically using `$transaction`.
+- Document and ReviewQueueItem status enums mapped between Prisma uppercase (UPLOADED, PENDING) and shared lowercase types (uploaded, pending) following established pattern.
+- listReviewQueue provides paginated access with default 20-item limit; getAuditTrail queries AuditLog filtering by entityType in ['document', 'documents'].
+- Key file paths: `apps/api/src/modules/documents/{service.ts,validators.ts,router.ts}`, `data/prisma/schema.prisma` (Document, ReviewQueueItem, ExtractionResult models).
+
+
+### Notifications Service Prisma Implementation (2026-03-15)
+
+- `apps/api/src/modules/notifications/service.ts` now implements all notification CRUD flows with Prisma: preferences (get/upsert with defaults), notifications list/mark/dismiss, weekly digest calculations, test notifications, and escalation rule management.
+- Notification preferences use unique constraint `(userId, notificationType)` for upserts; when no preferences exist, return sensible defaults (all types enabled, in_app channel, immediate frequency) without writing to DB.
+- Weekly digest queries aggregate across qualifications (expired + expiring within 7 days), review queue pending items, and recently approved documents, using Prisma date filters and status enums.
+- Status mapping follows the standard pattern: Prisma `NotificationStatus` enum (SENT/READ/DISMISSED) maps to lowercase shared type ("sent"/"read"/"dismissed"), same as other modules.
+- Notification ownership verification required on mark-as-read and dismiss operations: fetch by ID, validate userId matches, throw `NotFoundError` if missing or ownership mismatch.
+- Key backend file paths: `apps/api/src/modules/notifications/{service.ts,validators.ts}`, `data/prisma/schema.prisma` (Notification, NotificationPreference, EscalationRule models).
+
