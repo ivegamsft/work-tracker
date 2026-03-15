@@ -43,6 +43,20 @@ services:
     ports:
       - "10000:10000"
 
+  web:
+    image: node:20-alpine
+    working_dir: /workspace/apps/web
+    command: sh -c "cd /workspace && npm run dev -w @e-clat/web"
+    environment:
+      VITE_PORT: 5173
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    depends_on:
+      - api
+
 volumes:
   postgres-data:
   node_modules:
