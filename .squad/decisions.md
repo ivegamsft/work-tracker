@@ -404,3 +404,193 @@
 - Logger interface supports runtime swapping without code changes.
 - Phase 1 persistence layer upgrade requires only logger backend implementation change.
 
+---
+
+## Phase 1 Implementation Decisions
+
+### Employees & Standards Service Implementation (2026-03-15)
+
+**By:** Bunk
+
+**Context:** Foundational services for workforce management system need establishment of patterns for CRUD, search, pagination, and error handling.
+
+**Decisions:**
+
+1. **Error Handling:** Flexible Prisma error checking with both `instanceof` and code property checks for test compatibility
+2. **Role Normalization:** Accept lowercase in API, store uppercase in database with bidirectional mapping
+3. **Readiness Calculation:** Aggregate compliance data with parallel queries; three-state rule (compliant/at_risk/non_compliant)
+4. **Search Implementation:** Case-insensitive partial matching across multiple fields
+5. **Pagination:** Default 50 items, max 100, with total count
+6. **Requirement Management:** Store as child entities with standard relationships; supports 0-N requirements per standard
+7. **Test Architecture:** Mock Prisma with Vitest; 25 unit tests covering all methods and error paths
+
+**Rationale:**
+- Error handling flexibility necessary for test mocking
+- Case normalization maintains API conventions while respecting database schema
+- Parallel aggregations provide performance for readiness calculations
+- Pagination and search patterns enable consistent UX across all services
+- Related requirements to standards enables flexible domain modeling
+
+**Consequences:**
+- ✅ Foundation established for other services (Qualifications, Medical)
+- ✅ 25 unit tests provide high coverage
+- ✅ Production-ready error handling and validation
+- ⚠️ Assumes Prisma schema already migrated
+- ⚠️ No built-in caching (can add later)
+
+**Files Impacted:**
+- `apps/api/src/modules/employees/service.ts`
+- `apps/api/src/modules/standards/service.ts`
+
+---
+
+### Qualifications and Medical Services Implementation (2026-03-15)
+
+**By:** Bunk
+
+**Context:** MVP compliance loop requires Qualifications and Medical services to track certifications, medical clearances, and compliance status. Services must operate independently while supporting readiness calculations.
+
+**Key Decisions:**
+
+1. **Direct Database Integration:** Services interact directly with Prisma (Employees/Standards are stubs, avoids circular dependencies)
+2. **Automatic Status Calculation:** Status auto-derived from dates rather than manual management
+   - Qualifications: `active`, `expiring_soon` (30 days), `expired`
+   - Medical: `pending`, `cleared`, `expired`, `restricted` (with manual override for operational status)
+3. **Mapper Pattern:** Map Prisma UPPERCASE enums to lowercase domain DTOs
+4. **Compliance Checking:** Fuzzy substring matching for certification name validation
+5. **Comprehensive Clearance Status:** Medical service provides aggregated `checkClearanceStatus()` method
+
+**Rationale:**
+- Direct DB integration pragmatic when service dependencies are stubs
+- Automatic status eliminates human error and API complexity
+- Mapping maintains clean API boundaries and database abstraction
+- Fuzzy matching handles real-world certification name variations
+- Aggregation method enables quick "can work?" checks
+
+**Consequences:**
+- ✅ Both services immediately functional without blocking dependencies
+- ✅ Consistent status accuracy across records
+- ✅ 28 tests provide comprehensive coverage
+- ✅ Integration ready with Prisma and Docker stack
+- ⚠️ Tighter coupling to database schema
+- ⚠️ Fuzzy matching could produce false positives in edge cases
+
+**Migration Path:** If Employees/Standards services later provide enriched data or business logic, can optionally add service-to-service calls without breaking changes.
+
+**Files Impacted:**
+- `apps/api/src/modules/qualifications/service.ts`
+- `apps/api/src/modules/medical/service.ts`
+
+---
+
+### Qualification and Medical Status Policy (2026-03-15)
+
+**By:** Bunk
+
+**Context:** MVP compliance loop needs deterministic status calculation without ambiguity between automatic and manual status management.
+
+**Decision:**
+- Qualification status recalculated from `expirationDate`: `active`, `expiring_soon` (30 days), `expired`
+- Qualification compliance treats both `active` and `expiring_soon` as meeting requirements (both still current for MVP readiness)
+- Medical clearance expiry forces `expired` state; otherwise preserves explicit operational status (`cleared`, `pending`, `restricted`)
+- Qualification document links validated against employee before join rows created
+
+**Rationale:**
+- Deterministic status from dates prevents drift
+- Compliance rule treats "expiring soon" as still valid for MVP readiness views
+- Medical preserves business meaning not encoded by dates alone (supervisor discretion on restrictions)
+
+**Impact:**
+- Frontend and tests can rely on deterministic status recalculation
+- Richer compliance payloads support complete readiness picture
+- Medical status retains operational flexibility while maintaining expiry safeguards
+
+---
+
+### Employee Readiness Required-Standards Rule (2026-03-15)
+
+**By:** Bunk
+
+**Context:** MVP readiness endpoint needs deterministic rule using current schema (no role-to-standard assignment table yet).
+
+**Decision:**
+- Treat every active compliance standard as required qualification for MVP readiness
+- Emit one qualification readiness item per active standard in `GET /api/employees/:id/readiness`
+- If employee lacks qualification for standard, return synthetic `missing` item marked `non_compliant`
+- For medical, evaluate best record per clearance type; return synthetic missing item if no records exist
+- Use 30-day warning window for both qualifications and medical expirations; expiring items are `at_risk`
+
+**Rationale:**
+- Keeps readiness explainable and deterministic without schema extensions
+- Matches locked MVP three-state rule in team decisions
+- Produces UI-friendly detail arrays
+- Doesn't block on future role-scoped standards work
+
+**Impact:**
+- Readiness endpoint provides actionable compliance detail without guessing
+- UI can render per-standard status with clear missing/at-risk/compliant states
+- Non-compliant status triggers enforcement actions
+
+**Files Impacted:**
+- `apps/api/src/modules/employees/service.ts`
+- `apps/api/src/modules/standards/service.ts`
+
+---
+
+### Sydnor — Core Module Integration Test Pattern (2026-03-15)
+
+**By:** Sydnor
+
+**Context:** Phase 1 integration testing needs a pattern that validates real service contracts, supports RBAC testing, and scales to future modules.
+
+**Decision:**
+For Employees, Standards, Qualifications, and Medical integration suites:
+- Use seeded PostgreSQL records for read-path assertions
+- Use deterministic seeded auth identities from shared test helpers for RBAC coverage
+- Use direct Prisma fixture creation for update/compliance/audit setup
+- Use unique prefixes and explicit cleanup to prevent database pollution on repeated runs
+
+**Rationale:**
+- Read endpoints should validate against realistic seeded data already present
+- RBAC tests more trustworthy when tokens carry same IDs/emails as seeded demo users
+- Update and audit tests should not depend on other endpoints succeeding for setup
+- Cleanup patterns prevent pollution from repeated local test runs
+
+**Impact:**
+- Bunk can implement service methods against seeded-data contract without guessing
+- Future module suites should follow same pattern
+- Validator/schema mismatches corrected by updating test builders, not pattern
+
+**Test Coverage:**
+- Employees: 19 integration tests
+- Standards: 18 integration tests
+- Qualifications: 19 integration tests
+- Medical: 20 integration tests
+- Total: 76 integration tests (all passing)
+
+---
+
+### Sydnor — Integration Test Database Default (2026-03-15)
+
+**By:** Sydnor
+
+**Context:** API integration suites depend on DATABASE_URL but developers shouldn't have to manually configure it for standard local Docker environment.
+
+**Decision:**
+For Vitest API integration runs from repo root, default `DATABASE_URL` in `apps/api/tests/setup.ts` to local Docker Postgres connection string (`postgresql://postgres:postgres@localhost:5432/eclat`) whenever variable not already set.
+
+**Rationale:**
+- Prisma-backed integration suites fail early when DATABASE_URL missing
+- Project's documented local stack already exposes Postgres on localhost:5432
+- Root-level Vitest runs should not depend on developer manually loading .env.test
+
+**Impact:**
+- `npx vitest run` activates Employees, Standards, Qualifications, Medical integration suites by default
+- Developers and CI can override DATABASE_URL explicitly for other environments
+- Test expectations anchored to live service contracts instead of stubbed responses
+
+**Results:**
+- 76 integration tests passing against real Postgres
+- Docker e2e validation complete
+- CI can use same pattern for automated testing
+
