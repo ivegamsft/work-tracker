@@ -1,0 +1,10 @@
+squad: Phase 2 kickoff — orchestration logs
+
+- Bunk A: Documents service (upload, review, approve)
+- Bunk B: Notifications service (in-app, preferences, list, mark-read, dismiss, weekly, escalation)
+- Bunk C: PrismaAuditLogger (DB persistence, createApp integration)
+- Sydnor: Integration tests (all three services)
+
+Spawned 2026-03-15T21:49:14Z.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

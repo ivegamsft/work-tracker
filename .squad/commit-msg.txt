@@ -1,12 +1,1 @@
-[squad] Scribe: Phase 0 orchestration + decision merge (2026-03-14T20:05:00Z)
-
-- Orchestration logs: Freamon (MVP defaults, container architecture), Bunk (Phase 0 implementation), Sydnor (test harness), Coordinator (container-first directive)
-- Session log: Phase 0 complete — MVP scope locked, container architecture decided, test harness operational
-- Decision merge: Consolidated 4 inbox decisions into decisions.md (MVP scope x8, labels routing, container architecture, hosting directive); inbox files deleted
-- Cross-agent updates: Appended team status to Freamon, Bunk, Sydnor, Kima histories; Phase 1 now ready
-
-Phase 0 status: ✅ Complete. MVP product scope (8 decisions) locked. Container-first architecture approved. Test harness with 10 passing tests validates auth/routing. All reversible post-MVP.
-
-Phase 1 opens: Bunk owns Phase 0 blocking (JWT tokens, labels routing, mock users, auth verification). Sydnor builds factories. Kima waits on Bunk to complete Phase 0 before frontend work accelerates.
-
-Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+squad: Phase 1 kickoff — orchestration logs
