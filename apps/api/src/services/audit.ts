@@ -1,4 +1,6 @@
 import { logger } from "../common/utils";
+import { prisma } from "../config/database";
+import type { Prisma } from "@prisma/client";
 
 export interface AuditEntry {
   action: string;
@@ -33,11 +35,33 @@ export class PrismaAuditLogger implements AuditLogger {
   constructor(private readonly clock: Clock = () => new Date()) {}
 
   async log(entry: AuditEntry): Promise<void> {
-    logger.warn("Prisma audit logger is not configured yet", {
-      audit: {
-        ...entry,
-        timestamp: this.clock().toISOString(),
-      },
-    });
+    try {
+      const timestamp = this.clock();
+      
+      await prisma.auditLog.create({
+        data: {
+          action: entry.action,
+          entityType: entry.entityType,
+          recordId: entry.recordId,
+          changedFields: entry.changedFields as Prisma.InputJsonValue | undefined,
+          actor: entry.actor,
+          reason: entry.reason,
+          attestation: entry.attestation,
+          timestamp,
+        },
+      });
+
+      logger.info("Audit log recorded", {
+        audit: {
+          ...entry,
+          timestamp: timestamp.toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to persist audit log", {
+        error: error instanceof Error ? error.message : String(error),
+        entry,
+      });
+    }
   }
 }

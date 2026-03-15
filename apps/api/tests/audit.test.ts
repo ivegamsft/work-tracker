@@ -1,11 +1,12 @@
 import { Router } from "express";
 import request from "supertest";
 import { Roles } from "@e-clat/shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { logger } from "../src/common/utils";
 import { authenticate } from "../src/middleware";
-import { ConsoleAuditLogger, type AuditEntry, type AuditLogger } from "../src/services/audit";
+import { ConsoleAuditLogger, PrismaAuditLogger, type AuditEntry, type AuditLogger } from "../src/services/audit";
 import { createTestApp, generateTestToken } from "./helpers";
+import { prisma } from "../src/config/database";
 
 function registerAuditTestRoutes(app: ReturnType<typeof createTestApp>) {
   const router = Router();
@@ -225,5 +226,96 @@ describe("ConsoleAuditLogger", () => {
         timestamp: "2026-03-14T00:00:00.000Z",
       },
     });
+  });
+});
+
+describe("PrismaAuditLogger", () => {
+  const TEST_PREFIX = "syd-prisma-audit";
+  const createdRecordIds: string[] = [];
+
+  afterAll(async () => {
+    // Clean up test audit logs
+    await prisma.auditLog.deleteMany({
+      where: {
+        OR: [
+          { recordId: { in: createdRecordIds } },
+          { recordId: { startsWith: TEST_PREFIX } },
+        ],
+      },
+    });
+  });
+
+  it("logs audit entries to the database", async () => {
+    const auditLogger = new PrismaAuditLogger(() => new Date("2026-03-14T12:00:00.000Z"));
+    const recordId = `${TEST_PREFIX}-db-log-test`;
+    createdRecordIds.push(recordId);
+
+    // Create a test app with PrismaAuditLogger
+    const app = createTestApp({ 
+      auditLogger,
+      registerRoutes: (testApp) => {
+        const router = Router();
+        router.post("/test", authenticate, (_req, res) => {
+          res.status(201).json({ id: recordId });
+        });
+        testApp.use("/api/prisma-audit-test", router);
+      },
+    });
+
+    // Make a mutating request to trigger audit logging
+    await request(app)
+      .post("/api/prisma-audit-test/test")
+      .set("Authorization", `Bearer ${generateTestToken(Roles.ADMIN)}`)
+      .send({ data: "test value" });
+
+    // Verify the audit log was created in the database
+    await vi.waitFor(async () => {
+      const auditLog = await prisma.auditLog.findFirst({
+        where: { recordId },
+      });
+      expect(auditLog).toBeTruthy();
+      expect(auditLog).toEqual(expect.objectContaining({
+        action: "POST /api/prisma-audit-test/test",
+        entityType: "prisma-audit-test",
+        recordId,
+        actor: "admin@example.com",
+      }));
+    });
+  });
+
+  it("does not block request processing on database errors", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => logger);
+    
+    // Create a PrismaAuditLogger that will fail
+    const failingAuditLogger: AuditLogger = {
+      log: vi.fn().mockRejectedValue(new Error("Database connection failed")),
+    };
+
+    const app = createTestApp({ 
+      auditLogger: failingAuditLogger,
+      registerRoutes: (testApp) => {
+        const router = Router();
+        router.post("/fail-test", authenticate, (_req, res) => {
+          res.status(201).json({ id: "fail-safe-test" });
+        });
+        testApp.use("/api/prisma-audit-fail", router);
+      },
+    });
+
+    // Request should still succeed even if audit logging fails
+    const response = await request(app)
+      .post("/api/prisma-audit-fail/fail-test")
+      .set("Authorization", `Bearer ${generateTestToken(Roles.ADMIN)}`)
+      .send({ data: "fail test" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBe("fail-safe-test");
+
+    // Audit logger should have been called and failed
+    await vi.waitFor(() => {
+      expect(failingAuditLogger.log).toHaveBeenCalled();
+    });
+
+    warnSpy.mockRestore();
   });
 });

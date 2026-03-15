@@ -14,7 +14,7 @@ import { qualificationsRouter } from "./modules/qualifications";
 import { medicalRouter } from "./modules/medical";
 import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
-import { ConsoleAuditLogger, type AuditLogger } from "./services/audit";
+import { ConsoleAuditLogger, PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
   auditLogger?: AuditLogger;
@@ -23,7 +23,7 @@ export interface CreateAppOptions {
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
-  const auditLogger = options.auditLogger ?? new ConsoleAuditLogger();
+  const auditLogger = options.auditLogger ?? new PrismaAuditLogger();
 
   // Global middleware
   app.use(helmet());

@@ -1,11 +1,15 @@
+import { DocumentStatus as PrismaDocumentStatus, ReviewStatus as PrismaReviewStatus, type Prisma } from "@prisma/client";
 import {
-  Document,
-  ExtractionResult,
-  ReviewQueueItem,
-  AuditLog,
+  NotFoundError,
+  ValidationError,
+  type Document,
+  type ExtractionResult,
+  type ReviewQueueItem,
+  type AuditLog,
 } from "@e-clat/shared";
+import { prisma } from "../../config/database";
 import { UploadDocumentInput, ReviewDocumentInput, CorrectExtractionInput } from "./validators";
-import { notImplemented } from "../../common/utils";
+import { randomUUID } from "crypto";
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -24,12 +28,318 @@ export interface DocumentsService {
   getAuditTrail(documentId: string): Promise<AuditLog[]>;
 }
 
+const employeePublicSelect = {
+  id: true,
+  employeeNumber: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+  departmentId: true,
+  hireDate: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.EmployeeSelect;
+
+const documentBaseSelect = {
+  id: true,
+  employeeId: true,
+  fileName: true,
+  mimeType: true,
+  storageKey: true,
+  status: true,
+  classifiedType: true,
+  detectedExpiration: true,
+  uploadedBy: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.DocumentSelect;
+
+const documentDetailSelect = {
+  ...documentBaseSelect,
+  employee: {
+    select: employeePublicSelect,
+  },
+} satisfies Prisma.DocumentSelect;
+
+const reviewQueueItemSelect = {
+  id: true,
+  documentId: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  approvalNotes: true,
+  linkedQualificationId: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ReviewQueueItemSelect;
+
+type DocumentRecord = Prisma.DocumentGetPayload<{ select: typeof documentBaseSelect }>;
+type ReviewQueueItemRecord = Prisma.ReviewQueueItemGetPayload<{ select: typeof reviewQueueItemSelect }>;
+
+function toPrismaDocumentStatus(status: Document["status"]): PrismaDocumentStatus {
+  switch (status) {
+    case "uploaded":
+      return PrismaDocumentStatus.UPLOADED;
+    case "processing":
+      return PrismaDocumentStatus.PROCESSING;
+    case "classified":
+      return PrismaDocumentStatus.CLASSIFIED;
+    case "review_required":
+      return PrismaDocumentStatus.REVIEW_REQUIRED;
+    case "approved":
+      return PrismaDocumentStatus.APPROVED;
+    case "rejected":
+      return PrismaDocumentStatus.REJECTED;
+  }
+}
+
+function fromPrismaDocumentStatus(status: PrismaDocumentStatus): Document["status"] {
+  switch (status) {
+    case PrismaDocumentStatus.UPLOADED:
+      return "uploaded";
+    case PrismaDocumentStatus.PROCESSING:
+      return "processing";
+    case PrismaDocumentStatus.CLASSIFIED:
+      return "classified";
+    case PrismaDocumentStatus.REVIEW_REQUIRED:
+      return "review_required";
+    case PrismaDocumentStatus.APPROVED:
+      return "approved";
+    case PrismaDocumentStatus.REJECTED:
+      return "rejected";
+  }
+}
+
+function toPrismaReviewStatus(status: ReviewQueueItem["status"]): PrismaReviewStatus {
+  switch (status) {
+    case "pending":
+      return PrismaReviewStatus.PENDING;
+    case "in_progress":
+      return PrismaReviewStatus.IN_PROGRESS;
+    case "approved":
+      return PrismaReviewStatus.APPROVED;
+    case "rejected":
+      return PrismaReviewStatus.REJECTED;
+  }
+}
+
+function fromPrismaReviewStatus(status: PrismaReviewStatus): ReviewQueueItem["status"] {
+  switch (status) {
+    case PrismaReviewStatus.PENDING:
+      return "pending";
+    case PrismaReviewStatus.IN_PROGRESS:
+      return "in_progress";
+    case PrismaReviewStatus.APPROVED:
+      return "approved";
+    case PrismaReviewStatus.REJECTED:
+      return "rejected";
+  }
+}
+
+async function ensureEmployeeExists(employeeId: string) {
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true },
+  });
+
+  if (!employee) {
+    throw new NotFoundError("Employee", employeeId);
+  }
+}
+
+function mapDocument(record: DocumentRecord): Document {
+  return {
+    id: record.id,
+    employeeId: record.employeeId,
+    fileName: record.fileName,
+    mimeType: record.mimeType,
+    storageKey: record.storageKey,
+    status: fromPrismaDocumentStatus(record.status),
+    classifiedType: record.classifiedType,
+    extractedData: null,
+    detectedExpiration: record.detectedExpiration,
+    reviewedBy: record.reviewedBy,
+    reviewedAt: record.reviewedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
+
+function mapReviewQueueItem(record: ReviewQueueItemRecord): ReviewQueueItem {
+  return {
+    id: record.id,
+    documentId: record.documentId,
+    status: fromPrismaReviewStatus(record.status),
+    reviewedBy: record.reviewedBy,
+    reviewedAt: record.reviewedAt,
+    approvalNotes: record.approvalNotes,
+    linkedQualificationId: record.linkedQualificationId,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
+
+function mapAuditLog(record: Prisma.AuditLogGetPayload<Record<string, never>>): AuditLog {
+  const changedFields =
+    record.changedFields && typeof record.changedFields === "object" && !Array.isArray(record.changedFields)
+      ? (record.changedFields as Record<string, unknown>)
+      : null;
+
+  return {
+    id: record.id,
+    action: record.action as AuditLog["action"],
+    recordId: record.recordId,
+    entityType: record.entityType,
+    changedFields,
+    actor: record.actor,
+    reason: record.reason,
+    attestation: record.attestation,
+    timestamp: record.timestamp,
+  };
+}
+
 export const documentsService: DocumentsService = {
-  upload: () => notImplemented("upload"),
-  getDocument: () => notImplemented("getDocument"),
-  getExtraction: () => notImplemented("getExtraction"),
-  correctExtraction: () => notImplemented("correctExtraction"),
-  reviewDocument: () => notImplemented("reviewDocument"),
-  listReviewQueue: () => notImplemented("listReviewQueue"),
-  getAuditTrail: () => notImplemented("getAuditTrail"),
+  async upload(input, fileBuffer, uploadedBy) {
+    await ensureEmployeeExists(input.employeeId);
+
+    const storageKey = randomUUID();
+
+    const document = await prisma.document.create({
+      data: {
+        employeeId: input.employeeId,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        storageKey,
+        status: PrismaDocumentStatus.UPLOADED,
+        uploadedBy,
+        reviewQueueItems: {
+          create: {
+            status: PrismaReviewStatus.PENDING,
+          },
+        },
+      },
+      select: documentBaseSelect,
+    });
+
+    return mapDocument(document);
+  },
+
+  async getDocument(id) {
+    const document = await prisma.document.findUnique({
+      where: { id },
+      select: documentDetailSelect,
+    });
+
+    if (!document) {
+      throw new NotFoundError("Document", id);
+    }
+
+    return mapDocument(document);
+  },
+
+  async getExtraction(documentId) {
+    await prisma.document.findUniqueOrThrow({
+      where: { id: documentId },
+      select: { id: true },
+    }).catch(() => {
+      throw new NotFoundError("Document", documentId);
+    });
+
+    return [];
+  },
+
+  async correctExtraction(documentId, fieldId, input, correctedBy) {
+    throw new ValidationError("Extraction correction not available — OCR pipeline is not implemented.");
+  },
+
+  async reviewDocument(id, input, reviewedBy) {
+    const document = await prisma.document.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
+
+    if (!document) {
+      throw new NotFoundError("Document", id);
+    }
+
+    const reviewQueueItem = await prisma.reviewQueueItem.findFirst({
+      where: { documentId: id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!reviewQueueItem) {
+      throw new NotFoundError("ReviewQueueItem", `for document ${id}`);
+    }
+
+    const reviewStatus = input.action === "approve" ? PrismaReviewStatus.APPROVED : PrismaReviewStatus.REJECTED;
+    const documentStatus = input.action === "approve" ? PrismaDocumentStatus.APPROVED : PrismaDocumentStatus.REJECTED;
+
+    const [updatedReviewItem] = await prisma.$transaction([
+      prisma.reviewQueueItem.update({
+        where: { id: reviewQueueItem.id },
+        data: {
+          status: reviewStatus,
+          reviewedBy,
+          reviewedAt: new Date(),
+          approvalNotes: input.notes ?? null,
+          linkedQualificationId: input.linkedQualificationId ?? null,
+        },
+        select: reviewQueueItemSelect,
+      }),
+      prisma.document.update({
+        where: { id },
+        data: {
+          status: documentStatus,
+          reviewedBy,
+          reviewedAt: new Date(),
+        },
+      }),
+    ]);
+
+    return mapReviewQueueItem(updatedReviewItem);
+  },
+
+  async listReviewQueue(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      prisma.reviewQueueItem.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        select: reviewQueueItemSelect,
+      }),
+      prisma.reviewQueueItem.count(),
+    ]);
+
+    return {
+      data: items.map(mapReviewQueueItem),
+      total,
+      page,
+      limit,
+    };
+  },
+
+  async getAuditTrail(documentId) {
+    await prisma.document.findUniqueOrThrow({
+      where: { id: documentId },
+      select: { id: true },
+    }).catch(() => {
+      throw new NotFoundError("Document", documentId);
+    });
+
+    const auditLogs = await prisma.auditLog.findMany({
+      where: {
+        entityType: { in: ["document", "documents"] },
+        recordId: documentId,
+      },
+      orderBy: { timestamp: "desc" },
+    });
+
+    return auditLogs.map(mapAuditLog);
+  },
 };
