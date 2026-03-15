@@ -11,6 +11,28 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
+## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
+
+### Freamon Status Update (Lead)
+
+✅ **Entra ID Authentication Architecture Complete:**
+- Full 10-section design document at `docs/architecture/entra-auth-design.md`
+- New `05-identity` Terraform layer for app registrations and security groups
+- 4 app registrations (API, web SPA, admin SPA, deployment SPN)
+- 5 app roles + 5 security groups per environment (1:1 mapping to existing RBAC)
+- Backend: JWKS token validation (no re-signing), `TokenValidator` strategy pattern, `AUTH_MODE` toggle
+- Frontend: MSAL.js redirect-based login for both SPAs
+- Database: Managed identity for production access
+- Database: Managed identity for production PostgreSQL access
+- 6-phase migration plan (foundation → terraform → bootstrap → backend → frontend → cleanup)
+- Mock auth fully functional locally; switch to Entra when tenant/consent available
+
+⚠️ **Blocking dependency:** Phases 2-3 need tenant ID, subscription, and admin consent. Phase 1 (backend token interface) independent — can start immediately with mock tokens.
+
+💡 **Key Decision:** Validate Entra tokens directly (don't re-sign). Mock tokens mirror exact Entra claims structure. Additive migration keeps mock auth functional.
+
+### Kima Status Update (Frontend)
+
 ## Important Status: PRDs Available
 
 📌 **As of 2026-03-13T17:10:00Z**, comprehensive PRDs for E-CLAT are now available in `docs/prds/`:

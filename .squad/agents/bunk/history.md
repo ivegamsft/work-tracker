@@ -7,9 +7,115 @@
 - **API Modules:** auth, documents, employees, hours, labels, medical, notifications, qualifications, standards
 - **Created:** 2026-03-13
 
+## Core Context
+
+### Backend Architecture Patterns
+
+**Prisma Integration:**
+- Singleton pattern: `apps/api/src/config/database.ts` manages client lifecycle, all services consume from here
+- After schema changes, regenerate client: `npx prisma generate --schema=data/prisma/schema.prisma`
+- Seed data: `data/src/seed.ts` uses UUID v5 from mock auth emails for alignment
+- Service layer owns Prisma queries; routes own HTTP contracts
+
+**Enum Mapping (Critical):**
+- Prisma enums are uppercase (`Role`, `QualificationStatus`, `MedicalClearanceStatus`)
+- Shared types use lowercase strings (`role`, `qualificationStatus`, `medicalClearanceStatus`)
+- All DTOs must normalize Prisma output before returning API responses
+- Example: `prisma.employee.findUnique()` → map enum fields → return lowercase DTO
+
+**Error Handling:**
+- Use `NotFoundError`, `ConflictError`, `ValidationError` from shared types
+- Audit failures must never throw; wrap Prisma writes in try/catch (non-blocking)
+- Service methods validate foreign key existence before creating relations
+
+**RBAC Patterns:**
+- Middleware validates access token claims; services verify ownership on reads
+- 5-role hierarchy (EMPLOYEE < MANAGER < SUPERVISOR < LEAD < ADMIN)
+- Every mutation gets audit logged via middleware; sensitive fields redacted
+
+**Docker + Compose:**
+- API :3000, Postgres :5432, Azurite :10000 (container-first dev)
+- Prisma generation runs in CI before build; Dockerfile copies `data/prisma/` to runtime
+- Runtime secrets read from Key Vault via `DefaultAzureCredential` (no connection strings in env)
+
+### Infrastructure & Identity
+
+**Terraform Layers:**
+- `00-foundation` — Resource group, Key Vault, ACR, Log Analytics
+- `10-data` — PostgreSQL, storage account, secrets to Key Vault
+- `20-compute` — Container Apps Environment + Container App for API
+- Future: APIM/edge as downstream layer after compute
+
+**Entra Auth Migration (Phase 2):**
+- New `05-identity` layer planned (between foundation and data)
+- 4 app registrations, 5 app roles, 5 security groups per environment
+- `AUTH_MODE=mock` (local dev) vs `AUTH_MODE=entra` (production)
+- Mock tokens mirror exact Entra claims structure (`iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`)
+- Phase 1: Backend `TokenValidator` interface; mock validator ready immediately, no external deps
+
+**Secrets:**
+- All connection strings + app secrets go through Key Vault, never in `.env` or CI variables
+- Tenant ID, subscription ID, usernames are secrets (don't expose in logs/commits)
+- Container App system-assigned identity for runtime; user-assigned for ACR pull
+
+### Service Implementation Notes
+
+**Pattern for New Services:**
+1. Create `apps/api/src/modules/{entity}/service.ts` — all Prisma queries
+2. Create `apps/api/src/modules/{entity}/validators.ts` — Zod request/response schemas
+3. Create `apps/api/src/modules/{entity}/router.ts` — HTTP routes + middleware
+4. Service methods return lowercase DTOs; router handles status codes + error conversion
+5. Test factories use Prisma directly; mock via Vitest `vi.mock()`
+
+**MVP Compliance Loop (Core):**
+- Employees (CRUD, readiness aggregation)
+- Standards (requirements, versioning)
+- Qualifications (status tracking, compliance checks)
+- Medical (date-driven expiry, status preservation)
+- Documents (manual upload + review only; OCR deferred)
+- Notifications (in-app only; email deferred)
+- Hours, Labels, full OCR pipeline deferred Phase 2+
+
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+
+## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
+
+### Team Status Update
+
+✅ **Freamon (Lead): Entra Auth Architecture Designed**
+- Full 10-section design at `docs/architecture/entra-auth-design.md`
+- `05-identity` Terraform layer ready (sits between foundation and data)
+- 4 app registrations, 5 app roles, 5 security groups
+- Backend: JWKS validation, `TokenValidator` strategy, `AUTH_MODE` toggle
+- Frontend: MSAL.js integration ready
+- Database: Managed identity access pattern
+- 6-phase plan; Phase 1 (token interface) independent, ready to start immediately
+
+⚠️ **Blocking:** Phases 2-3 need tenant ID, subscription, admin consent. Phase 1 fully unblocked.
+
+✅ **Kima (Frontend): Auth Context Fixed + Scaffold Complete**
+- Fixed JWT token field (accessToken → token) in `AuthContext.tsx`
+- 25 tests passing
+- React + Vite SPA with protected routes, centralized API client
+- 4 pages: Login, Dashboard, EmployeeList, EmployeeDetail
+- Plain CSS (no framework), responsive design
+- Docker Compose integration ready
+- Blocked on Bunk's `/auth/login` endpoint — ready to test once API integrates
+
+✅ **Bunk (Backend): CI/CD Pipeline Complete**
+- Monorepo CI with Postgres service container
+- Typecheck (both workspaces), API test (with real DB), Web test (placeholder), Build, Docker validation
+- Prisma generation added to CI and Docker builds
+- Full integration test support
+
+### Key Architectural Decisions Merged
+
+1. **User Directive: Entra Auth Overhaul** — Production-grade identity (UI/API/DB/IaC all Entra-protected)
+2. **User Directive: Mock Auth for Local Dev** — `AUTH_MODE` toggle allows offline/local testing without Entra tenant
+3. **Frontend Scaffold Architecture** — React + Vite, plain CSS, centralized API client
+4. **Monorepo CI/CD Pipeline** — Postgres service containers, full build validation
 
 ### Azure Container Apps Terraform Shift (2026-03-15)
 

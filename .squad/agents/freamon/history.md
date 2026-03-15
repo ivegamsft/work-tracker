@@ -31,6 +31,30 @@
 - Layer outputs are the cross-layer Terraform contract; they should export only what downstream layers, workflows, or external systems actually consume. Speculative future outputs and module implementation details (like the API's internal principal ID) belong in the module, not the layer root. All five dead outputs were pruned on 2026-03-14.
 - The container-first target architecture is Azure Container Apps for hosting, ACR in `00-foundation`, and a Log Analytics-backed ACA Environment in `20-compute`. Keep `PORT` as the runtime listener contract, replace App Service Key Vault references with application-level Key Vault reads via `DefaultAzureCredential`, and split image build/push from Terraform infra deployment so day-to-day development stays local-first while Azure remains RBAC-driven and Private Link-capable.
 
+- **Entra auth architecture designed (2026-03-16):** Full Entra ID auth design for E-CLAT covering identity architecture (4 app registrations, 11 API scopes, 5 app roles, 5 security groups), three token flows (Auth Code + PKCE, OBO, Client Credentials), new `05-identity` Terraform layer between foundation and data, bootstrap SPN permission expansion (`Application.ReadWrite.OwnedBy` + `Group.ReadWrite.All`), backend overhaul from self-signed JWTs to JWKS-validated Entra tokens via strategy pattern (`TokenValidator` interface), frontend MSAL.js integration with `@azure/msal-react`, and comprehensive local dev mock strategy with `AUTH_MODE` toggle. Key architectural decision: validate Entra tokens directly (don't re-sign them as app JWTs). Mock tokens mirror exact Entra claims structure (`iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`). Migration is additive — mock auth remains default until Entra proven. 6 phases over ~4 weeks; Phase 1 (backend token interface) has zero external dependencies. Design at `docs/architecture/entra-auth-design.md`.
+- For Entra-based systems, app roles on the API registration are preferable to raw group claims because they appear directly in the `roles` token claim without requiring a Graph API call, they're scoped to the application (not tenant-wide), and they survive group name changes.
+- When migrating auth systems, a strategy pattern (`TokenValidator` interface) with compile-time provider selection (`AUTH_MODE` env var) is cleaner than runtime conditional logic scattered across middleware. The mock validator produces structurally identical tokens to the real provider, so authorization logic is tested against the same claims shape.
+- Terraform layers should separate by API provider boundary: `azurerm` resources (Azure platform) and `azuread` resources (Entra directory) have different lifecycles, permission requirements, and blast radii. Mixing them in one layer couples infrastructure changes to identity changes.
+
+## Team Sync (2026-03-15T23:34:38Z)
+
+### Kima Status Update
+
+✅ **Frontend Auth Context Fixed:** Fixed JWT token field mismatch in `apps/web/src/contexts/AuthContext.tsx`:
+- Changed from `accessToken` to `token` in login response parsing
+- Added user object extraction from JWT payload
+- 25 tests passing
+
+⚠️ **Blocking dependency:** Frontend login flow expects API to return `token` field (not `accessToken`). Bunk's API must be updated when integrating with Kima's frontend.
+
+✅ **Frontend Scaffold Complete:** React + Vite + TypeScript SPA with:
+- React Router 7 protected routes
+- Plain CSS styling with custom properties (no framework)
+- Centralized API client with auto Bearer token injection
+- 4 pages implemented: Login, Dashboard, EmployeeList, EmployeeDetail
+- Production build: 243KB gzipped
+- Docker Compose integration ready
+
 ### Phase 0 Complete: MVP Scope + Container Architecture (2026-03-14T20:05:00Z)
 
 📌 **Freamon delivered both blocking Phase 0 decisions:**

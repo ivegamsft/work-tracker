@@ -28,6 +28,20 @@
 - **Audit logging is now middleware-driven** — `apps/api/src/middleware/audit.ts` hooks mutating `/api/*` requests, logs after `finish`, and keeps the logger behind an `AuditLogger` abstraction so Prisma persistence can be swapped in later without route changes.
 - **Audit payloads should redact sensitive write fields** — request bodies can safely populate `changedFields` when password/token/secret-style keys are masked before logging.
 - **`createTestApp()` now accepts app-construction options** — audit tests can inject a fake `AuditLogger` and temporary routes through `apps/api/tests/helpers.ts`, keeping middleware coverage in-process and deterministic.
+
+## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
+
+### Team Status Update
+
+✅ **Integration Test Infrastructure Complete:** 46 Phase 2 tests written (Documents, Notifications, PrismaAuditLogger) + 94 Phase 1 tests = 140 total. All passing.
+
+⚠️ **Auth Verification Ready for Implementation:** Freamon's Entra auth architecture defines:
+- Token claim shape: `iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`
+- Mock token format must match real Entra tokens exactly (same claims structure)
+- Phase 1 focus: Backend `TokenValidator` interface with mock and Entra implementations
+- Auth middleware must validate tokens (currently stub); JWKS validation or mock token parsing per `AUTH_MODE`
+
+🎯 **Next Focus:** Implement JWT/token validation in auth middleware to unblock 192+ RBAC tests
 - **Key audit files** — app wiring lives in `apps/api/src/index.ts`, logger implementations live in `apps/api/src/services/audit.ts`, and comprehensive Vitest coverage lives in `apps/api/tests/audit.test.ts`.
 - **Core-module integration suites are staged** — `apps/api/tests/employees.test.ts`, `standards.test.ts`, `qualifications.test.ts`, and `medical.test.ts` all use the in-process app harness plus live Prisma lookups against seeded PostgreSQL data.
 - **Seeded auth identities belong in shared test helpers** — `apps/api/tests/helpers.ts` should mint tokens with the deterministic demo user IDs/emails so RBAC, ownership, and audit-path tests stay aligned with seeded data.
