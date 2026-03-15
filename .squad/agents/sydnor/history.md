@@ -23,6 +23,12 @@
 - **Audit payloads should redact sensitive write fields** — request bodies can safely populate `changedFields` when password/token/secret-style keys are masked before logging.
 - **`createTestApp()` now accepts app-construction options** — audit tests can inject a fake `AuditLogger` and temporary routes through `apps/api/tests/helpers.ts`, keeping middleware coverage in-process and deterministic.
 - **Key audit files** — app wiring lives in `apps/api/src/index.ts`, logger implementations live in `apps/api/src/services/audit.ts`, and comprehensive Vitest coverage lives in `apps/api/tests/audit.test.ts`.
+- **Core-module integration suites are staged** — `apps/api/tests/employees.test.ts`, `standards.test.ts`, `qualifications.test.ts`, and `medical.test.ts` all use the in-process app harness plus live Prisma lookups against seeded PostgreSQL data.
+- **Seeded auth identities belong in shared test helpers** — `apps/api/tests/helpers.ts` should mint tokens with the deterministic demo user IDs/emails so RBAC, ownership, and audit-path tests stay aligned with seeded data.
+- **Fixture setup should use direct Prisma inserts for update/audit scenarios** — endpoint tests stay isolated when prerequisite records are created with unique prefixes and cleaned up afterward instead of chaining one API mutation test to set up another.
+- **Current schema/validator mismatches affect test design** — employee write validators currently expect UUID `departmentId` values even though seed data uses opaque strings, and medical write validators accept `pass`/`fail` while seeded read data stores richer text results.
+- **Integration tests should default to the local Docker Postgres URL in Vitest setup** — `apps/api/tests/setup.ts` now seeds `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eclat` when absent so Prisma-backed suites can run from the repo root without depending on an external `.env` file.
+- **Readiness and compliance assertions must follow service contracts, not earlier mocks** — employees readiness now returns `employeeId`, `overallStatus`, and readiness item arrays; qualification compliance returns `requirements[]` instead of synthetic `gaps`, and employee qualification history is an array rather than a paginated wrapper.
 
 ### Docker Stack Available for Test Integration (2026-03-14T20:46:38Z)
 

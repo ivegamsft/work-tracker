@@ -80,7 +80,7 @@ describe("audit middleware", () => {
       action: "POST /api/audit-tests",
       entityType: "audit-tests",
       recordId: "audit-created",
-      actor: "admin@test.local",
+      actor: "admin@example.com",
       reason: "create employee",
       attestation: "approved",
       changedFields: {
@@ -108,7 +108,7 @@ describe("audit middleware", () => {
       action: "PUT /api/audit-tests/:id",
       entityType: "audit-tests",
       recordId: "employee-42",
-      actor: "admin@test.local",
+      actor: "admin@example.com",
     });
   });
 
@@ -128,7 +128,7 @@ describe("audit middleware", () => {
       action: "PATCH /api/audit-tests/:id",
       entityType: "audit-tests",
       recordId: "employee-99",
-      actor: "manager@test.local",
+      actor: "manager@example.com",
     });
   });
 
@@ -147,7 +147,7 @@ describe("audit middleware", () => {
       action: "DELETE /api/audit-tests/:id",
       entityType: "audit-tests",
       recordId: "employee-7",
-      actor: "manager@test.local",
+      actor: "manager@example.com",
     });
   });
 

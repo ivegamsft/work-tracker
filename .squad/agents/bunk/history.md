@@ -168,3 +168,19 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 
 **Status:** Phase 0 Docker + Terraform complete. Phase 1 opens once Sydnor's test factories are confirmed.
 
+### Qualifications + Medical Prisma service patterns (2026-03-15)
+
+- `apps/api/src/modules/qualifications/service.ts` now follows the Prisma singleton pattern from `apps/api/src/config/database.ts`, maps Prisma enums back to shared lowercase DTOs, and returns safe relation data with employee password fields excluded.
+- Qualification writes must validate employee + standard existence, reject duplicate `documentIds`, and verify linked documents belong to the same employee before writing `QualificationDocument` rows.
+- Qualification compliance for MVP treats `active` and `expiring_soon` records as satisfying a standard requirement; response payloads now return requirement-by-requirement detail for UI consumption.
+- `apps/api/src/modules/medical/service.ts` uses date-driven expiry recalculation: expiration can force `expired`, while non-expired records preserve the explicit business status (`cleared`, `pending`, or `restricted`).
+- Key backend file paths for this phase: `apps/api/src/modules/qualifications/{service.ts,router.ts}`, `apps/api/src/modules/medical/service.ts`, `apps/api/src/modules/standards/router.ts`, and `data/prisma/schema.prisma`.
+
+### Employees + Standards Prisma service patterns (2026-03-15)
+
+- `apps/api/src/modules/employees/service.ts` and `apps/api/src/modules/standards/service.ts` now own Prisma-backed CRUD/list flows instead of `notImplemented()` stubs, using the shared singleton from `apps/api/src/config/database.ts` and explicit `NotFoundError` / `ConflictError` handling.
+- Employee DTO mapping must normalize Prisma enums (`Role`, `QualificationStatus`, `MedicalClearanceStatus`) back to shared lowercase strings, and standards requirements must convert Prisma `Decimal` values to numbers before returning API payloads.
+- Employee readiness for MVP treats every active compliance standard as a required qualification; missing standards, expired qualifications, missing medical clearance, or non-cleared medical states drive `non_compliant`, while items expiring within 30 days drive `at_risk`.
+- Router/service alignment matters here: standards routes now call `create/list/getById/update`, requirement creation passes `standardId` separately, and employee/standard list routes let the service own the 20-item default when pagination params are omitted.
+- Key backend file paths for this phase: `apps/api/src/modules/employees/{service.ts,router.ts}`, `apps/api/src/modules/standards/{service.ts,router.ts}`, `apps/api/src/modules/*/validators.ts`, and `data/src/seed.ts`.
+

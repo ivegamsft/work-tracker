@@ -20,7 +20,11 @@ router.post("/", authenticate, requireRole(Roles.ADMIN), async (req: Authenticat
 router.get("/", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
   try {
     const query = employeeQuerySchema.parse(req.query);
-    const result = await employeesService.list(query);
+    const result = await employeesService.list({
+      ...query,
+      page: req.query.page === undefined ? undefined : query.page,
+      limit: req.query.limit === undefined ? undefined : query.limit,
+    });
     res.json(result);
   } catch (err) { next(err); }
 });

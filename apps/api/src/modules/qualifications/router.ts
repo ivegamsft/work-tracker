@@ -23,6 +23,27 @@ router.get("/", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: Auth
   } catch (err) { next(err); }
 });
 
+router.get("/employee/:employeeId", authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const result = await qualificationsService.listByEmployee(param(req, "employeeId"));
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+router.get("/compliance/:employeeId/:standardId", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const result = await qualificationsService.checkCompliance(param(req, "employeeId"), param(req, "standardId"));
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+router.get("/:id/audit", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const trail = await qualificationsService.getAuditTrail(param(req, "id"));
+    res.json(trail);
+  } catch (err) { next(err); }
+});
+
 router.get("/:id", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const qual = await qualificationsService.getById(param(req, "id"));
@@ -35,28 +56,6 @@ router.put("/:id", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: A
     const input = updateQualificationSchema.parse(req.body);
     const qual = await qualificationsService.update(param(req, "id"), input);
     res.json(qual);
-  } catch (err) { next(err); }
-});
-
-router.get("/employee/:employeeId", authenticate, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const query = qualificationQuerySchema.parse(req.query);
-    const result = await qualificationsService.listByEmployee(param(req, "employeeId"), query.page, query.limit);
-    res.json(result);
-  } catch (err) { next(err); }
-});
-
-router.get("/:id/audit", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const trail = await qualificationsService.getAuditTrail(param(req, "id"));
-    res.json(trail);
-  } catch (err) { next(err); }
-});
-
-router.get("/compliance/:employeeId/:standardId", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const result = await qualificationsService.checkCompliance(param(req, "employeeId"), param(req, "standardId"));
-    res.json(result);
   } catch (err) { next(err); }
 });
 

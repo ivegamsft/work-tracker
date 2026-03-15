@@ -17,7 +17,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["apps/*/tests/**/*.test.ts", "packages/*/tests/**/*.test.ts"],
+    include: ["apps/*/tests/**/*.test.ts", "packages/*/tests/**/*.test.ts", "tests/**/*.test.ts"],
     setupFiles: [fromRoot("apps", "api", "tests", "setup.ts")],
     clearMocks: true,
     restoreMocks: true,
