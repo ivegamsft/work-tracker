@@ -1,0 +1,93 @@
+name: Quality Checks
+
+on:
+  workflow_call:
+    inputs:
+      workspace:
+        description: npm workspace name (e.g., @e-clat/api)
+        type: string
+        required: true
+      lint:
+        description: Run lint checks
+        type: boolean
+        default: true
+      typecheck:
+        description: Run typecheck
+        type: boolean
+        default: true
+      test:
+        description: Run tests
+        type: boolean
+        default: true
+      build:
+        description: Build the package
+        type: boolean
+        default: true
+      needs-postgres:
+        description: Whether tests need PostgreSQL
+        type: boolean
+        default: false
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: ${{ inputs.needs-postgres && 'postgres:16' || '' }}
+        env:
+          POSTGRES_DB: eclat_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          ${{ inputs.needs-postgres && '--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5' || '' }}
+    env:
+      DATABASE_URL: ${{ inputs.needs-postgres && 'postgresql://postgres:postgres@localhost:5432/eclat_test' || '' }}
+      JWT_SECRET: ci-test-only
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build shared package
+        run: npm run build -w @e-clat/shared
+      
+      - name: Generate Prisma client
+        if: inputs.needs-postgres
+        run: npx prisma generate
+        working-directory: data
+      
+      - name: Run migrations
+        if: inputs.needs-postgres
+        run: npx prisma migrate deploy
+        working-directory: data
+      
+      - name: Seed test data
+        if: inputs.needs-postgres
+        run: npx prisma db seed
+        working-directory: data
+      
+      - name: Typecheck
+        if: inputs.typecheck
+        run: npm run typecheck -w ${{ inputs.workspace }}
+      
+      - name: Lint
+        if: inputs.lint
+        run: npm run lint -w ${{ inputs.workspace }}
+      
+      - name: Test
+        if: inputs.test
+        run: npm run test -w ${{ inputs.workspace }}
+      
+      - name: Build
+        if: inputs.build
+        run: npm run build -w ${{ inputs.workspace }}
