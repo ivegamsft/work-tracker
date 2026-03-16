@@ -1,9 +1,9 @@
-chore: add test-and-rebuild skill, log Sydnor validation run
+squad: Scribe logs Kima and Bunk completion
 
-- Create .squad/skills/test-and-rebuild/SKILL.md: reusable validation cycle for unit tests, TypeScript checks, Docker rebuild, and smoke tests
-- Log Sydnor (agent-61) validation run: 179/179 tests passed, TypeScript clean, Docker healthy, smoke checks green
-- Record orchestration event at .squad/orchestration-log/2026-03-16T01-59-24Z-sydnor-agent-61.md
-- Update Sydnor's history with validation outcome
-- Log session batch work in .squad/log/2026-03-16T01-59-24Z-scribe-validation-log.md
+- Orchestration log: Kima's 6 My* self-service pages (types, styles, all components)
+- Session log: My Section Pages summarized
+- Merged inbox decisions: Kima My Section UI Architecture + Bunk Taxonomy Route Alignment
+- Decisions deduplicated and appended to decisions.md
+- Inbox cleared
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

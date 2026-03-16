@@ -53,6 +53,7 @@ All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
 
 - **Frontend Auth & RBAC (2026-03-16):** Role-gated pages must wait for AuthContext hydration before protected requests. Employee users skip employee-directory fetches; 403s should render permission-aware UI, not fatal errors. ProofList: parent-provided items, client-side filtering (All/Active/Expiring/Expired), Add New gated by create permission.
 - **Specifications Ground Truth (2026-03-17):** RBAC spec (65 endpoints, 36 permissions, 5-role matrix) and App spec (23 core + 9 admin screens, 5-phase implementation) are canonical. Product spec locked 5-role model and terminology. All decisions merged to `.squad/decisions.md`.
+- **My Section Self-Service UI (2026-03-15):** Built shared `my-section` API types and a reusable `my-section.css` system for cards, tables, forms, badges, nav links, empty states, and coming-soon states across My Profile, Qualifications, Medical, Documents, Notifications, and Hours. Pattern is auth-hydrated own-scope fetching with explicit loading/error/empty handling, ProofList mapping for qualifications, read-only preferences normalization for notifications, and 404/501 hours responses downgraded to planned UI instead of fatal errors. Assumed contracts: `/employees/:id` + `/employees/:id/readiness`, qualifications/medical/documents employee lists, notifications list + preferences, metadata-only document upload, and a future hours payload with date/clock totals.
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 

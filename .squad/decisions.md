@@ -1460,3 +1460,34 @@ Without this rule, the matrix would overstate progress in \hours\, \labels\, and
 **By:** Israel (Izzy) (via Copilot)  
 **What:** User's name is Israel, not Isaac. Preferred name: Izzy.  
 **Why:** User request — captured for team memory
+
+
+---
+
+## ### 2026-03-15T23:48:30.3974508-04:00: My Section UI Architecture
+**By:** Kima (Frontend Dev)
+**What:** Established a shared `apps/web/src/types/my-section.ts` contract for self-service API payloads, a reusable `apps/web/src/styles/my-section.css` design system (`my-page`, `my-card`, `my-grid`, `my-table`, badge/button/form/nav/empty/coming-soon patterns), and six focused My* pages that all wait for auth hydration before own-scope fetches. The pages reuse ProofList for qualifications, normalize notification/preferences payloads for safer frontend rendering, provide metadata-only document upload UI, and treat unimplemented hours endpoints as a coming-soon experience instead of a hard failure.
+**Why:** This keeps self-service screens visually consistent, type-safe, and easy to extend while backend contracts are still settling. Shared primitives reduce duplication, make responsive behavior/accessibility predictable, and let Bunk wire routes later without reworking page internals.
+
+
+---
+
+# Bunk — Taxonomy Route Alignment
+
+## Decision
+Use `/team` and `/team/:id` as the canonical web routes for team management, matching `docs/specs/app-spec.md`. Keep `/employees` and `/employees/:id` as redirect-only legacy entry points so existing links do not break while the UI and docs converge.
+
+## Implementation Notes
+- Route source of truth: `apps/web/src/App.tsx`
+- Shared route UI scaffolding: `apps/web/src/components/PageShell.tsx`
+- Shared role gating: `apps/web/src/rbac.ts` + `apps/web/src/components/ProtectedRoute.tsx`
+- Placeholder route bundle for Kima follow-up: `apps/web/src/pages/RoutePlaceholderPages.tsx`
+- Updated team pages: `apps/web/src/pages/TeamDirectoryPage.tsx`, `apps/web/src/pages/TeamMemberDetailPage.tsx`
+
+## Why
+- The spec and current UI terminology were drifting (`/employees` in code vs `/team` in product language).
+- Redirects preserve compatibility for saved links and bookmarks.
+- Shared breadcrumb/tab shell prevents the new route families from diverging while real pages are still pending.
+
+## Extra Validation Choice
+I also added `@e-clat/web` to the root `build` and `typecheck` scripts in `package.json` so monorepo validation now includes frontend route changes by default.
