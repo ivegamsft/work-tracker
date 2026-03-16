@@ -4,6 +4,84 @@
 
 **Note:** Older decisions (2026-03-13 and 2026-03-14) have been archived to `decisions-archive.md` to keep this file focused on recent, active decisions.
 
+---
+
+## Phase 2 Route Taxonomy & My Section UI (2026-03-16)
+
+### Frontend Normalization of API Response Shapes (2026-03-16)
+
+**Decision:** My section page components normalize API response shapes in-component before rendering.
+
+**Rationale:**
+- Backend endpoints still return inconsistent field naming (e.g., `firstName`/`lastName`, `certificationName`, `status`/`readAt`, `fileName`/`mimeType`)
+- Rather than change all backend endpoints, frontend pages host adapter functions to normalize
+- Centralizes API complexity in one place per domain (profile, qualifications, medical, etc.)
+- Allows backend flexibility without cascading frontend refactors
+
+**Implementation:**
+- All My pages in `apps/web/src/pages/my/` implement this pattern
+- Shared type definitions in `packages/shared/src/types/my-section.ts`
+- Example (MyQualifications): `certificationName` → `name`, `issuingBody` → `issuer`, `status` → `state`
+- Example (MyDocuments): `fileName` → `name`, `mimeType` → `type`
+
+**Pages Using This Pattern:**
+- `MyProfile.tsx` — Adapts basic profile fields
+- `MyQualifications.tsx` — Normalizes certification responses
+- `MyMedical.tsx` — Normalizes clearance status
+- `MyDocuments.tsx` — Adapts document metadata
+- `MyNotifications.tsx` — Adapts notification status/readAt
+- `MyHours.tsx` — Graceful 404/501 handling (planned endpoint)
+
+**Consequences:**
+- Frontend robust to backend schema changes (within normalization contract)
+- API endpoints can evolve independently; breaking changes isolated to adapter logic
+- Future: Consider API contract enforcement (e.g., API versioning) after MVP
+
+**Validation:**
+- ✓ All My pages built and TypeScript passing
+- ✓ 179/179 tests passing
+- ✓ API integration verified with mock AuthContext
+
+---
+
+### Route Taxonomy Alignment: /employees → /team (2026-03-16)
+
+**Decision:** Consolidated employee routes under `/team` prefix to match app specification.
+
+**Rationale:**
+- App spec consistently specifies `/team` routes (single source of truth)
+- Implementation used `/employees` (naming inconsistency)
+- Frontend attempting to route to `/team/*`; backend routes needed alignment
+- Both approaches blocked each other
+
+**Implementation:**
+- Updated `apps/api/src/routes/team.ts` with all CRUD endpoints under `/team`
+- Maintained legacy `/employees/*` routes with 301 redirects for backward compatibility
+- Service layer unchanged (internal boundaries preserved; services still named `employeesService`)
+- Routes pattern: `GET /team`, `GET /team/:id`, `POST /team`, `PATCH /team/:id`, `DELETE /team/:id`
+
+**Self-Service Patterns:**
+- `/team/me` → authenticated user's profile
+- `/team/me/qualifications` → personal qualifications list
+- `/team/me/documents` → personal documents
+- `/team/me/notifications` → personal notifications
+
+**Grace Period & Migration:**
+- `/employees/*` redirects remain active (remove in Phase 3+ after all clients migrated)
+- No impact on internal API contracts; services unmodified
+
+**Consequences:**
+- Frontend can now confidently route `/team/me` flows
+- Legacy clients get 301 redirects; no service disruption
+- Service layer complexity unchanged; routing boundary preserved
+
+**Validation:**
+- ✓ Build passing (npm run build)
+- ✓ 179/179 tests passing
+- ✓ `/team` routes responding 200
+- ✓ `/employees` routes returning 301 redirects
+- ✓ No breaking changes to service APIs
+
 ## Phase 2 Authentication & Frontend Kickoff (2026-03-15)
 
 ### PrismaAuditLogger Implementation (2026-03-15)

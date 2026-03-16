@@ -32,6 +32,33 @@
 
 ---
 
+## 📌 Team Update (2026-03-16T034500Z)
+
+**My Section Pages Delivered — 6 Components Built:**
+- `MyProfile.tsx` — Read/edit basic employee profile (firstName, lastName, department, email)
+- `MyQualifications.tsx` — List + status of personal qualifications with expiry tracking
+- `MyMedical.tsx` — View medical clearance status and history (graceful 404/501 handling)
+- `MyDocuments.tsx` — Upload & manage personal documents (metadata-only, binary deferred)
+- `MyNotifications.tsx` — View in-app notifications, mark-as-read
+- `MyHours.tsx` — Placeholder for Phase 2 API (404/501 → "Coming Soon" UX)
+
+**Frontend Normalization Pattern Approved:**
+- Pages normalize API response shapes in-component before rendering
+- Centralizes API complexity; allows backend flexibility without cascading refactors
+- Adapter functions for each domain (profile, qualifications, medical, documents, notifications)
+- Types codified in `packages/shared/src/types/my-section.ts`
+- All pages consume `AuthContext.user.id` for self-service data fetches
+
+**Route Taxonomy Alignment (Bunk):**
+- Backend routes now use `/team/*` per app spec (was `/employees/*`)
+- Self-service patterns ready: `/team/me`, `/team/me/qualifications`, `/team/me/documents`, `/team/me/notifications`
+- Legacy `/employees/*` routes 301-redirect for backward compatibility
+- Frontend can now confidently route My pages under `/team/my/*` hierarchy
+
+**Outcome:** My pages ready for routing integration + breadcrumb wiring. Tests: 179/179 passing.
+
+---
+
 ## 📌 Team Update (2026-03-16T02:25:09Z)
 
 **Documentation Taxonomy Reorganized:**
@@ -53,7 +80,7 @@ All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
 
 - **Frontend Auth & RBAC (2026-03-16):** Role-gated pages must wait for AuthContext hydration before protected requests. Employee users skip employee-directory fetches; 403s should render permission-aware UI, not fatal errors. ProofList: parent-provided items, client-side filtering (All/Active/Expiring/Expired), Add New gated by create permission.
 - **Specifications Ground Truth (2026-03-17):** RBAC spec (65 endpoints, 36 permissions, 5-role matrix) and App spec (23 core + 9 admin screens, 5-phase implementation) are canonical. Product spec locked 5-role model and terminology. All decisions merged to `.squad/decisions.md`.
-- **My Section Self-Service UI (2026-03-15):** Built shared `my-section` API types and a reusable `my-section.css` system for cards, tables, forms, badges, nav links, empty states, and coming-soon states across My Profile, Qualifications, Medical, Documents, Notifications, and Hours. Pattern is auth-hydrated own-scope fetching with explicit loading/error/empty handling, ProofList mapping for qualifications, read-only preferences normalization for notifications, and 404/501 hours responses downgraded to planned UI instead of fatal errors. Assumed contracts: `/employees/:id` + `/employees/:id/readiness`, qualifications/medical/documents employee lists, notifications list + preferences, metadata-only document upload, and a future hours payload with date/clock totals.
+- **My Section Self-Service UI (2026-03-15):** Built shared `my-section` API types and a reusable `my-section.css` system for cards, tables, forms, badges, nav links, empty states, and coming-soon states across My Profile, Qualifications, Medical, Documents, Notifications, and Hours. Pattern is auth-hydrated own-scope fetching with explicit loading/error/empty handling, ProofList mapping for qualifications, read-only preferences normalization for notifications, and 404/501 hours responses downgraded to planned UI instead of fatal errors. API integration pattern is adapter-first: pages accept current backend shapes (employee `firstName`/`lastName`/`departmentId`, qualification `certificationName`/`issuingBody`/`documentIds`, medical `issuedBy`/`effectiveDate`, document `fileName`/`mimeType`, notification `status`/`readAt`) and normalize them in-page before rendering. File paths created: `apps/web/src/pages/MyProfile.tsx`, `apps/web/src/pages/MyQualifications.tsx`, `apps/web/src/pages/MyMedical.tsx`, `apps/web/src/pages/MyDocuments.tsx`, `apps/web/src/pages/MyNotifications.tsx`, `apps/web/src/pages/MyHours.tsx`, `apps/web/src/types/my-section.ts`, `apps/web/src/styles/my-section.css`. Assumed contracts: `/employees/:id` + `/employees/:id/readiness`, qualifications/medical/documents employee lists, notifications list + preferences, metadata-only document upload, and a future hours payload with date/clock totals.
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
