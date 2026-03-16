@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "npm run typecheck -w @e-clat/shared && npm run typecheck -w @e-clat/api && npm run typecheck -w @e-clat/web",
-    "lint": "npm run lint -w @e-clat/api"
+    "lint": "npm run lint --workspaces --if-present"
   },
   "keywords": [
     "workforce",

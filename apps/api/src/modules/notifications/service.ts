@@ -95,17 +95,6 @@ function fromPrismaNotificationStatus(status: PrismaNotificationStatus): Notific
   }
 }
 
-function toPrismaNotificationStatus(status: Notification["status"]): PrismaNotificationStatus {
-  switch (status) {
-    case "sent":
-      return PrismaNotificationStatus.SENT;
-    case "read":
-      return PrismaNotificationStatus.READ;
-    case "dismissed":
-      return PrismaNotificationStatus.DISMISSED;
-  }
-}
-
 function mapNotification(record: NotificationRecord): Notification {
   return {
     id: record.id,
