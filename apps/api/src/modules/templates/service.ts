@@ -2085,26 +2085,26 @@ export const templatesService: TemplatesService = {
       select: {
         id: true,
         action: true,
-        performedBy: true,
+        actor: true,
         timestamp: true,
-        changeDetails: true,
+        changedFields: true,
       },
     });
 
     const reviewHistory = await Promise.all(
       auditLogs.map(async (log) => {
         const performer = await prisma.employee.findUnique({
-          where: { id: log.performedBy },
+          where: { id: log.actor },
           select: { firstName: true, lastName: true },
         });
 
         return {
           id: log.id,
           action: log.action,
-          performedBy: log.performedBy,
+          performedBy: log.actor,
           performedByName: performer ? `${performer.firstName} ${performer.lastName}` : "Unknown",
           performedAt: log.timestamp,
-          notes: log.changeDetails ? String(log.changeDetails) : null,
+          notes: log.changedFields ? String(log.changedFields) : null,
         };
       })
     );
@@ -2169,7 +2169,7 @@ export const templatesService: TemplatesService = {
       updateData = {
         status: newStatus,
         validatedAt: now,
-        validatedBy: actor.id,
+        validatorEmployee: { connect: { id: actor.id } },
         validatorNotes: input.notes,
         rejectedAt: null,
         rejectionReason: null,
@@ -2182,7 +2182,7 @@ export const templatesService: TemplatesService = {
         rejectedAt: now,
         rejectionReason: input.reason!,
         validatedAt: null,
-        validatedBy: null,
+        validatorEmployee: { disconnect: true },
         validatorNotes: input.notes,
       };
     } else {
