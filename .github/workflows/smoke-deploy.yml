@@ -1,0 +1,263 @@
+name: Smoke Deploy Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment to test'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      api_url:
+        description: 'API base URL (optional, defaults to environment URL)'
+        required: false
+        type: string
+
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment to test'
+        required: true
+        type: string
+      api_url:
+        description: 'API base URL'
+        required: true
+        type: string
+    secrets:
+      SMOKE_ADMIN_EMAIL:
+        required: false
+      SMOKE_ADMIN_PASSWORD:
+        required: false
+
+env:
+  # Default URLs per environment (can be overridden by input)
+  API_BASE_URL: ${{ inputs.api_url || (inputs.environment == 'dev' && 'https://api-dev.e-clat.azure.com' || inputs.environment == 'staging' && 'https://api-staging.e-clat.azure.com' || 'https://api.e-clat.azure.com') }}
+
+jobs:
+  # Run smoke tests in parallel per subsystem
+  smoke-auth:
+    name: Smoke - Auth
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run auth smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/auth.smoke.test.ts
+
+  smoke-employees:
+    name: Smoke - Employees (Workforce Core)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run employees smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/employees.smoke.test.ts
+
+  smoke-templates:
+    name: Smoke - Templates (Compliance Service)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run templates smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/templates.smoke.test.ts
+
+  smoke-hours:
+    name: Smoke - Hours (Records Service)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run hours smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/hours.smoke.test.ts
+
+  smoke-documents:
+    name: Smoke - Documents (Records Service)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run documents smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/documents.smoke.test.ts
+
+  smoke-qualifications:
+    name: Smoke - Qualifications (Compliance Service)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run qualifications smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/qualifications.smoke.test.ts
+
+  smoke-medical:
+    name: Smoke - Medical (Compliance Service)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run medical smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/medical.smoke.test.ts
+
+  smoke-standards:
+    name: Smoke - Standards (Reference Data)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run standards smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/standards.smoke.test.ts
+
+  smoke-notifications:
+    name: Smoke - Notifications
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run notifications smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/notifications.smoke.test.ts
+
+  smoke-labels:
+    name: Smoke - Labels (Reference Data)
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run labels smoke tests
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL || 'admin@example.com' }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD || 'Password123!' }}
+        run: npm run test:smoke -- tests/smoke/labels.smoke.test.ts
+
+  smoke-summary:
+    name: Smoke Summary
+    runs-on: ubuntu-latest
+    needs:
+      - smoke-auth
+      - smoke-employees
+      - smoke-templates
+      - smoke-hours
+      - smoke-documents
+      - smoke-qualifications
+      - smoke-medical
+      - smoke-standards
+      - smoke-notifications
+      - smoke-labels
+    if: always()
+    steps:
+      - name: Check smoke test results
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" == "true" ]; then
+            echo "❌ One or more smoke tests failed"
+            exit 1
+          else
+            echo "✅ All smoke tests passed"
+          fi
+      - name: Deployment summary
+        run: |
+          echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: **${{ inputs.environment }}**" >> $GITHUB_STEP_SUMMARY
+          echo "API URL: ${{ env.API_BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Subsystem | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth | ${{ needs.smoke-auth.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Employees | ${{ needs.smoke-employees.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Templates | ${{ needs.smoke-templates.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Hours | ${{ needs.smoke-hours.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documents | ${{ needs.smoke-documents.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Qualifications | ${{ needs.smoke-qualifications.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Medical | ${{ needs.smoke-medical.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Standards | ${{ needs.smoke-standards.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Notifications | ${{ needs.smoke-notifications.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Labels | ${{ needs.smoke-labels.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY

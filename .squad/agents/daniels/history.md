@@ -42,6 +42,16 @@
 - `.github/copilot-instructions.md` is the primary memory file for `@copilot` and now carries the authoritative repo context for modules, compliance guardrails, docs pipeline, and infrastructure expectations.
 - Preferred `@copilot` branch naming is `copilot/{issue-number}-{slug}`, but GitHub does not yet expose a dedicated repository setting to force that pattern.
 - Key architecture and governance files for this update: `.github/copilot-instructions.md`, `.github/agents/squad.agent.md`, `docs/README.md`, `apps/api/src/modules/templates/`, `data/prisma/schema.prisma`, `.github/workflows/ci.yml`.
+
+## 📌 Team Update (2026-03-16T170500Z — Round 2 Spawned)
+
+**All 4 agents complete:**
+- Bunk: audit-safe-expiration (PR #56)
+- Daniels: terraform-compute-stubs (PR #57)
+- Freamon: api-v1-namespace (PR #55, decision merged)
+- Kima: coverage audit (54-71% partial)
+
+**Scribe:** Orchestration logs, decision merge, history updates complete
 - **Issue #26 Terraform module stubs (SA-05)**: Created 6 service group compute module stubs (`compute-identity`, `compute-workforce`, `compute-compliance`, `compute-records`, `compute-reference`, `compute-notifications`) under `infra/modules/`. Each module currently references the shared Container App via data source but is structured for future independent extraction with commented resource blocks. The `20-compute` layer now instantiates all 6 modules and exposes service-specific outputs (`identity_service`, `workforce_service`, etc.) containing `service_name`, `health_endpoint`, and `deploy_target`. This establishes the Terraform boundary for future parallel deployment without requiring refactoring downstream consumers. The extraction path is documented in `infra/modules/README.md` with recommended migration order: reference-data → notifications → identity → records → compliance → workforce.
 - **Parallel validation lanes implemented** (#36): Created `.github/workflows/parallel-lanes.yml` with 8 subsystem-specific lanes (identity, workforce, compliance, records, reference-data, notifications, web, admin) that run in parallel based on change detection from `dorny/paths-filter`. Each lane validates only its subsystem (typecheck, test, build), drastically reducing feedback time for targeted changes.
 - **Reusable workflow patterns**: Created `_shared-node-setup.yml`, `_quality-checks.yml`, and `_build-service-image.yml` as composable CI building blocks for consistent setup across lanes and future services.

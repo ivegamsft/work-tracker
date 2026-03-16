@@ -137,3 +137,12 @@ jobs:
           package: api-package.zip
       - name: Deployment summary
         run: echo "API deployed to ${{ needs.compute.outputs.api_url }}"
+
+  smoke-checks:
+    name: Smoke Deploy Checks
+    needs: deploy-api
+    uses: ./.github/workflows/smoke-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      api_url: ${{ needs.compute.outputs.api_url }}
+    secrets: inherit
