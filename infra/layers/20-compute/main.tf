@@ -50,3 +50,63 @@ module "compute" {
   max_replicas                    = var.max_replicas
   extra_env_vars                  = var.extra_env_vars
 }
+
+# ---------------------------------------------------------------------------
+# Service-group compute modules
+# Each stub references the shared Container App deployed above.
+# When a service is extracted, its module will create a dedicated Container App.
+# ---------------------------------------------------------------------------
+
+module "compute_identity" {
+  source = "../../modules/compute-identity"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
+
+module "compute_workforce" {
+  source = "../../modules/compute-workforce"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
+
+module "compute_compliance" {
+  source = "../../modules/compute-compliance"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
+
+module "compute_records" {
+  source = "../../modules/compute-records"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
+
+module "compute_reference" {
+  source = "../../modules/compute-reference"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
+
+module "compute_notifications" {
+  source = "../../modules/compute-notifications"
+
+  environment         = var.environment
+  project_name        = var.project_name
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  container_app_name  = module.compute.api_container_app_name
+}
