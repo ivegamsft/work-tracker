@@ -1238,7 +1238,7 @@ export const templatesService: TemplatesService = {
 
     ensurePublished(template);
 
-    let employees: Array<Prisma.EmployeeGetPayload<{ select: typeof employeeSummarySelect }>> = [];
+    let employees: Array<Prisma.EmployeeGetPayload<{ select: typeof employeeSummarySelect }>>;
     let assignmentRole: string | null = null;
     let assignmentDepartment: string | null = null;
 
@@ -1603,7 +1603,7 @@ export const templatesService: TemplatesService = {
     return mapFulfillment(updated);
   },
 
-  async thirdPartyVerify(fulfillmentId, input, actor) {
+  async thirdPartyVerify(fulfillmentId, input, _actor) {
     const fulfillment = await prisma.proofFulfillment.findUnique({
       where: { id: fulfillmentId },
       select: {

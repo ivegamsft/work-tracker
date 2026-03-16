@@ -15,7 +15,7 @@ import { medicalRouter } from "./modules/medical";
 import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
 import { assignmentsRouter, employeeAssignmentsRouter, fulfillmentsRouter, templatesRouter } from "./modules/templates";
-import { ConsoleAuditLogger, PrismaAuditLogger, type AuditLogger } from "./services/audit";
+import { PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
   auditLogger?: AuditLogger;
