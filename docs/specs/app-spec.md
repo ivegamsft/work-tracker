@@ -5,7 +5,7 @@
 > **Last Updated:** 2026-03-17  
 > **Applies To:** `apps/web` (employee/manager SPA), `apps/admin` (admin SPA), all API modules  
 > **Source PRD:** [`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md) — Product north star. This spec is the implementation authority.  
-> **Companion Docs:** [RBAC API Spec](./rbac-api-spec.md) · [Entra Auth Design](./entra-auth-design.md)  
+> **Companion Docs:** [RBAC API Spec](./rbac-api-spec.md) · [Entra Auth Design](./entra-auth-design.md) · [Service Architecture Spec](./service-architecture-spec.md) · [Feature Flags Spec](./feature-flags-spec.md) · [Pipeline Architecture Spec](./pipeline-architecture-spec.md)  
 > **Triggered By:** User feedback — "this screen is really confusing. no quick actions. employees should be trimmed. what is the directory?"
 >
 > ### Terminology Mapping (PRD → Implementation)

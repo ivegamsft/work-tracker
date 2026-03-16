@@ -414,7 +414,7 @@ Pre-built templates that managers can select and customize. Each preset maps to 
 
 | Template Name | Requirements |
 |--------------|-------------|
-| **CDL Driver Compliance** | DOT Physical (clearance, 24mo, `third_party_validated`), CDL Skills Test (assessment, `third_party`), Hours-of-Service Logbook (compliance, continuous, `upload_validated`), Drug/Alcohol Test (clearance, random, `third_party`) |
+| **CDL Driver Compliance** | DOT Physical (clearance, 24mo, `third_party_validated`), CDL Skills Test (assessment, `third_party`), Hours-of-Service Duty Log (hours, continuous, `upload_validated`), Driver policy acknowledgment (compliance, annual, `self_attest_upload`), Drug/Alcohol Test (clearance, random, `third_party`) |
 | **Hazmat Endorsement** | Hazmat Exam (assessment, `third_party`), Background Check (clearance, `third_party_validated`), Hazmat Training (training, `upload`) |
 
 #### Nuclear / Power Generation
@@ -521,6 +521,14 @@ enum HoursUnit {
   credits
   days
 }
+
+enum ProofUniversalCategory {
+  initial_qualification
+  recency_proof
+  clearance_status
+  continuing_competency
+  audit_trail
+}
 ```
 
 ### 6.2 ProofRequirement Extension
@@ -545,7 +553,7 @@ model ProofRequirement {
   
   // NEW: Industry preset metadata
   presetId          String?            // Links back to the preset library entry
-  universalCategory String?            // One of: initial_qualification, recency_proof, clearance_status, continuing_competency, audit_trail
+  universalCategory ProofUniversalCategory? // One of: initial_qualification, recency_proof, clearance_status, continuing_competency, audit_trail
 }
 ```
 
@@ -850,13 +858,13 @@ Content-Type: application/json
 
 ### 9.2 Backward Compatibility
 
-The proof type system is **additive** — it doesn't break any existing template/attestation functionality:
+The proof type system is additive at the storage layer, but regulated workflows become stricter at publish time:
 
-- `proofType` is a **required** field on new `ProofRequirement` records
-- Existing requirements without a proof type default to `compliance` (the most generic type)
-- All attestation level logic remains unchanged
-- All fulfillment state machine logic remains unchanged
-- The manager can ignore types entirely and still use the system as before
+- `proofType` is required before a template can be published
+- `proofSubType`, `thresholdUnit`, and `universalCategory` should use enums rather than free-text values
+- Legacy requirements must be explicitly classified during migration; they must **not** silently default to `compliance`, because misclassification changes validation and retention behavior
+- Attestation and fulfillment state machines remain structurally compatible, but allowed combinations are constrained by proof type policy (for example, `clearance` cannot be L1-only)
+- Managers can still create custom requirements, but they cannot publish untyped or policy-invalid requirements
 
 ### 9.3 Template-to-Readiness Pipeline
 

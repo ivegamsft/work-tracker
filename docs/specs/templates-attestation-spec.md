@@ -100,9 +100,9 @@ Proofs can be **upgraded** over time — start at a lower level and strengthen l
 
 | Event | Fulfillment Status | Attestation Effect |
 |-------|-------------------|-------------------|
-| Proof expires (per `expiresAt` date) | `expired` | Entire fulfillment resets to `unfulfilled` — employee must re-attest at the required level |
+| Proof expires (per `expiresAt` date) | `expired` | Prior evidence remains immutable for audit; the system opens a renewal / requalification workflow for the next cycle |
 | Template is re-assigned | Preserves existing fulfillments if same requirements | See §5.4 |
-| Underlying qualification expires | Linked fulfillments marked `expired` | Triggers re-fulfillment workflow |
+| Underlying qualification expires | Linked fulfillments marked `expired` | Triggers re-fulfillment workflow without deleting the earlier proof record |
 
 ### 2.5 Attestation Level Trust Matrix (for Readiness Scoring)
 
@@ -114,6 +114,14 @@ Proofs can be **upgraded** over time — start at a lower level and strengthen l
 | 4 | 1.00 | Full (100%) | ✅ Internally validated |
 
 Compound levels use the **highest** weight of their components (e.g., `upload_validated` = 1.00).
+
+### 2.6 Compliance Guardrails & Terminology
+
+1. **Proof type governs attestation floor.** `clearance` proofs cannot be satisfied by `self_attest` alone; regulated use cases require authoritative evidence (`upload` + `validated`, `third_party`, or `third_party` + `validated`).
+2. **Compound attestation is set-based.** `attestationLevels` must be normalized to unique values and evaluated as an unordered set; `['upload', 'validated']` and `['validated', 'upload']` are the same policy.
+3. **Validation requires separation of duties.** A validator cannot approve their own fulfillment. When Level 4 is required, the validating actor must be distinct from the assignee and must hold the role scope required by RBAC.
+4. **Qualification vs certification.** In E-CLAT, `qualification` is the employee-facing domain record; `certification` is a proof type describing a credential issued by an authority. A qualification may be fulfilled by a certification-type proof.
+5. **Renewal terminology is explicit.** `renewal` is the generic next-cycle event, `recertification` applies to renewing a credential, and `requalification` applies to re-establishing demonstrated competency (often via hours or assessment).
 
 ---
 
@@ -642,10 +650,13 @@ A background job (`fulfillmentExpirationCheck`) runs daily:
 ```typescript
 // Find fulfillments where expiresAt <= now() and status != 'expired'
 // Update status to 'expired', set expiredAt
-// Clear the level-specific timestamps (selfAttestedAt, uploadedAt, etc.)
-// Create notification for employee: "Your [proof name] has expired. Please re-certify."
-// Create notification for manager: "[Employee name]'s [proof name] has expired."
+// DO NOT clear selfAttestedAt/uploadedAt/validatedAt/etc. — expired proofs remain part of the audit record
+// Create a renewal / recertification / requalification task for the next cycle
+// Create notification for employee: "Your [proof name] has expired. Please complete the next cycle."
+// Create notification for manager/compliance: "[Employee name]'s [proof name] has expired."
 ```
+
+Expired fulfillments remain historically complete but no longer satisfy current-cycle readiness.
 
 ---
 

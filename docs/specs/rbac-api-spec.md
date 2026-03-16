@@ -210,6 +210,8 @@ Permissions follow the pattern:
 | `medical` | medical | Medical clearances |
 | `documents` | documents | Document upload, review, extraction |
 | `hours` | hours | Time tracking, clock in/out, imports |
+| `templates` | templates | Proof templates, requirements, assignments |
+| `fulfillments` | templates | Proof submission, validation, and review queues |
 | `labels` | labels | Taxonomy management |
 | `notifications` | notifications | Notification preferences and delivery |
 | `audit` | (cross-cutting) | Audit trail access on any module |
@@ -235,6 +237,11 @@ Permissions follow the pattern:
 | `documents:extract` | View/correct AI extraction results |
 | `hours:import` | Bulk import from payroll/scheduling systems |
 | `hours:conflicts` | View and resolve hour conflicts |
+| `templates:publish` | Publish draft templates |
+| `templates:archive` | Archive published templates |
+| `templates:assign` | Assign templates to employees, roles, or departments |
+| `templates:validate` | Approve/reject fulfillments awaiting review |
+| `fulfillments:submit` | Submit self-attestations, uploads, or third-party verification records |
 | `labels:admin` | Create, update, deprecate labels |
 | `labels:resolve` | Resolve label by code/version |
 | `notifications:admin` | Manage escalation rules, send test notifications |
@@ -280,6 +287,15 @@ Example: Both Supervisor and Compliance Officer hold `employees:read`, but Super
 | `hours:delete` | ❌ | ❌ | ✅ | ✅ | ✅ |
 | `hours:import` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `hours:conflicts` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `templates:read` | ✅² | ✅ | ✅ | ✅ | ✅ |
+| `templates:create` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `templates:update` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `templates:publish` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `templates:archive` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `templates:assign` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `templates:validate` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `fulfillments:read` | ✅² | ✅ | ✅ | ✅ | ✅ |
+| `fulfillments:submit` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `labels:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `labels:resolve` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `labels:admin` | ❌ | ❌ | ❌ | ❌ | ✅ |
@@ -300,9 +316,9 @@ Because the hierarchy is additive, the matrix can be read as "minimum role requi
 
 | Minimum Role | Permissions Gained at This Level |
 |-------------|--------------------------------|
-| Employee (0) | `auth:*`, `employees:read`(own), `standards:read`, `qualifications:read`(own), `medical:read`(own), `documents:read`(own), `documents:create`, `hours:read`(own), `hours:create`, `labels:read`, `labels:resolve`, `notifications:read/update/delete` |
-| Supervisor (1) | `qualifications:create/update`, `medical:create/update`, `hours:import`, `qualifications:compliance`, `audit:read`, expanded data scope (team) |
-| Manager (2) | `documents:review/approve/extract`, `hours:update/delete/conflicts`, expanded data scope (department) |
+| Employee (0) | `auth:*`, `employees:read`(own), `standards:read`, `qualifications:read`(own), `medical:read`(own), `documents:read`(own), `documents:create`, `hours:read`(own), `hours:create`, `templates:read`(published/own), `fulfillments:read`(own), `fulfillments:submit`, `labels:read`, `labels:resolve`, `notifications:read/update/delete` |
+| Supervisor (1) | `qualifications:create/update`, `medical:create/update`, `hours:import`, `templates:create/update/assign`, `qualifications:compliance`, `audit:read`, expanded data scope (team) |
+| Manager (2) | `documents:review/approve/extract`, `hours:update/delete/conflicts`, `templates:publish/archive/validate`, expanded data scope (department) |
 | Compliance Officer (3) | `export:reports`, expanded data scope (organization-wide read) |
 | Admin (4) | `employees:create/update`, `standards:create/update`, `labels:admin`, `notifications:admin`, unrestricted data scope |
 

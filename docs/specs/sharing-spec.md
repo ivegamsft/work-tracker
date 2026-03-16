@@ -30,10 +30,10 @@
 
 ### 1.1 What Is the Proof Vault?
 
-The **Proof Vault** is a secure document storage and sharing layer built on top of E-CLAT's existing `documents` module. While the `documents` module handles upload, review, and AI extraction of compliance proofs, the Proof Vault adds:
+The **Proof Vault** is a separate encrypted evidence store that coexists with E-CLAT's existing `documents` module. The `documents` module handles upload, review, and AI extraction for operational workflows; the Proof Vault handles employee-controlled encrypted evidence, internal re-encrypted sharing, and explicitly generated evidence packages for external disclosure.
 
 - **Organized storage** — files grouped into personal vault, shared folders, archive, and trash
-- **Controlled sharing** — proofs can be shared with specific users or via time-limited links
+- **Controlled sharing** — proofs can be shared internally via re-encryption and externally via time-limited evidence packages
 - **File requests** — managers and compliance officers can request specific proofs from employees
 - **Storage quotas** — per-user limits enforced by admin, with usage tracking
 
@@ -291,12 +291,12 @@ For shared folders (multiple recipients, multiple documents):
 
 ### 4.5 Share Link Encryption
 
-Share links (external access without an account) cannot use zero-knowledge encryption because the recipient has no key pair. For share link access:
+Share links (external access without an account) must not directly expose raw zero-knowledge vault documents. For share link access:
 
-- The server holds a **link-scoped DEK** — the document's DEK re-wrapped with a key derived from the share link token.
-- On access, the server decrypts the DEK, decrypts the document, and serves it over TLS.
-- This means share link access is **not** zero-knowledge — the server can see the plaintext during link access.
-- This trade-off is acceptable because: (a) share links are Compliance Officer+ only, (b) they are time-limited, (c) all accesses are audited.
+- The system generates an explicit **evidence package** from approved vault content or approved non-vault documents.
+- The evidence package is encrypted and audited as its own export artifact; raw vault DEKs are not persistently re-wrapped to a server-controlled link key.
+- On access, the server serves the evidence package over TLS and records link usage. The original zero-knowledge vault object remains untouched.
+- This keeps external disclosure explicit, reviewable, and compatible with regulated-industry audit expectations.
 
 ### 4.6 Key Recovery
 
@@ -310,10 +310,11 @@ If a user forgets their password (and thus loses their Master Key):
 
 Since the existing `documents` module uses server-side encryption only, a migration is needed:
 
-1. **Phase 2a:** Introduce the Proof Vault UI with sharing, file requests, and organization sections — but use server-side encryption only (no client-side crypto). This delivers value immediately.
-2. **Phase 3+:** Add client-side encryption (zero-knowledge vault). Existing documents are re-encrypted client-side during a migration window. New uploads are client-side encrypted from day one.
+1. **Phase 2a:** Introduce file requests, folder organization, and evidence-package sharing for the existing `documents` workflow.
+2. **Phase 2b:** Introduce client-side encrypted Proof Vault storage with internal sharing via re-encryption.
+3. **Phase 3+:** Support externally shareable evidence packages sourced from vault content, with explicit export approval and full audit linkage.
 
-This phased approach avoids blocking sharing features on the complex crypto implementation.
+This phased approach avoids weakening zero-knowledge guarantees just to deliver sharing early.
 
 ---
 

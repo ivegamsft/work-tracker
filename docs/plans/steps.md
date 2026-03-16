@@ -19,6 +19,12 @@
 
 6. Generate execution artifacts:
 - PRD, user stories, acceptance criteria, API/event contracts, reporting/dashboard requirements, phased backlog.
+- Proof/compliance backlog additions from Pearlman audit:
+  - attestation policy constraints and separation-of-duties rules
+  - audit-safe expiration, retention, and revocation handling
+  - recertification / requalification lifecycle
+  - issuer / registry verification integrations
+  - evidence-package sharing for external disclosure
 
 7. Validate:
 - Privacy boundary checks, auditability, and conflict-resolution rules for mixed hour sources.
