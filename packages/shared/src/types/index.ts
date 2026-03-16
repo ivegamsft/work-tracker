@@ -1,5 +1,31 @@
 export { Roles, RoleHierarchy } from "./roles";
 export type { Role } from "./roles";
+export {
+  AttestationLevels,
+  FulfillmentStatuses,
+  ProofEvidenceTypes,
+  ProofTypes,
+} from "./proof-domain";
+export type {
+  ApiDate,
+  AssignTemplateRequest,
+  AttestationLevel,
+  CreateTemplateRequest,
+  FulfillmentStatus,
+  ProofEvidence,
+  ProofEvidenceInput,
+  ProofEvidenceType,
+  ProofFulfillment,
+  ProofRequirement,
+  ProofRequirementInput,
+  ProofTemplate,
+  ProofType,
+  ReviewFulfillmentRequest,
+  SubmitFulfillmentRequest,
+  TemplateAssignment,
+  TemplateAssignmentProgress,
+  UpdateTemplateRequest,
+} from "./proof-domain";
 export type {
   Employee,
   Qualification,
