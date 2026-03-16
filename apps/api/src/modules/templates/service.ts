@@ -16,6 +16,7 @@ import {
   TemplateStatus as PrismaTemplateStatus,
 } from "@prisma/client";
 import { prisma } from "../../config/database";
+import { canValidateOwnProof, normalizeAttestationLevels as normalizeAttestationLevelsPolicy } from "./policies";
 import {
   AssignTemplateInput,
   AttachDocumentInput,
@@ -473,15 +474,7 @@ function fromPrismaProofType(type: PrismaProofType): ProofType {
 }
 
 function normalizeAttestationLevels(levels: AttestationLevel[]) {
-  const seen = new Set<AttestationLevel>();
-  const uniqueLevels: AttestationLevel[] = [];
-  for (const level of levels) {
-    if (!seen.has(level)) {
-      seen.add(level);
-      uniqueLevels.push(level);
-    }
-  }
-  return uniqueLevels;
+  return normalizeAttestationLevelsPolicy(levels);
 }
 
 function mapRequirement(record: Prisma.ProofRequirementGetPayload<{ select: typeof requirementSelect }>): ProofRequirement {
@@ -1646,6 +1639,11 @@ export const templatesService: TemplatesService = {
 
     if (!fulfillment.assignment?.isActive) {
       throw new ConflictError("This assignment is no longer active.");
+    }
+
+    // Enforce separation of duties: validator cannot validate their own proof
+    if (!canValidateOwnProof(fulfillment.employeeId, actor.id)) {
+      throw new ForbiddenError("You cannot validate your own proof. Separation of duties is required.");
     }
 
     ensureRequirementLevel(fulfillment.requirement!, PrismaAttestationLevel.VALIDATED);

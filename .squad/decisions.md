@@ -6,6 +6,65 @@
 
 ---
 
+## API v1 Namespace Migration Strategy (2026-03-19)
+
+**Decision:** Adopt a 4-phase dual-mount migration strategy to move all API routes from `/api/*` to `/api/v1/{service-group}/*` over 3-6 months.
+
+**Decision Maker:** Freamon (Lead)  
+**Status:** Proposed  
+**Related Issue:** #27 (SA-06)  
+**Spec Document:** `docs/specs/api-v1-namespace.md`
+
+### Context
+
+The E-CLAT API currently exposes 94 endpoints across 11 modules using a flat `/api/*` namespace with no versioning. The service architecture spec requires migration to `/api/v1/*` to enable future versioning, align routes with 6 logical service boundaries, and enable incremental service extraction while maintaining backward compatibility.
+
+### Service Group Mapping
+
+| Service Group | v1 Prefix | Endpoints | Key Change |
+|---|---|---|---|
+| Identity | `/api/v1/auth` | 5 | Direct addition |
+| Workforce | `/api/v1/workforce/employees` | 6 | Renames from `/api/employees` |
+| Compliance | `/api/v1/compliance/*` | 37 | **Consolidates 4 mount points** |
+| Records | `/api/v1/records/*` | 21 | Groups documents + hours |
+| Reference | `/api/v1/reference/*` | 14 | Groups standards + labels |
+| Notifications | `/api/v1/notifications` | 10 | Direct addition |
+| Platform | `/api/v1/platform` | 1 | Already done ✓ |
+
+### 4-Phase Migration
+
+1. **Phase 1 (Sprint 5):** Non-breaking dual-mount; both `/api/*` and `/api/v1/*` work identically
+2. **Phase 2 (Sprint 6-7):** Client migration with deprecation warnings; frontend base URL change
+3. **Phase 3 (Sprint 8+):** HTTP 301 redirects from old → v1; 2-sprint warning window
+4. **Phase 4 (v1.0.0):** Remove old routes after zero usage confirmed; 410 Gone
+
+### Rationale
+
+- **Compliance consolidation:** 4-way template split → unified `/api/v1/compliance/*`
+- **Service-ready:** Clear boundaries enable future extraction (per Daniels' Terraform stubs)
+- **Backward compatible:** Zero breaking changes until Phase 4
+- **Frontend simple:** One-line base URL change
+
+### Key Decisions
+
+- Shared router instances (no code duplication)
+- Audit logs track usage on both old and v1 paths
+- OpenAPI spec generation planned post-addition
+- Health endpoint: `/health` (no prefix) for LB; `/api/v1/platform/health` for detailed checks
+
+### Consequences
+
+**Positive:** Future-proof versioning, service extraction ready, template namespace fixed, backward compatible, easy frontend migration
+
+**Negative:** Increased route surface (188 points during Phase 1), monitoring complexity, documentation burden, potential stragglers
+
+### Related Decisions
+
+- Daniels' Terraform stubs (PR #57) define 6 service boundaries in infra
+- Service Architecture Spec: `docs/specs/service-architecture-spec.md`
+
+---
+
 ## Phase 2 Route Taxonomy & My Section UI (2026-03-16)
 
 ### Frontend Normalization of API Response Shapes (2026-03-16)
