@@ -72,38 +72,6 @@ export const FlagResolutionContextSchema = z.object({
   environment: FeatureFlagEnvironmentSchema,
 });
 
-export enum FeatureFlagsErrorCode {
-  FEATURE_FLAG_NOT_FOUND = "FEATURE_FLAG_NOT_FOUND",
-  FEATURE_FLAG_KEY_CONFLICT = "FEATURE_FLAG_KEY_CONFLICT",
-  INVALID_FLAG_RESOLUTION = "INVALID_FLAG_RESOLUTION",
-}
-
-export const FeatureFlagListQuerySchema = z.object({
-  owner: FeatureFlagOwnerSchema.optional(),
-  type: FeatureFlagTypeSchema.optional(),
-  environment: FeatureFlagEnvironmentSchema.optional(),
-  clientVisible: z.coerce.boolean().optional(),
-});
-
-export const FeatureFlagDefinitionResponseSchema = FeatureFlagDefinitionSchema;
-
-export const FeatureFlagListResponseSchema = z.object({
-  data: z.array(FeatureFlagDefinitionResponseSchema),
-  total: z.number().int().nonnegative(),
-});
-
-export const FeatureFlagResolutionRequestSchema = z.object({
-  key: FeatureFlagKeySchema,
-  context: FlagResolutionContextSchema,
-});
-
-export const FeatureFlagResolutionResponseSchema = z.object({
-  key: FeatureFlagKeySchema,
-  enabled: z.boolean(),
-  source: z.enum(["default", "environment_override", "runtime_override"]),
-  matchedRule: z.enum(["default", "role", "allowlist", "percentage"]).optional(),
-});
-
 export type FeatureFlagOwner = z.infer<typeof FeatureFlagOwnerSchema>;
 export type FeatureFlagType = z.infer<typeof FeatureFlagTypeSchema>;
 export type FeatureFlagEnvironment = z.infer<typeof FeatureFlagEnvironmentSchema>;
@@ -111,9 +79,3 @@ export type FeatureFlagDefinition = z.infer<typeof FeatureFlagDefinitionSchema>;
 export type FeatureFlagRegistry = z.infer<typeof FeatureFlagRegistrySchema>;
 export type FeatureFlagOverrideMap = z.infer<typeof FeatureFlagOverrideMapSchema>;
 export type FlagResolutionContext = z.infer<typeof FlagResolutionContextSchema>;
-
-export interface FeatureFlagListQuery extends z.infer<typeof FeatureFlagListQuerySchema> {}
-export interface FeatureFlagDefinitionResponse extends z.infer<typeof FeatureFlagDefinitionResponseSchema> {}
-export interface FeatureFlagListResponse extends z.infer<typeof FeatureFlagListResponseSchema> {}
-export interface FeatureFlagResolutionRequest extends z.infer<typeof FeatureFlagResolutionRequestSchema> {}
-export interface FeatureFlagResolutionResponse extends z.infer<typeof FeatureFlagResolutionResponseSchema> {}
