@@ -1,4 +1,4 @@
-import type { Request, RequestHandler, Response } from "express";
+import type { Request, RequestHandler } from "express";
 import { logger } from "../common/utils";
 import type { AuthenticatedRequest } from "./auth";
 import { ConsoleAuditLogger, type AuditEntry, type AuditLogger } from "../services/audit";

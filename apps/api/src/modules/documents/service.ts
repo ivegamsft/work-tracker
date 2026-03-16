@@ -81,23 +81,6 @@ const reviewQueueItemSelect = {
 type DocumentRecord = Prisma.DocumentGetPayload<{ select: typeof documentBaseSelect }>;
 type ReviewQueueItemRecord = Prisma.ReviewQueueItemGetPayload<{ select: typeof reviewQueueItemSelect }>;
 
-function toPrismaDocumentStatus(status: Document["status"]): PrismaDocumentStatus {
-  switch (status) {
-    case "uploaded":
-      return PrismaDocumentStatus.UPLOADED;
-    case "processing":
-      return PrismaDocumentStatus.PROCESSING;
-    case "classified":
-      return PrismaDocumentStatus.CLASSIFIED;
-    case "review_required":
-      return PrismaDocumentStatus.REVIEW_REQUIRED;
-    case "approved":
-      return PrismaDocumentStatus.APPROVED;
-    case "rejected":
-      return PrismaDocumentStatus.REJECTED;
-  }
-}
-
 function fromPrismaDocumentStatus(status: PrismaDocumentStatus): Document["status"] {
   switch (status) {
     case PrismaDocumentStatus.UPLOADED:
@@ -112,19 +95,6 @@ function fromPrismaDocumentStatus(status: PrismaDocumentStatus): Document["statu
       return "approved";
     case PrismaDocumentStatus.REJECTED:
       return "rejected";
-  }
-}
-
-function toPrismaReviewStatus(status: ReviewQueueItem["status"]): PrismaReviewStatus {
-  switch (status) {
-    case "pending":
-      return PrismaReviewStatus.PENDING;
-    case "in_progress":
-      return PrismaReviewStatus.IN_PROGRESS;
-    case "approved":
-      return PrismaReviewStatus.APPROVED;
-    case "rejected":
-      return PrismaReviewStatus.REJECTED;
   }
 }
 
@@ -278,7 +248,7 @@ export const documentsService: DocumentsService = {
     return [];
   },
 
-  async correctExtraction(documentId, fieldId, input, correctedBy) {
+  async correctExtraction(_documentId, _fieldId, _input, _correctedBy) {
     throw new ValidationError("Extraction correction not available — OCR pipeline is not implemented.");
   },
 
