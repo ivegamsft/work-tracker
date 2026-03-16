@@ -7,6 +7,36 @@
 - **API Modules:** auth, documents, employees, hours, labels, medical, notifications, qualifications, standards
 - **Created:** 2026-03-13
 
+## Core Context
+
+### MVP Scope & Architecture (Phase 0 Complete)
+- **MVP Decisions (2026-03-14):** Core loop: Qualifications + Medical (no Hours); Documents deferred Phase 2; no OCR; Department opaque string; single-org; `overallStatus` 3-state rule with 30-day warning; in-app notifications only; all decisions unblock without debt.
+- **Documentation Taxonomy (2026-03-16):** Reorganized to `requirements/`, `specs/`, `decisions/`, `guides/`, `plans/`, `ideas/`, `tests/`, `prompts/`. All cross-references updated (29 files). 179 tests passing.
+- **Test Harness (2026-03-14):** Vitest at root with V8 coverage, Node environment, path aliases. 10+ passing tests for Express app, auth middleware, auth service, routing. Test database strategy ready: SQLite in-memory (dev) + PostgreSQL container (CI).
+- **Docker Stack Validated (2026-03-14):** API :3000, PostgreSQL :5432, Azurite :10000. JWT auth verified. All containers healthy.
+
+### Phase 1 & Phase 2 Infrastructure
+- **Phase 1 Integration Tests (2026-03-15):** Comprehensive coverage: Documents (20 tests), Notifications (24 tests), PrismaAuditLogger (2 tests). 55 Phase 2 tests + 94 Phase 1 tests = 140+ total, all passing.
+- **Auth Verification (2026-03-15):** Entra auth architecture defined. Token claim shape: `iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`. Mock token format established.
+- **Audit Logging (2026-03-15):** Middleware-driven audit hooks mutating `/api/*` requests. `AuditLogger` abstraction ready for Prisma persistence. Payload redaction for sensitive fields.
+- **RBAC Boundaries (2026-03-16):** 5-role hierarchy strict and tested. 65-endpoint catalog, 36 permissions, role-adaptive dashboard. `/api/employees` and `/api/qualifications` supervisor+; `/api/standards` and `/api/medical/:id` all authenticated.
+
+### Current Validation Status (2026-03-16)
+- ✅ 179/179 tests passing (unit, integration, smoke, component)
+- ✅ TypeScript: Clean in apps/api and apps/web
+- ✅ Docker: All containers healthy and stable
+- ✅ Smoke tests: API /health → 200, Web → 200
+- ✅ Stack ready for feature work
+
+### Known Limitations & Next Steps
+- Auth middleware does not yet verify JWT (stub); needs implementation to unblock 192+ RBAC tests
+- Playwright/Cypress not configured; E2E coverage via Vitest
+- Test database is critical blocker: must choose SQLite vs PostgreSQL before fixtures
+- No test utilities yet: need factories, request helpers, assertion matchers
+- P0 backend gap: `GET /api/documents/employee/:employeeId` blocks W-06, W-13
+
+---
+
 ## 📌 Team Update (2026-03-16T02:25:09Z)
 
 **Documentation Taxonomy Reorganized:**
@@ -26,33 +56,10 @@ All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
 
 ## Learnings
 
-- **Proof-list UI coverage currently needs jsdom-based E2E (2026-03-16)** — `ProofList`/`ProofCard` are not yet mounted on a live route, so practical contract coverage lives in `tests/e2e/proof-list.test.tsx` with React Testing Library. Root Vitest and E2E configs must include `.test.tsx`, and shared DOM cleanup between tests is required to avoid duplicate tab/card queries.
-- **Smoke E2E must enumerate every seeded persona (2026-03-16)** — The live-stack smoke suite should iterate admin, supervisor, manager, compliance_officer, and employee. It should verify login success, JWT role claims, missing-auth 401s, and route-specific RBAC boundaries. Current live behavior confirms `/api/employees` and `/api/qualifications` are supervisor+ while `/api/standards` and `/api/medical/:id` allow any authenticated role.
-- **Team coordination phase complete (2026-03-17)** — All 4 specification decisions merged and archived. RBAC API spec (65 endpoints, 36 permissions, 5-role matrix) and App spec (23 core + 9 admin screens) provide ground truth for implementation. Product spec reconciliation locked 5-role model and terminology. E2E smoke suite ready to align to finalized RBAC boundaries.
-- **Phase 2 integration tests written (2026-03-15)** — Comprehensive test coverage for Documents (20 tests), Notifications (24 tests), and PrismaAuditLogger (2 tests added to audit.test.ts). All 55 Phase 2 tests pass. Tests are resilient to partial service implementation by accepting multiple valid status codes (e.g., 200, 500, 501) where services may still be under development.
-- **Schema-first test design is critical** — Tests must match the actual Prisma schema, not assumed interfaces. Document model requires `fileName` and `mimeType` (not `title`/`description`); Notification requires `deliveryChannel`; EscalationRule uses `trigger`/`delayHours` (not `eventType`/`delayMinutes`).
-- **Service mappers lowercase enum values** — NotificationsService converts Prisma's uppercase enums (SENT, READ, DISMISSED) to lowercase for API responses. Tests must expect lowercase values in response bodies but uppercase in direct Prisma queries.
-- **Services return different shapes than endpoints suggest** — NotificationsService.getPreferences/setPreferences return arrays, not objects. DocumentsService.reviewDocument returns ReviewQueueItem, not Document. Tests should verify correct response structure, not just status codes.
-- **Test resilience for parallel development** — When services are being built in parallel, tests should gracefully handle unimplemented features by accepting multiple status codes (200 for success, 500/501 for not-yet-implemented) and only asserting response shape when successful.
-- **RBAC boundary tests remain essential** — Every endpoint needs auth verification (401 without token) and role verification (403 for insufficient privileges). Documents review requires MANAGER+, audit trails require SUPERVISOR+, admin endpoints require ADMIN.
-- **Jest is correctly configured for monorepo testing** (ts-jest, path aliases, Node environment). Tests can start immediately once test utilities are built.
-- **Test database is the critical blocker** — no test database strategy or Prisma test setup exists. Must choose SQLite (in-memory for dev) vs PostgreSQL (container for CI) before fixtures can be written.
-- **Auth middleware is a stub** — `authenticate()` doesn't verify JWT. Completing JWT verification is prerequisite for RBAC testing (≥192 test cases across 64 endpoints).
-- **No test utilities at all** — no factories, no request helpers, no assertion matchers. This must be built incrementally as the first test infrastructure work (before MVP endpoint tests).
-- **Error handling is solid** — custom error classes (`AppError`, `UnauthorizedError`, `ForbiddenError`) exist and are properly structured for testing. Middleware error handler is straightforward to test.
-- **Prisma schema is rich and testable** — 16 models with clear enums and relationships. Factories can leverage this (e.g., `QualificationStatus.EXPIRED` is explicit). SQLite factories will be simpler than mocking.
-- **RBAC boundaries are critical** — 5-role hierarchy is strict and must be tested exhaustively. Every endpoint needs 3 test variations (unauthenticated, wrong role, correct role).
-- **Vitest now works from the workspace root** — the monorepo has a root-level Vitest harness with V8 coverage, API test setup, and supertest-based smoke coverage.
-- **API tests should build the app in-process** — the safest harness pattern is a shared `createTestApp()` helper that mirrors the Express middleware/router stack without binding a real port.
-- **Current validation baseline** — the API TypeScript build succeeds and the new Vitest smoke suite passes; existing ESLint errors in API source remain a separate pre-existing issue.
-- **Audit logging is now middleware-driven** — `apps/api/src/middleware/audit.ts` hooks mutating `/api/*` requests, logs after `finish`, and keeps the logger behind an `AuditLogger` abstraction so Prisma persistence can be swapped in later without route changes.
-- **Audit payloads should redact sensitive write fields** — request bodies can safely populate `changedFields` when password/token/secret-style keys are masked before logging.
-- **`createTestApp()` now accepts app-construction options** — audit tests can inject a fake `AuditLogger` and temporary routes through `apps/api/tests/helpers.ts`, keeping middleware coverage in-process and deterministic.
-- **Full validation cycle is green on the current stack (2026-03-16)** — Root `npm test` passed 13 files / 179 tests, including `tests/e2e/smoke.test.ts` (34) and `tests/e2e/proof-list.test.tsx` (5). `npx tsc --noEmit` passed in both `apps/api` and `apps/web`, `docker compose build --no-cache` + `docker compose up -d` succeeded, and live smoke checks returned HTTP 200 for `GET /health` and `GET http://localhost:5173`.
-- **API smoke probes must target `/health`, not `/api/health` (2026-03-16)** — The running stack returns 404 for `/api/health` because the Express health route is mounted at `/health`; Docker readiness validation currently depends on `docker compose ps` plus live HTTP probes because the compose file does not define container health checks.
-- **No separate Playwright/Cypress runner is configured (2026-03-16)** — Repository scan found no Playwright or Cypress config files, so end-to-end regression coverage currently comes through the root Vitest suite rather than a dedicated browser-test runner.
-- **Validation rerun stayed green (2026-03-15T22:41:31.2963333-04:00)** — Re-executed the full test-and-rebuild cycle: root `npm test` passed 13/13 files and 179/179 tests, `npx tsc --noEmit` stayed clean in `apps/web` and `apps/api`, `docker compose build --no-cache` plus `docker compose up -d` completed successfully, `docker compose ps` showed api/web/postgres/azurite running, smoke checks returned 200 for `GET /health` and `GET http://localhost:5173`, and E2E remained skipped because no Playwright/Cypress configuration exists.
-- **Manual QA scripts should derive IDs from the live API, not hardcode them (2026-03-16)** — `docs/tests/manual-test-script.md` now uses PowerShell-friendly `curl.exe` examples with `$TOKEN` variables and employee/standard ID lookups from `/api/employees` and `/api/standards`. Live RBAC confirms dashboard stats are not admin-only: supervisor, manager, and compliance_officer can all access the employee list and should see the same stats/quick action cards as admin.
+- **Test Infrastructure Priorities (2026-03-15):** Factories, request helpers, assertion matchers are foundational. Schema-first test design mandatory; tests must match Prisma schema exactly (not assumed interfaces). Document model: `fileName`+`mimeType` required. Service mappers lowercase enums; services return different shapes than endpoints suggest (NotificationsService returns arrays, DocumentsService returns ReviewQueueItem). Test resilience: accept multiple status codes (200, 500, 501) for partial implementation. RBAC tests: 3 variations per endpoint (unauthenticated, wrong role, correct role).
+- **Validation Cycle Complete (2026-03-16):** 179/179 tests passing, TypeScript clean, Docker healthy, smoke tests 200. Full rebuild cycle: `npm test`, `tsc --noEmit`, `docker compose`, live probes. E2E coverage via Vitest (no Playwright/Cypress configured). API /health returns 200; /api/health returns 404. Manual QA derives IDs from live API, not hardcoded.
+- **Auth Infrastructure Ready (2026-03-15):** Entra token claims: `iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`. Mock tokens mirror exact Entra structure. Phase 1: Backend `TokenValidator` interface + mock/Entra implementations. Auth middleware currently stub; needs JWT verification to unblock 192+ RBAC tests. Integration tests use local Docker Postgres, seeded users, direct Prisma inserts.
+
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
