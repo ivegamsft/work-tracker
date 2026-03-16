@@ -4,7 +4,7 @@
 > **Owner:** Freamon (Lead / Architect)  
 > **Created:** 2026-03-18  
 > **Applies To:** `apps/api` (templates module), `apps/web` (template UI), `apps/admin` (template management), `packages/shared` (template types)  
-> **Companion Docs:** [App Spec](./app-spec.md) · [RBAC API Spec](./rbac-api-spec.md) · [Proof Vault Spec](./proof-vault-spec.md) · [Proof Taxonomy](./proof-taxonomy.md) · [PRD](../prds/eclat-spec.md)  
+> **Companion Docs:** [App Spec](./app-spec.md) · [RBAC API Spec](./rbac-api-spec.md) · [Proof Vault Spec](./proof-vault-spec.md) · [Proof Taxonomy](./proof-taxonomy.md) · [PRD](../requirements/eclat-spec.md)  
 > **Triggered By:** User directive — proof templates with attestation levels for manager-to-employee compliance workflows
 
 ---

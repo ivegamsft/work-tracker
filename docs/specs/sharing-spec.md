@@ -4,7 +4,7 @@
 > **Owner:** Freamon (Lead / Architect)  
 > **Created:** 2026-03-18  
 > **Applies To:** `apps/web`, `apps/api` (new `vault` module), `apps/admin`  
-> **Source PRD:** [`docs/prds/eclat-spec.md`](../prds/eclat-spec.md) — Product north star  
+> **Source PRD:** [`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md) — Product north star  
 > **Companion Docs:** [App Spec](./app-spec.md) · [RBAC API Spec](./rbac-api-spec.md) · [Entra Auth Design](./entra-auth-design.md)  
 > **Prerequisite:** Existing `documents` module (upload, review, extraction) must be stable before vault layer is added.
 

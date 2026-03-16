@@ -4,7 +4,7 @@
 > **Owner:** Freamon (Lead / Architect)  
 > **Last Updated:** 2026-03-17  
 > **Applies To:** `apps/web` (employee/manager SPA), `apps/admin` (admin SPA), all API modules  
-> **Source PRD:** [`docs/prds/eclat-spec.md`](../prds/eclat-spec.md) — Product north star. This spec is the implementation authority.  
+> **Source PRD:** [`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md) — Product north star. This spec is the implementation authority.  
 > **Companion Docs:** [RBAC API Spec](./rbac-api-spec.md) · [Entra Auth Design](./entra-auth-design.md)  
 > **Triggered By:** User feedback — "this screen is really confusing. no quick actions. employees should be trimmed. what is the directory?"
 >
@@ -1045,7 +1045,7 @@ const routes = [
 
 ## 9. PRD Coverage Analysis
 
-> Cross-reference with [Source PRD](../prds/eclat-spec.md). This section documents which PRD screens and features are covered, deferred, or intentionally omitted.
+> Cross-reference with [Source PRD](../requirements/eclat-spec.md). This section documents which PRD screens and features are covered, deferred, or intentionally omitted.
 
 ### 9.1 PRD Screens → App-Spec Coverage
 

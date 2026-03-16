@@ -4,8 +4,8 @@
 > **Owner:** Freamon (Lead / Architect)  
 > **Last Updated:** 2026-03-17  
 > **Applies To:** All API modules, UI applications, data access layer  
-> **Source PRD:** [`docs/prds/eclat-spec.md`](../prds/eclat-spec.md) — Product north star. This spec is the implementation authority for RBAC.  
-> **Companion Docs:** [App Spec](./app-spec.md) · [Entra Auth Design](./entra-auth-design.md) · [Test Data Strategy](./test-data-strategy.md)
+> **Source PRD:** [`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md) — Product north star. This spec is the implementation authority for RBAC.  
+> **Companion Docs:** [App Spec](./app-spec.md) · [Entra Auth Design](./entra-auth-design.md) · [Test Data Strategy](../tests/test-data-strategy.md)
 
 ---
 
@@ -49,7 +49,7 @@ All three layers **must agree**. A user who cannot see a button in the UI must a
 
 ### Terminology Mapping (PRD → Implementation)
 
-The PRD ([`docs/prds/eclat-spec.md`](../prds/eclat-spec.md)) uses different terminology than our implementation. This table is the authoritative cross-reference:
+The PRD ([`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md)) uses different terminology than our implementation. This table is the authoritative cross-reference:
 
 | PRD Term | Implementation Term | API Module | Prisma Model | Notes |
 |----------|-------------------|------------|-------------|-------|
@@ -1232,4 +1232,4 @@ async function hasPermission(user: AuthenticatedUser, permission: string): Promi
 
 ---
 
-*This document is the single source of truth for RBAC in E-CLAT. All implementation by Bunk (backend), Kima (frontend), and Sydnor (testing) must conform to the access rules defined here. The Source PRD ([`docs/prds/eclat-spec.md`](../prds/eclat-spec.md)) is the product north star; where this spec differs from the PRD, the deltas are documented in the "PRD RBAC Deltas" section above. Any deviation requires an architecture decision record and Freamon's approval.*
+*This document is the single source of truth for RBAC in E-CLAT. All implementation by Bunk (backend), Kima (frontend), and Sydnor (testing) must conform to the access rules defined here. The Source PRD ([`docs/requirements/eclat-spec.md`](../requirements/eclat-spec.md)) is the product north star; where this spec differs from the PRD, the deltas are documented in the "PRD RBAC Deltas" section above. Any deviation requires an architecture decision record and Freamon's approval.*

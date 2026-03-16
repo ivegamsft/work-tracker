@@ -294,8 +294,9 @@ work-tracker/
 │       └── ci.yml               (existing; calls npm run seed in test setup)
 │
 └── docs/
-    ├── architecture/
-    │   ├── entra-auth-design.md (existing, auth flow)
+    ├── specs/
+    │   └── entra-auth-design.md (existing, auth flow)
+    ├── tests/
     │   └── test-data-strategy.md (this file)
     └── guides/
         └── test-data-management.md ← NEW: Operational guide

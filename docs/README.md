@@ -1,19 +1,22 @@
-# E-CLAT Documentation
+# Documentation Index
 
-Project-facing documentation for the E-CLAT codebase lives here. Team orchestration stays under `.squad/`; product and architecture artifacts live under `docs/` so the repository structure is unambiguous.
+Use this index to find project-facing material under `docs/`. Team orchestration stays under `.squad/`, while product, architecture, testing, and prompt assets now live in category folders here.
 
-## Structure
-```
-docs/
-├── adrs/        # Architecture decision records
-└── prds/        # Product requirement documents and delivery plans
-```
+## Category map
+- `ideas/` — brainstorming and early module concepts
+- `requirements/` — PRDs, requirements, and feature specs
+- `specs/` — architecture specs, API contracts, and technical designs
+- `guides/` — READMEs, how-tos, and wiring maps
+- `tests/` — test strategies and validation plans
+- `plans/` — implementation plans, roadmaps, and sequencing docs
+- `decisions/` — ADRs and durable decision records
+- `prompts/` — actual AI prompts and prompt-management frameworks
 
-## Related tooling
-```bash
-# From repo root:
-bash scripts/setup.sh         # Bootstrap local development
-npm run dev -w @e-clat/api    # Start the API in dev mode
-```
+## Reading order
+1. Start in `requirements/` for scope and product intent.
+2. Move to `specs/` for implementation contracts.
+3. Use `guides/`, `plans/`, and `tests/` for execution support.
+4. Check `decisions/` for durable architectural calls.
+5. Use `ideas/` and `prompts/` for exploratory and AI-assisted workflow material.
 
-Use the repo-root `README.md` for the full workspace layout and day-one commands.
+Use the repo-root `README.md` for workspace layout and day-one commands.

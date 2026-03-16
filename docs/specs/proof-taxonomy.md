@@ -3,7 +3,7 @@
 > **Status:** Authoritative Reference  
 > **Owner:** Freamon (Lead / Architect)  
 > **Created:** 2026-03-18  
-> **Companion Docs:** [Templates & Attestation Spec](./templates-attestation-spec.md) · [Proof Vault Spec](./proof-vault-spec.md) · [RBAC API Spec](./rbac-api-spec.md) · [PRD](../prds/eclat-spec.md)  
+> **Companion Docs:** [Templates & Attestation Spec](./templates-attestation-spec.md) · [Proof Vault Spec](./proof-vault-spec.md) · [RBAC API Spec](./rbac-api-spec.md) · [PRD](../requirements/eclat-spec.md)  
 > **Triggered By:** User directive — proof type taxonomy with validation methods, industry mappings, and template integration
 
 ---

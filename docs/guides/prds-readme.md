@@ -1,4 +1,6 @@
-# E-CLAT PRD Set
+# E-CLAT Requirements / PRD Set
+
+This guide describes the requirement documents now stored under `docs/requirements/`.
 
 ## Why this exists
 These PRDs turn the current E-CLAT codebase into an execution plan. The repository already defines the domain model, API surface, RBAC vocabulary, and deployment intent, but almost every service method is still scaffolded. This set documents what exists today, what is missing, and what the team should build next.
