@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import FeatureGate from './FeatureGate';
 import { hasMinimumRole } from '../rbac';
 import '../styles/layout.css';
 
@@ -14,13 +15,17 @@ export default function Layout({ children }: LayoutProps) {
   const canReviewDocuments = hasMinimumRole(user?.role, 'manager');
 
   const navItems = [
-    { path: '/', label: 'Dashboard' },
-    { path: '/me', label: 'My Profile' },
     canAccessTeam ? { path: '/team', label: 'Team' } : null,
     canReviewDocuments ? { path: '/reviews', label: 'Document Review' } : null,
     { path: '/standards', label: 'Standards' },
     { path: '/me/notifications', label: 'Notifications' },
   ].filter((item): item is { path: string; label: string } => item !== null);
+
+  const renderNavLink = (path: string, label: string) => (
+    <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+      {label}
+    </NavLink>
+  );
 
   return (
     <div className="layout">
@@ -29,16 +34,20 @@ export default function Layout({ children }: LayoutProps) {
           <h1>E-CLAT</h1>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {renderNavLink('/', 'Dashboard')}
+          {renderNavLink('/me', 'My Profile')}
+          <FeatureGate
+            flag="compliance.templates"
+            fallback={
+              <span className="sidebar-nav__item sidebar-nav__item--disabled">
+                <span>My Templates</span>
+                <span className="sidebar-nav__badge">Coming soon</span>
+              </span>
+            }
+          >
+            {renderNavLink('/me/templates', 'My Templates')}
+          </FeatureGate>
+          {navItems.map((item) => renderNavLink(item.path, item.label))}
         </nav>
       </aside>
 

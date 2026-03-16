@@ -203,6 +203,51 @@ export interface HoursRecord {
   source?: string;
 }
 
+export type TemplateStatus = 'draft' | 'published' | 'archived';
+export type FulfillmentStatus = 'unfulfilled' | 'pending_review' | 'fulfilled' | 'expired' | 'rejected';
+
+export interface TemplateAssignmentRecord {
+  id: string;
+  templateId: string;
+  templateVersion: number;
+  employeeId: string | null;
+  role: string | null;
+  department: string | null;
+  assignedBy: string;
+  dueDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  templateName: string;
+  templateStatus: TemplateStatus;
+}
+
+export interface TemplateRequirementRecord {
+  id: string;
+  name: string;
+  description: string;
+  isRequired?: boolean;
+}
+
+export interface ProofFulfillmentRecord {
+  id: string;
+  assignmentId: string;
+  requirementId: string;
+  employeeId: string;
+  status: FulfillmentStatus;
+  selfAttestedAt?: string | null;
+  uploadedAt?: string | null;
+  thirdPartyVerifiedAt?: string | null;
+  validatedAt?: string | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  expiresAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  requirement?: TemplateRequirementRecord;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

@@ -10,6 +10,7 @@ const MY_LINKS: MySectionNavItem[] = [
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/medical', label: 'Medical' },
   { to: '/me/notifications', label: 'Notifications' },
+  { to: '/me/templates', label: 'Templates', flag: 'compliance.templates' },
   { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 

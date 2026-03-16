@@ -44,8 +44,8 @@ const QUICK_ACTIONS: Record<AppRole, QuickActionDefinition[]> = {
     },
     {
       title: 'My Templates',
-      description: 'Open the standards library to reuse the guidance tied to your work.',
-      to: '/standards',
+      description: 'Open your assigned templates to track proof progress and continue outstanding work.',
+      to: '/me/templates',
       flag: 'compliance.templates',
       disabledDescription: 'Assigned templates are being staged behind a feature flag and will land soon.',
     },

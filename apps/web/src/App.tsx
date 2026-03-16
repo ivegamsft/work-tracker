@@ -1,11 +1,16 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import FeatureGate from './components/FeatureGate';
 import ProtectedRoute from './components/ProtectedRoute';
 import { FeatureFlagsProvider } from './hooks/useFeatureFlags';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TeamDirectoryPage from './pages/TeamDirectoryPage';
 import TeamMemberDetailPage from './pages/TeamMemberDetailPage';
+import MyTemplatesPage, {
+  MyTemplateFulfillmentPage,
+  TemplatesFeatureUnavailablePage,
+} from './pages/MyTemplatesPage';
 import {
   MyDocumentsPage,
   MyHoursPage,
@@ -90,6 +95,26 @@ function App() {
           element={
             <ProtectedRoute>
               <MyNotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/templates"
+          element={
+            <ProtectedRoute>
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <MyTemplatesPage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/templates/:assignmentId"
+          element={
+            <ProtectedRoute>
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <MyTemplateFulfillmentPage />
+              </FeatureGate>
             </ProtectedRoute>
           }
         />
