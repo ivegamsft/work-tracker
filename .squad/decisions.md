@@ -853,6 +853,153 @@ curl https://api-dev.eclat.example.com/api/employees?role=employee \
 - `docs/architecture/test-data-strategy.md` — Full design document
 - `docs/architecture/entra-auth-design.md` — Identity architecture (token flows, scopes, roles)
 - `data/src/seed.ts` — Current Prisma seed script (to be enhanced)
+
+---
+
+## Phase 2b: Proof Templates & Attestation System (2026-03-18)
+
+### Decision: Proof Template & Attestation Levels Architecture
+
+**Date:** 2026-03-18  
+**Author:** Freamon (Lead / Architect)  
+**Status:** Proposed  
+**Spec:** [`docs/architecture/templates-attestation-spec.md`](../../../docs/architecture/templates-attestation-spec.md)
+
+**Summary:** Defined comprehensive architecture for manager-to-employee compliance templates with a 4-level attestation system. Templates are reusable bundles of proof requirements that managers assign to employees, with each requirement specifying how the employee must prove completion.
+
+**Key Decisions:**
+
+1. **Four-Level Attestation System** — Self-Attest (25% trust), Upload (60%), Third-Party (85%), Validated (100%)
+2. **Compound Levels via Array Storage** — Enabling combinations like `["upload", "validated"]` without enum explosion
+3. **Template Versioning with Frozen Assignments** — Published templates immutable; edits create new drafts; assignments capture version at assignment time
+4. **Separate ProofFulfillment Model** — Individual records per employee per requirement (not embedded)
+5. **Three Assignment Types** — Individual employees, by-role (auto-synced), by-department (auto-synced)
+6. **Level 4 Validation Requires Manager+** — Supervisors create/assign; only Manager+ validates
+7. **Integration with Proof Vault** — Level 2 uploads go to encrypted vault by default
+8. **Auto-Fulfillment from Qualifications Deferred to Phase 3** — Edge cases need careful design
+9. **Third-Party Verification via System Endpoints Only** — Employees don't trigger; background jobs/webhooks do
+
+**Data Model:**
+- `ProofTemplate` — name, description, status (draft/published/archived), version, requirements[]
+- `ProofRequirement` — name, attestationLevels[], validityDays, links to qualification/medical/standard
+- `TemplateAssignment` — template + employee/role/department, dueDate, fulfillments[]
+- `ProofFulfillment` — per-level timestamps, status, reviewer notes, expiration
+
+**API Surface:**
+- 25 new endpoints under `/api/templates` and `/api/fulfillments`
+- 9 new permissions (`templates:*`, `fulfillments:*`)
+
+**UI Impact:**
+- 9 new web screens (W-30 through W-38)
+- 2 new admin screens (A-11, A-12)
+
+**Integration Points:**
+- Proof Vault (Level 2 storage)
+- Qualifications/Medical (auto-fulfill candidates)
+- Standards framework
+- Notifications
+- Readiness scoring
+
+**Validation:**
+- Spec comprehensive; no implementation blockers identified at architectural level
+- Ready for Phase 2b (follows Proof Vault specification)
+
+---
+
+### ⚠️ BLOCKING: Taxonomy vs. Attestation Spec Inconsistencies (2026-03-16T01:21Z)
+
+**By:** Freamon (Architectural Review)  
+**Status:** Requires resolution before implementation
+
+**Finding:** Cross-spec review of `docs/architecture/proof-taxonomy.md` against `docs/architecture/templates-attestation-spec.md` identified 6 critical blockers. Do **not** implement `proof-taxonomy.md` as written.
+
+**Critical Issues (must fix):**
+
+1. **ProofRequirement contract mismatch** — templates spec defines optional `proofType` and string `proofSubType`; taxonomy changes to required `proofType` and enum `ProofSubType`. API request examples still omit these fields.
+
+2. **PARTIAL fulfillment status unsupported** — taxonomy uses `status = PARTIAL` with examples like `250/500 hours`; templates spec only defines `unfulfilled`, `pending_review`, `fulfilled`, `expired`, `rejected`. No model for quantitative progress.
+
+3. **Hours model cannot encode count-based activity** — taxonomy gives "3 landings in 90 days" as canonical example; threshold units only support `hours`, `credits`, `days`. "Landings" is not a time unit.
+
+4. **Preset route collision + RBAC mismatch** — `GET /api/presets/:industry` and `GET /api/presets/:id` have same route shape (routing ambiguity). `POST /api/templates/from-preset/:presetId` is Manager-only in taxonomy but template creation is Supervisor-capable in templates spec.
+
+5. **Preset provenance missing FK/relation** — taxonomy adds `presetId` to `ProofRequirement` but no foreign key to `IndustryPreset`; no `ProofTemplate.sourcePresetId` or versioned source reference.
+
+6. **Type definitions promise fields fulfillment schema cannot store** — Type definitions enumerate input fields (e.g., `activityDescription`, `credentialName`, `scope`, `certificateId`, `issueDate`, `expirationDate`, `nextDueDate`, `regulatoryBody`, `date`, `notes`) that don't exist in the actual fulfillment extension.
+
+**Warnings (should fix):**
+- Validation coverage incomplete for `assessment` and `compliance` types
+- Default attestation guidance too coarse for subtype library (need subtype/risk-level defaults)
+- Preset examples vs. schema use different representations
+- Industry mapping too rigid for complex examples (apprenticeship hours, logbooks as both audit + activity)
+- Industry subtype boundaries fuzzy (OSHA 10/30 reads as training; Hours-of-Service is both compliance + activity)
+- `IndustryPreset` under-specified for custom preset governance (missing audit fields, versioning)
+- Phase sequencing needs explicit documentation
+
+**Observations (nice to fix):**
+- Core proof-type hierarchy matches enum list ✓
+- No literal field duplication in `ProofFulfillment` ✓
+- Most taxonomy API additions are additive once blockers resolved ✓
+
+**Call to Action:**
+1. Pick authoritative schema (recommend consolidating into single spec)
+2. Add explicit `PARTIAL`/quantitative-progress semantics to shared model
+3. Broaden threshold-unit model (add `count`/`events`) or split quantitative-activity subtype
+4. Disambiguate preset routes; align preset-based template creation with template CRUD authority
+5. Move preset provenance to template level with real relation + version tracking
+6. Add missing fulfillment-time evidence fields or explicitly separate requirement-time config from fulfillment-time fields
+
+**Detailed report:** `.squad/decisions/inbox/freamon-taxonomy-review.md`
+
+---
+
+## Domain Knowledge References
+
+### 2026-03-16T01:03Z: Industry Proof Types Reference
+
+**By:** ivegamsft (via Copilot)  
+**Purpose:** Domain knowledge for template & attestation system design
+
+**Content:** Comprehensive reference of proof types across 10 regulated industries — Aviation, Healthcare, Nuclear, Construction/OSHA, Licensed Trades, Finance/Securities, Transportation/CDL, Food Safety, IT/Security, Teaching.
+
+**Key Pattern (universal):**
+- Initial qualification (exam, training, certification)
+- Recency proof (hours worked, training completed, skills demonstrated)
+- Clearance status (background check, medical, security)
+- Continuing competency (CE hours, skills tests, audits)
+- Audit trail (documented evidence of all above)
+
+**Industry Examples:**
+- **Aviation:** flight hours, medical cert, recency landings, type-rating checkrides, proficiency checks
+- **Healthcare:** CE credits, license renewal, competency assessments, shift logs, peer evaluations
+- **Nuclear:** security clearance, operator cert exams, simulator hours, radiation safety, requalification
+- **Construction:** OSHA 30, fall protection, equipment tickets, safety training, jobsite hours
+- **Licensed Trades:** apprenticeship hours (4000+), journeyman exam, CE for renewal, project hours, master's exam
+- **Finance:** Series 7/63/65, CE credits, fingerprint clearance, AML/KYC certs, supervisor hours
+- **CDL (Transportation):** DOT physical, skills test, logbook compliance, hazmat endorsement, violations history
+- **Food Safety:** food handler cert, HACCP training, auditor certs, inspection passes, temp logs
+- **IT/Security:** Security+/CISSP, CPE credits, work experience hours, lab hours, ethics sign-off
+- **Teaching:** state cert, PD hours, background check, classroom observation, subject exam
+
+**Key Insight:** e-clat's value is *layered proof through continuous action* — certification proves you learned it, hours prove you're using it, requalification proves you can maintain it, audit trail proves it's all verified.
+
+**Use:** Templates should support these industry-specific proof patterns out of the box.
+
+---
+
+### 2026-03-16: Sydnor Decision — Proof List Tests
+
+**Date:** 2026-03-16  
+**Requester:** ivegamsft  
+**Component:** `ProofList` and `ProofCard` (React)
+
+**Decision:** Cover `ProofList` and `ProofCard` with a root-level jsdom E2E spec (`tests/e2e/proof-list.test.tsx`) until the feature is mounted on a live route.
+
+**Rationale:** Components are implemented but not yet reachable through the running web app, so browser-to-route E2E would not exercise them. Root-level spec keeps contract coverage practical now without blocking on additional page wiring.
+
+**Implementation:**
+- Root `vitest.config.ts` and `vitest.e2e.config.ts` include `.test.tsx` files
+- React-based E2E specs run alongside live-stack smoke suite
 - `infra/layers/` — Existing layer structure (00-foundation, 10-data, 20-compute)
 - `bootstrap/` — Bootstrap scripts (for context; test data different from bootstrap)
 
