@@ -8,6 +8,7 @@ import { useFeatureFlag } from '../hooks/useFeatureFlags';
 import type {
   ComplianceStandardRecord,
   EmployeeDocument,
+  HoursRecord,
   MedicalRecord,
   PaginatedResponse,
   Qualification,
@@ -30,6 +31,11 @@ import '../styles/managed-pages.css';
 
 type StandardsResponse = ComplianceStandardRecord[] | PaginatedResponse<ComplianceStandardRecord>;
 type DocumentsResponse = EmployeeDocument[] | PaginatedResponse<EmployeeDocument>;
+type HoursResponse = HoursRecord[] | PaginatedResponse<HoursRecord>;
+
+function normalizeHoursResponse(response: HoursResponse): HoursRecord[] {
+  return toArray(response);
+}
 
 const initialQualificationForm = {
   standardId: '',
@@ -1383,101 +1389,125 @@ export function TeamDocumentsPage() {
 
 export function TeamHoursPage() {
   const context = useTeamMemberContext('Hours');
+  const [hours, setHours] = useState<HoursRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
-  if (context.employeeLoading) {
+  useEffect(() => {
+    if (!context.employeeId) {
+      setLoading(false);
+      return;
+    }
+
+    async function fetchHours() {
+      setLoading(true);
+
+      try {
+        const response = await api.get<HoursResponse>(`/hours/employee/${context.employeeId}`);
+        setHours(normalizeHoursResponse(response));
+        setNotice('');
+        setError('');
+      } catch (fetchError) {
+        if (isUnavailableError(fetchError)) {
+          setHours([]);
+          setNotice('Hours data is not available yet for this employee.');
+          setError('');
+        } else {
+          setError(fetchError instanceof Error ? fetchError.message : 'Failed to load hours');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHours();
+  }, [context.employeeId]);
+
+  if (context.employeeLoading || loading) {
     return <div className="loading">Loading team hours...</div>;
   }
 
-  if (context.employeeError) {
+  if (context.employeeError || error) {
     return renderTeamError(
       'Employee Hours',
-      'Hours tracking is not implemented yet, but this page outlines the supervisor workflow.',
+      'Review logged hours and time entries for this team member.',
       context,
-      context.employeeError,
+      context.employeeError || error,
     );
   }
+
+  const totalHoursLogged = hours.reduce((sum, entry) => sum + (entry.hours ?? entry.totalHours ?? 0), 0);
+  const uniqueSources = [...new Set(hours.map((h) => h.source).filter(Boolean))];
 
   const actions = (
     <div className="my-page__actions">
       <Link to={`/team/${context.employeeId || ''}`} className="my-btn my-btn--secondary">
         Team overview
       </Link>
-      <button type="button" className="my-btn my-btn--primary" disabled>
-        Approve entries — Coming soon
-      </button>
     </div>
   );
 
   return (
     <PageShell
       title={`${context.employeeLabel} — Hours`}
-      description="Hours tracking is not implemented yet, but this page outlines the supervisor workflow."
+      description="Review logged hours and time entries for this team member."
       breadcrumbs={context.breadcrumbs}
       tabs={context.tabs}
       actions={actions}
     >
       <div className="managed-page">
-        <section className="my-coming-soon" aria-labelledby="team-hours-coming-soon">
-          <div>
-            <h2 id="team-hours-coming-soon">Hours API is coming soon</h2>
-            <p className="my-page__muted">The supervisor view will surface time logs, summaries, and approvals as soon as the hours service is ready.</p>
+        {notice ? <div className="my-card">{notice}</div> : null}
+
+        <section className="managed-page__summary-grid" aria-label="Hours summary">
+          <div className="my-card managed-page__stat">
+            <span className="my-page__field-label">Total records</span>
+            <span className="managed-page__stat-value">{hours.length}</span>
           </div>
-
-          <section className="managed-page__summary-grid" aria-label="Hours summary preview">
-            <div className="my-card managed-page__stat">
-              <span className="my-page__field-label">Week to date</span>
-              <span className="managed-page__stat-value">—</span>
-              <span className="my-page__note">Planned rollup of approved and pending hours.</span>
-            </div>
-            <div className="my-card managed-page__stat">
-              <span className="my-page__field-label">Pending approvals</span>
-              <span className="managed-page__stat-value">—</span>
-              <span className="my-page__note">Supervisor actions will land here.</span>
-            </div>
-            <div className="my-card managed-page__stat">
-              <span className="my-page__field-label">Latest sync</span>
-              <span className="managed-page__stat-value">—</span>
-              <span className="my-page__note">Source-system refresh timestamp placeholder.</span>
-            </div>
-          </section>
-
-          <div className="my-page__actions">
-            <button type="button" className="my-btn my-btn--primary" disabled>
-              Approve selected
-            </button>
-            <button type="button" className="my-btn my-btn--secondary" disabled>
-              Request correction
-            </button>
-            <button type="button" className="my-btn my-btn--secondary" disabled>
-              Export week
-            </button>
+          <div className="my-card managed-page__stat">
+            <span className="my-page__field-label">Hours logged</span>
+            <span className="managed-page__stat-value">{Math.round(totalHoursLogged * 100) / 100}</span>
           </div>
-
-          <table className="my-table" aria-label="Hours log preview">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Source</th>
-                <th>Total Hours</th>
-                <th>Status</th>
-                <th>Supervisor Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td data-label="Date">—</td>
-                <td data-label="Source">—</td>
-                <td data-label="Total Hours">—</td>
-                <td data-label="Status">
-                  <span className="my-badge my-badge--warning">Coming soon</span>
-                </td>
-                <td data-label="Supervisor Action">Approval workflow placeholder</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <p className="my-page__note">Planned experience includes daily log review, weekly summaries, and approval history.</p>
+          <div className="my-card managed-page__stat">
+            <span className="my-page__field-label">Sources</span>
+            <span className="managed-page__stat-value">{uniqueSources.length || '—'}</span>
+          </div>
         </section>
+
+        {hours.length === 0 ? (
+          <div className="my-empty-state">No hours have been logged for this employee yet.</div>
+        ) : (
+          <section className="my-card" aria-labelledby="team-hours-table">
+            <div>
+              <h2 id="team-hours-table">Hours log</h2>
+              <p className="my-page__muted">Time entries recorded for {context.employeeLabel}.</p>
+            </div>
+            <table className="my-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Hours</th>
+                  <th>Category</th>
+                  <th>Source</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hours.map((entry) => (
+                  <tr key={entry.id}>
+                    <td data-label="Date">{formatDate(entry.date)}</td>
+                    <td data-label="Hours">{entry.hours ?? entry.totalHours ?? '—'}</td>
+                    <td data-label="Category">{toTitleCase(entry.qualificationCategory)}</td>
+                    <td data-label="Source">
+                      <span className={getStatusBadgeClass(entry.source)}>{toTitleCase(entry.source)}</span>
+                    </td>
+                    <td data-label="Description">{entry.description || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
       </div>
     </PageShell>
   );
