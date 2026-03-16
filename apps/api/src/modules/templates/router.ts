@@ -8,7 +8,9 @@ import {
   attachDocumentSchema,
   createRequirementSchema,
   createTemplateSchema,
+  fulfillmentReviewFiltersSchema,
   reorderRequirementsSchema,
+  reviewDecisionSchema,
   selfAttestSchema,
   thirdPartyVerifySchema,
   updateRequirementSchema,
@@ -44,6 +46,16 @@ function parsePositiveInt(value: string | undefined, field: string) {
   }
   return parsed;
 }
+
+templatesRouter.get("/team", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const result = await templatesService.listTeamTemplates({
+      page: parsePositiveInt(queryParam(req, "page"), "page"),
+      limit: parsePositiveInt(queryParam(req, "limit"), "limit"),
+    }, actorFromRequest(req));
+    res.json(result);
+  } catch (err) { next(err); }
+});
 
 templatesRouter.post("/", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -187,6 +199,37 @@ assignmentsRouter.delete("/:id", authenticate, requireMinRole(Roles.MANAGER), as
   try {
     const assignment = await templatesService.deactivateAssignment(param(req, "id"), actorFromRequest(req));
     res.json(assignment);
+  } catch (err) { next(err); }
+});
+
+fulfillmentsRouter.get("/reviews", authenticate, requireMinRole(Roles.MANAGER), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const filters = fulfillmentReviewFiltersSchema.parse({
+      status: queryParam(req, "status"),
+      proofType: queryParam(req, "proofType"),
+      employeeId: queryParam(req, "employeeId"),
+      startDate: queryParam(req, "startDate"),
+      endDate: queryParam(req, "endDate"),
+      page: queryParam(req, "page"),
+      limit: queryParam(req, "limit"),
+    });
+    const result = await templatesService.listFulfillmentReviews(filters, actorFromRequest(req));
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+fulfillmentsRouter.get("/:id/review", authenticate, requireMinRole(Roles.MANAGER), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const detail = await templatesService.getFulfillmentForReview(param(req, "id"), actorFromRequest(req));
+    res.json(detail);
+  } catch (err) { next(err); }
+});
+
+fulfillmentsRouter.post("/:id/review", authenticate, requireMinRole(Roles.MANAGER), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const input = reviewDecisionSchema.parse(req.body);
+    const fulfillment = await templatesService.submitReview(param(req, "id"), input, actorFromRequest(req));
+    res.json(fulfillment);
   } catch (err) { next(err); }
 });
 

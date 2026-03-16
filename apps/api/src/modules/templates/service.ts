@@ -22,7 +22,9 @@ import {
   AttachDocumentInput,
   CreateRequirementInput,
   CreateTemplateInput,
+  FulfillmentReviewFiltersInput,
   ReorderRequirementsInput,
+  ReviewDecisionInput,
   SelfAttestInput,
   ThirdPartyVerifyInput,
   UpdateRequirementInput,
@@ -165,6 +167,10 @@ export interface TemplatesService {
   countPendingReview(actor: Actor): Promise<{ count: number }>;
   getTemplateAuditTrail(id: string): Promise<AuditLog[]>;
   getFulfillmentAuditTrail(id: string): Promise<AuditLog[]>;
+  listTeamTemplates(filters: TeamTemplateFilters, actor: Actor): Promise<PaginatedResult<TeamTemplateProgress>>;
+  listFulfillmentReviews(filters: FulfillmentReviewFilters, actor: Actor): Promise<PaginatedResult<FulfillmentReviewItem>>;
+  getFulfillmentForReview(id: string, actor: Actor): Promise<FulfillmentReviewDetail>;
+  submitReview(id: string, input: ReviewDecisionInput, actor: Actor): Promise<ProofFulfillment>;
 }
 
 interface Actor {
@@ -184,6 +190,74 @@ interface TemplateListFilters {
 interface AssignmentListFilters {
   page?: number;
   limit?: number;
+}
+
+interface TeamTemplateFilters {
+  page?: number;
+  limit?: number;
+}
+
+interface FulfillmentReviewFilters {
+  status?: string;
+  proofType?: string;
+  employeeId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  page?: number;
+  limit?: number;
+}
+
+export interface TeamTemplateProgress {
+  employeeId: string;
+  employeeName: string;
+  employeeEmail: string;
+  assignments: {
+    id: string;
+    templateId: string;
+    templateName: string;
+    status: string;
+    dueDate: Date | null;
+    completedAt: Date | null;
+    totalRequirements: number;
+    fulfilledRequirements: number;
+    completionPercentage: number;
+    isOverdue: boolean;
+    isAtRisk: boolean;
+  }[];
+  overallCompletionPercentage: number;
+}
+
+export interface FulfillmentReviewItem {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeEmail: string;
+  templateId: string;
+  templateName: string;
+  requirementId: string;
+  requirementName: string;
+  proofType: ProofType | null;
+  attestationLevels: AttestationLevel[];
+  submittedAt: Date;
+  status: FulfillmentStatus;
+  isPriority: boolean;
+}
+
+export interface FulfillmentReviewDetail extends ProofFulfillment {
+  employeeName: string;
+  employeeEmail: string;
+  templateName: string;
+  requirementName: string;
+  requirementDescription: string;
+  canReview: boolean;
+  reviewHistory: {
+    id: string;
+    action: string;
+    performedBy: string;
+    performedByName: string;
+    performedAt: Date;
+    notes: string | null;
+  }[];
 }
 
 const DEFAULT_PAGE = 1;
@@ -1741,5 +1815,392 @@ export const templatesService: TemplatesService = {
     });
 
     return auditTrail.map(mapAuditLog);
+  },
+
+  async listTeamTemplates(filters, actor) {
+    if (actor.role === Roles.EMPLOYEE) {
+      throw new ForbiddenError("Employees cannot view team templates.");
+    }
+
+    const page = filters.page ?? DEFAULT_PAGE;
+    const limit = filters.limit ?? DEFAULT_LIMIT;
+
+    const assignmentsWithDetails = await prisma.templateAssignment.findMany({
+      where: {
+        isActive: true,
+        employeeId: { not: null },
+      },
+      select: {
+        id: true,
+        templateId: true,
+        employeeId: true,
+        dueDate: true,
+        completedAt: true,
+        template: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        fulfillments: {
+          select: {
+            id: true,
+            status: true,
+            requirementId: true,
+          },
+        },
+      },
+      orderBy: [{ employee: { lastName: "asc" } }, { employee: { firstName: "asc" } }],
+    });
+
+    const employeeMap = new Map<string, TeamTemplateProgress>();
+
+    for (const assignment of assignmentsWithDetails) {
+      if (!assignment.employee) continue;
+
+      const employeeId = assignment.employeeId!;
+      if (!employeeMap.has(employeeId)) {
+        employeeMap.set(employeeId, {
+          employeeId,
+          employeeName: `${assignment.employee.firstName} ${assignment.employee.lastName}`,
+          employeeEmail: assignment.employee.email,
+          assignments: [],
+          overallCompletionPercentage: 0,
+        });
+      }
+
+      const employeeData = employeeMap.get(employeeId)!;
+      
+      const totalRequirements = assignment.fulfillments.length;
+      const fulfilledRequirements = assignment.fulfillments.filter(
+        (f) => f.status === PrismaFulfillmentStatus.FULFILLED
+      ).length;
+      const completionPercentage = totalRequirements > 0 
+        ? Math.round((fulfilledRequirements / totalRequirements) * 100) 
+        : 0;
+
+      const now = new Date();
+      const isOverdue = assignment.dueDate !== null && !assignment.completedAt && assignment.dueDate < now;
+      const isAtRisk = assignment.dueDate !== null 
+        && !assignment.completedAt 
+        && completionPercentage < 50 
+        && assignment.dueDate.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000;
+
+      employeeData.assignments.push({
+        id: assignment.id,
+        templateId: assignment.templateId,
+        templateName: assignment.template.name,
+        status: assignment.completedAt ? "completed" : isOverdue ? "overdue" : "in_progress",
+        dueDate: assignment.dueDate,
+        completedAt: assignment.completedAt,
+        totalRequirements,
+        fulfilledRequirements,
+        completionPercentage,
+        isOverdue,
+        isAtRisk,
+      });
+    }
+
+    const teamData = Array.from(employeeMap.values());
+
+    teamData.forEach((employee) => {
+      const totalAssignments = employee.assignments.length;
+      if (totalAssignments > 0) {
+        const sumCompletion = employee.assignments.reduce((sum, a) => sum + a.completionPercentage, 0);
+        employee.overallCompletionPercentage = Math.round(sumCompletion / totalAssignments);
+      }
+    });
+
+    const total = teamData.length;
+    const paginatedData = teamData.slice((page - 1) * limit, page * limit);
+
+    return {
+      data: paginatedData,
+      total,
+      page,
+      limit,
+    };
+  },
+
+  async listFulfillmentReviews(filters, actor) {
+    if (actor.role === Roles.EMPLOYEE || actor.role === Roles.SUPERVISOR) {
+      throw new ForbiddenError("Only managers and above can access the review queue.");
+    }
+
+    const page = filters.page ?? DEFAULT_PAGE;
+    const limit = filters.limit ?? DEFAULT_LIMIT;
+
+    const where: Prisma.ProofFulfillmentWhereInput = {
+      status: filters.status 
+        ? (filters.status.toUpperCase() as PrismaFulfillmentStatus)
+        : PrismaFulfillmentStatus.PENDING_REVIEW,
+    };
+
+    if (filters.employeeId) {
+      where.employeeId = filters.employeeId;
+    }
+
+    if (filters.proofType) {
+      where.requirement = {
+        proofType: filters.proofType.toLowerCase() as PrismaProofType,
+      };
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.updatedAt = {};
+      if (filters.startDate) {
+        where.updatedAt.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.updatedAt.lte = filters.endDate;
+      }
+    }
+
+    const [fulfillments, total] = await prisma.$transaction([
+      prisma.proofFulfillment.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          employeeId: true,
+          status: true,
+          uploadedAt: true,
+          selfAttestedAt: true,
+          thirdPartyVerifiedAt: true,
+          updatedAt: true,
+          employee: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          assignment: {
+            select: {
+              template: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          requirement: {
+            select: {
+              id: true,
+              name: true,
+              proofType: true,
+              attestationLevels: true,
+            },
+          },
+        },
+      }),
+      prisma.proofFulfillment.count({ where }),
+    ]);
+
+    const reviewItems: FulfillmentReviewItem[] = fulfillments.map((f) => {
+      const submittedAt = f.uploadedAt || f.selfAttestedAt || f.thirdPartyVerifiedAt || f.updatedAt;
+      const isPriority = f.requirement.proofType === PrismaProofType.CLEARANCE 
+        || f.requirement.proofType === PrismaProofType.COMPLIANCE;
+
+      return {
+        id: f.id,
+        employeeId: f.employeeId,
+        employeeName: `${f.employee.firstName} ${f.employee.lastName}`,
+        employeeEmail: f.employee.email,
+        templateId: f.assignment.template.id,
+        templateName: f.assignment.template.name,
+        requirementId: f.requirement.id,
+        requirementName: f.requirement.name,
+        proofType: f.requirement.proofType ? fromPrismaProofType(f.requirement.proofType) : null,
+        attestationLevels: f.requirement.attestationLevels.map(fromPrismaAttestationLevel),
+        submittedAt,
+        status: fromPrismaFulfillmentStatus(f.status),
+        isPriority,
+      };
+    });
+
+    return {
+      data: reviewItems,
+      total,
+      page,
+      limit,
+    };
+  },
+
+  async getFulfillmentForReview(id, actor) {
+    if (actor.role === Roles.EMPLOYEE || actor.role === Roles.SUPERVISOR) {
+      throw new ForbiddenError("Only managers and above can review fulfillments.");
+    }
+
+    const fulfillment = await prisma.proofFulfillment.findUnique({
+      where: { id },
+      select: {
+        ...fulfillmentSelect,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assignment: {
+          select: {
+            template: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!fulfillment) {
+      throw new NotFoundError("Proof fulfillment", id);
+    }
+
+    const canReview = fulfillment.employeeId !== actor.id;
+
+    const auditLogs = await prisma.auditLog.findMany({
+      where: {
+        entityType: { in: ["fulfillments", "fulfillment"] },
+        recordId: id,
+        action: { in: ["validate", "reject", "approve", "request_changes"] },
+      },
+      orderBy: { timestamp: "desc" },
+      select: {
+        id: true,
+        action: true,
+        performedBy: true,
+        timestamp: true,
+        changeDetails: true,
+      },
+    });
+
+    const reviewHistory = await Promise.all(
+      auditLogs.map(async (log) => {
+        const performer = await prisma.employee.findUnique({
+          where: { id: log.performedBy },
+          select: { firstName: true, lastName: true },
+        });
+
+        return {
+          id: log.id,
+          action: log.action,
+          performedBy: log.performedBy,
+          performedByName: performer ? `${performer.firstName} ${performer.lastName}` : "Unknown",
+          performedAt: log.timestamp,
+          notes: log.changeDetails ? String(log.changeDetails) : null,
+        };
+      })
+    );
+
+    const mapped = mapFulfillment(fulfillment);
+
+    return {
+      ...mapped,
+      employeeName: `${fulfillment.employee.firstName} ${fulfillment.employee.lastName}`,
+      employeeEmail: fulfillment.employee.email,
+      templateName: fulfillment.assignment.template.name,
+      requirementName: fulfillment.requirement!.name,
+      requirementDescription: fulfillment.requirement!.description,
+      canReview,
+      reviewHistory,
+    };
+  },
+
+  async submitReview(id, input, actor) {
+    if (actor.role === Roles.EMPLOYEE || actor.role === Roles.SUPERVISOR) {
+      throw new ForbiddenError("Only managers and above can submit reviews.");
+    }
+
+    const fulfillment = await prisma.proofFulfillment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        employeeId: true,
+        status: true,
+        assignmentId: true,
+        requirement: {
+          select: {
+            id: true,
+            validityDays: true,
+          },
+        },
+      },
+    });
+
+    if (!fulfillment) {
+      throw new NotFoundError("Proof fulfillment", id);
+    }
+
+    if (fulfillment.employeeId === actor.id) {
+      throw new ForbiddenError("You cannot review your own fulfillment submission.");
+    }
+
+    if (fulfillment.status !== PrismaFulfillmentStatus.PENDING_REVIEW) {
+      throw new ConflictError("Fulfillment is not pending review.");
+    }
+
+    const now = new Date();
+    let newStatus: PrismaFulfillmentStatus;
+    let updateData: Prisma.ProofFulfillmentUpdateInput;
+
+    if (input.decision === "approve") {
+      newStatus = PrismaFulfillmentStatus.FULFILLED;
+      const expiresAt = fulfillment.requirement.validityDays
+        ? computeExpirationDate(fulfillment.requirement.validityDays, now)
+        : null;
+
+      updateData = {
+        status: newStatus,
+        validatedAt: now,
+        validatedBy: actor.id,
+        validatorNotes: input.notes,
+        rejectedAt: null,
+        rejectionReason: null,
+        expiresAt,
+      };
+    } else if (input.decision === "reject") {
+      newStatus = PrismaFulfillmentStatus.REJECTED;
+      updateData = {
+        status: newStatus,
+        rejectedAt: now,
+        rejectionReason: input.reason!,
+        validatedAt: null,
+        validatedBy: null,
+        validatorNotes: input.notes,
+      };
+    } else {
+      newStatus = PrismaFulfillmentStatus.UNFULFILLED;
+      updateData = {
+        status: newStatus,
+        validatorNotes: input.notes,
+      };
+    }
+
+    const updated = await prisma.proofFulfillment.update({
+      where: { id },
+      data: updateData,
+      select: fulfillmentSelect,
+    });
+
+    await updateAssignmentCompletion(fulfillment.assignmentId);
+
+    return mapFulfillment(updated);
   },
 };
