@@ -924,3 +924,279 @@ curl https://api-dev.eclat.example.com/api/employees?role=employee \
 - Render 403 responses as permission-aware states, not fatal errors.
 
 ---
+
+## Phase 2b: Proof Vault & Sharing Architecture (2026-03-18)
+
+### 1. User Directive: Encrypted Proof Vault (2026-03-16T00:40Z)
+
+**Author:** ivegamsft  
+**Status:** Directive  
+**Source:** User requirement
+
+**Direction:** Proofs must be stored as encrypted blobs per user. When creating a "proof vault", the user sets an encryption key. All uploads are encrypted/decrypted using that key. If the user forgets the key, there is NO recovery path — zero-knowledge design. However, users should be able to download a zip of their proofs (decrypted with their key) for portability.
+
+**Rationale:** Compliance documents contain sensitive data. Zero-knowledge encryption ensures only the user can access their proofs. Zip export provides self-service backup/portability.
+
+**Implications:**
+- Backend implements client-side key derivation + AES encryption for blob storage
+- Azurite/Azure Blob Storage holds only encrypted blobs — server never sees plaintext
+- New API endpoints: vault creation (with key setup), encrypted upload, decrypted download, zip export
+- UI needs "proof vault" concept with key setup flow and file grid for browsing
+- Key never stored server-side — only verification mechanism (sentinel + GCM)
+
+---
+
+### 2. UI Design Directive: Proof List Pattern (2026-03-16T00:36Z)
+
+**Author:** ivegamsft  
+**Status:** Directive  
+**Source:** User-provided visual reference
+
+**Direction:** Proof/qualification lists should follow a card-based pattern. Each card shows: proof name, progress (met/total requirements), evidence upload capability, expiration date, and color-coded status bar. Header includes title + add button. Filter tabs for status categories (All, Active, Expiring, Expired).
+
+**Rationale:** User provided visual reference — this is the target UX for qualification/certification lists across the app.
+
+**Applies to:** All qualification/certification list screens (personal + team views)
+
+---
+
+### 3. UI Design Directive: Dashboard & Team Directory Pattern (2026-03-16T00:44Z)
+
+**Author:** ivegamsft  
+**Status:** Directive  
+**Source:** User-provided visual reference from HR management app
+
+**Direction:** Dashboard home screens should follow a workspace pattern with: (1) greeting header with user name, (2) hero stats card with gradient background showing key metrics (Total Staff, Compliance %, Pending items), (3) Quick Action grid with icon buttons for common tasks, (4) notification/activity feed with avatars and timestamps. Team directory should show employee cards with avatar, name, role, tenure, and readiness score percentage badge, with filter tabs and action buttons (View Profile, Flag for Review).
+
+**Applies to:** W-02 (Dashboard), W-09 (Team Directory), W-10 (Employee Card)
+
+---
+
+### 4. UI Design Directive: Manager Analytics Dashboard (2026-03-16T00:47Z)
+
+**Author:** ivegamsft  
+**Status:** Directive  
+**Source:** User-provided visual reference from HR analytics dashboard
+
+**Direction:** Manager dashboard should support analytics-heavy layout: (1) top row of 4 KPI stat cards with metric, value, sparkline trend, delta vs last period; (2) middle row with heatmap/grid for hours tracking + bar chart for compliance overview; (3) bottom row split between searchable team activity table (avatar, name, dept, status badge, timestamps) and schedule/events sidebar. Dark theme option. Left sidebar navigation with section grouping.
+
+**E-CLAT Adaptation:**
+- Total Employees → Team Size
+- Attendance Rate → Compliance Rate %
+- New Hires → New Certifications This Month
+- Active Projects → Active Requirements
+- Attendance heatmap → Hours logged heatmap
+- Project Overview bar chart → Compliance status by day/week
+- Attendance table → Team activity table (cert uploads, approvals, expirations)
+- Schedule sidebar → Upcoming expirations / review deadlines
+
+**Applies to:** W-02 (Dashboard - Manager/CO variants), potentially W-19 (Compliance Overview)
+
+---
+
+### 5. Proof List Component Contract (2026-03-17)
+
+**Author:** Kima  
+**Status:** Active  
+**Date:** 2026-03-17  
+**Artifact:** Component implementation + decision document
+
+**Decision Summary:**
+
+1. Keep `ProofList` and `ProofCard` presentation-first. Parent pages provide normalized proof items instead of the component fetching directly.
+2. Require each proof item to include requirement progress (`requirementsMet`, `requirementsTotal`) so the UI can always render the tracker-style progress summary and color bar.
+3. Handle list filtering inside the component with four client-side tabs: `All`, `Active`, `Expiring Soon`, and `Expired`.
+4. Only show the `Add New` affordance when the parent indicates both create permission and a non-self/team context (`canCreate && !isOwnProfile`).
+5. Evidence stays lightweight in-card: attached files show a paperclip label; missing evidence exposes an Upload action hook supplied by the parent.
+
+**Why:**
+- Keeps the component reusable across both page variants (self-service + team views)
+- Matches architecture spec: employees can view their qualifications but cannot create them; Supervisor+ can add qualifications from team views
+- Avoids coupling list UI to API gaps while keeping final design ready for compliance progress data
+
+**Consequences:**
+- Page containers own API orchestration and enrichment for requirement counts
+- Proof-list UI can be dropped into future pages without route-specific rewrites
+- Permission logic remains explicit at page/container layer
+
+**Validation:** 28/28 tests passing; TypeScript clean
+
+---
+
+### 6. Proof Vault Encryption Architecture (2026-03-18)
+
+**Author:** Freamon (Lead / Architect)  
+**Status:** Active — authoritative design for proof vault implementation  
+**Date:** 2026-03-18  
+**Artifact:** `docs/architecture/proof-vault-spec.md`
+
+**Decision Summary (9 key decisions):**
+
+1. **AES-256-GCM** for symmetric encryption — AEAD cipher, WebCrypto native, industry standard. Rejected ChaCha20-Poly1305 (not in WebCrypto) and AES-CBC (no authentication).
+
+2. **PBKDF2-SHA-256 (100K iterations)** for key derivation — WebCrypto native, no WASM dependency. Argon2 deferred to Phase 3.
+
+3. **Client-side encryption for upload/download** — true zero-knowledge. Server never sees plaintext content. WebCrypto API handles all crypto in-browser.
+
+4. **Server-side decryption for zip export only** — passphrase sent per-request over TLS, key exists only in request-scoped memory, never persisted. Accepted trade-off for usability.
+
+5. **Metadata in plaintext** — filenames, MIME types, sizes, dates stored unencrypted in Postgres. Enables search, display, compliance reporting. Only file *content* is encrypted.
+
+6. **Separate from Document model** — ProofVault and VaultDocument are new Prisma models, independent from existing Document review workflow. Different lifecycle, security, access patterns.
+
+7. **No key recovery** — zero-knowledge by design. Forgotten passphrase = permanent data loss. No admin backdoor, no key escrow.
+
+8. **Client-side re-encryption for key change** — user downloads each encrypted blob, decrypts with old key, re-encrypts with new key, uploads replacements. Server never sees plaintext during key change.
+
+9. **Sentinel pattern for key verification** — encrypt known sentinel string with derived key. Verify by attempting GCM decryption. Reveals nothing about the key; no hash comparison needed.
+
+**Data Model:**
+- `ProofVault` — 1:1 with Employee, stores salt + encrypted sentinel + stats
+- `VaultDocument` — 1:N under vault, stores metadata + blob storage key + encryption IV
+- Blobs in Azure Blob Storage (Azurite locally): `proof-vaults/{employeeId}/{documentId}`
+
+**RBAC:**
+- Employees: full CRUD on own vault and documents
+- Supervisor+: can view vault existence + document count only (via `vault:read_status`)
+- No role can access another employee's vault content — enforced cryptographically
+
+**API:** 12 new endpoints under `/api/vault` — vault CRUD, document upload/download/delete, zip export, passphrase change, manager status view.
+
+**Phased Rollout:**
+- Phase 1 (MVP): Create/upload/download/delete + UI
+- Phase 2: Zip export + key change + manager view
+- Phase 3: Vault-to-review pipeline + Argon2
+
+**Consequences:**
+- New `vault` API module in `apps/api/src/modules/vault/`
+- New `vault-crypto.ts` shared package for WebCrypto utilities
+- New blob storage container `proof-vaults` in Azure/Azurite
+- New Prisma migration for `proof_vaults` + `vault_documents` tables
+- New permissions: `vault:create`, `vault:read`, `vault:write`, `vault:export`, `vault:delete`, `vault:read_status`
+- New UI screen W-06a (Proof Vault) with file grid pattern
+- Dependencies: @azure/storage-blob + archiver + zxcvbn
+
+---
+
+### 7. Sharing & Proof Vault Specification (2026-03-18)
+
+**Author:** Freamon (Lead / Architect)  
+**Status:** Draft — awaiting team review  
+**Date:** 2026-03-18  
+**Artifact:** `docs/architecture/sharing-spec.md`
+
+**Summary:** Comprehensive specification for Sharing & Proof Vault feature — a secure document sharing layer built on top of the existing `documents` module. Spec-only deliverable; no code implemented.
+
+**Decision Summary (6 key decisions):**
+
+1. **Vault access is ownership+share-based, not role-hierarchy-based**
+   - Unlike the rest of E-CLAT where Supervisors see team data via role hierarchy, vault requires explicit sharing
+   - Supervisor cannot browse team members' vault contents — can only see documents explicitly shared with them
+   - Rationale: Compliance proofs are personal property; explicit sharing creates clear audit trail of consent
+
+2. **Share links restricted to Compliance Officer+**
+   - Only Compliance Officer and Admin can create external share links (token-based URLs)
+   - Rationale: External exposure of compliance documents is significant risk; compliance-focused roles ensure proper oversight
+   - Supervisors/Managers can request links via Compliance Officer
+
+3. **File requests restricted to Supervisor+**
+   - Only Supervisor+ roles can create file requests (asking employees to upload specific proofs)
+   - Employees cannot request files from other employees
+   - Rationale: File requests are management tool creating obligations with deadlines; aligns with top-down compliance management
+
+4. **Encryption phased: server-side first, client-side later**
+   - Phase 2b: Server-side encryption (Azure SSE)
+   - Phase 3+: Zero-knowledge client-side encryption (AES-256-GCM with per-document DEKs)
+   - Rationale: Client-side crypto adds significant complexity; sharing features deliver immediate value with server-side first; full crypto architecture documented for Phase 3
+
+5. **New `/api/vault/` module (42 endpoints)**
+   - All sharing/vault endpoints under `/api/vault/`, separate from `/api/documents/`
+   - Vault references documents by ID but doesn't replace documents module
+   - Rationale: Documents module handles upload, review, extraction (operational). Vault handles organization, sharing, access control (user-facing). Clean module boundaries.
+
+6. **Recommended for Phase 2b**
+   - Implement after Documents and Notifications are stable (Phase 2 core) but before Phase 3
+   - Rationale: Vault depends on stable documents + notifications; naturally bridges Phase 2 → Phase 3
+
+**Vault Architecture:**
+- **Sections:** My Vault, Shared With Me/By Me, Archive, Recent, File Requests, Deleted
+- **Sharing Model:** Shared folders, per-file sharing, 4 permission levels (view, edit, comment, admin), time-limited share links for external auditors
+- **File Requests:** Manager→employee proof requests with deadlines, auto-share on fulfillment, escalation rules
+- **Storage Quotas:** Role-based defaults, admin management
+- **Access Control:** Ownership+share-based (not role-hierarchy-based)
+
+**New API Surface:**
+- **Endpoints:** 42 endpoints under `/api/vault/`
+- **Permissions:** 8 new `vault:*` permissions integrated with existing RBAC
+- **Models:** 7 new Prisma models, 2 modified (Document, User)
+- **Notifications:** 10 new notification triggers
+- **Audit Events:** 19 new audit event types
+
+**UI Screens:**
+- **Web:** W-24 through W-29 (6 new screens)
+- **Admin:** A-10 (1 new screen)
+
+**Risks:**
+1. **Scope creep:** 42 new endpoints substantial; Phase 2b should deliver folder sharing + file requests first, defer share links
+2. **Encryption migration:** Moving server-side → client-side in Phase 3 requires re-encrypting existing documents; plan migration tooling early
+3. **Quota enforcement:** Storage quota tracking requires accurate byte counting on every upload/delete; edge cases need careful handling
+
+---
+
+### 8. PRD ↔ Architecture Spec Reconciliation (2026-03-17)
+
+**Author:** Freamon (Lead / Architect)  
+**Status:** Active  
+**Date:** 2026-03-17  
+**PRD:** `docs/prds/eclat-spec.md`  
+**Specs Updated:** `docs/architecture/app-spec.md`, `docs/architecture/rbac-api-spec.md`  
+**Cleanup:** Deleted stale `docs/architecture/product-spec.md`
+
+**Summary:** Reconciled user-provided PRD against both architecture specs. Architecture specs now have full traceability to PRD; implementation team has clear visibility on coverage, deferral rationale, and terminology mappings.
+
+**Actions Completed:**
+1. Deleted duplicate `docs/architecture/product-spec.md` — identical to PRD
+2. Added Source PRD reference to both architecture specs with bidirectional cross-links
+3. Documented terminology mapping (PRD → implementation):
+   - Certifications → Qualifications
+   - Clearance → Medical
+   - Standard Framework → Standard
+4. Documented role mapping — PRD's 4 roles → our 5 roles, with rationale for Supervisor tier
+5. Added PRD Coverage Analysis (§9) to app-spec mapping all 20 PRD screens
+6. Added PRD RBAC Deltas table to RBAC spec
+7. Added PRD Data Model Cross-Reference to RBAC spec
+
+**Decision Summary (7 key decisions):**
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | **Keep 5 roles** (PRD has 4) | Supervisor tier essential for regulated industries — separates team oversight from department operations and document approval authority |
+| 2 | **Keep "qualifications" naming** (PRD says "certifications") | Code, Prisma schema, API modules, 140+ tests use "qualifications"; renaming has massive blast radius for zero user benefit; terminology mapping documented instead |
+| 3 | **Keep "medical" naming** (PRD says "clearance") | Same reasoning; API module is `medical`, Prisma model is `MedicalClearance` |
+| 4 | **Employee cannot self-create qualifications** (PRD implies they can) | Regulated industries require Supervisor+ attestation; employees upload documents (enter review queue), not direct qualification records |
+| 5 | **No hours approve/reject endpoints yet** (PRD defines them) | Our architecture uses conflict resolution rather than per-entry approval; model may be added Phase 2 if manual entry validation requires it |
+| 6 | **No qualification approve/reject endpoints yet** (PRD defines them) | Manual qualifications by Supervisor+ bypass approval; document-based qualifications go through Document Review |
+| 7 | **Only Admin can edit employee records** (PRD lets Manager edit team) | Prevents field-level conflicts; maintains single source of truth for employee data |
+
+**Features Explicitly Deferred (Phase 2+):**
+- Hours approval workflow (§4.3)
+- Qualification approval workflow (§4.4)
+- Reports API module (§4.9) — 6 endpoints
+- Compliance API module (§4.7) — 6 endpoints
+- Integration endpoints (§4.11) — OAuth calendar, payroll, scheduling
+- Compliance Audit View screen (§3.3)
+- Document Processing Configuration (§3.6) — AI/OCR settings
+- Manager-scoped reports (§2.7)
+- Escalation management (§2.6)
+- My Requirements self-service (§3.1)
+- Team gaps batch view (§3.2)
+- User & Role Management admin screen (§3.7)
+
+**Consequences:**
+- Both architecture specs now have full traceability to PRD
+- Implementation team sees exactly what's covered, deferred, and why
+- Terminology confusion resolved via documented mapping
+- 12 features explicitly deferred with PRD section references for Phase 2+ planning
+- No code changes required — spec-level reconciliation only
+
+---

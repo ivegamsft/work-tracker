@@ -12,6 +12,7 @@
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 - 2026-03-16: Role-gated frontend pages should wait for AuthContext to finish hydrating before making protected requests; employee users must skip employee-directory fetches, and employee-directory 403s should render permission-aware UI instead of fatal generic errors.
 - 2026-03-17: Team coordination phase complete. RBAC API spec (65 endpoints, 36 permissions, 5-role matrix) at `docs/architecture/rbac-api-spec.md` and App spec (23 core + 9 admin screens, 5-phase implementation) at `docs/architecture/app-spec.md` are ground truth. Product spec reconciliation locked 5-role model. All decisions merged to `.squad/decisions.md`. Dashboard implementation aligns to role-aware design pattern.
+- 2026-03-17: The reusable qualifications proof list should stay presentation-first: parent pages pass proof items plus requirement counts, the component handles client-side All/Active/Expiring/Expired filtering, and the Add New control is only shown when create permission is available in a team-context view.
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
@@ -154,6 +155,41 @@ See `.squad/decisions.md` for full MVP sequencing and test infrastructure requir
 - Phase 1: Integration with live API once Bunk's auth endpoints are deployed
 - Phase 2: Additional pages (Standards, Qualifications CRUD)
 - Phase 3: Medical clearance workflows, notification preferences UI
+
+## Team Updates (2026-03-18T00:47Z)
+
+### ProofList Component Pattern Established
+
+Kima's ProofList component + ProofCard pattern now locked in `.squad/decisions.md`:
+- **Contract:** Parent-provided proof items (no component fetching)
+- **Filtering:** Client-side 4-tab system (All, Active, Expiring Soon, Expired)
+- **Progress tracking:** Requirement progress (`requirementsMet`, `requirementsTotal`)
+- **Permission gating:** Add New control only shown when `canCreate && !isOwnProfile`
+- **Evidence pattern:** Paperclip label for files; Upload hook for missing evidence
+
+**Status:** 28/28 tests passing; TypeScript clean. Ready for integration with ProofVault screens once Freamon's vault API stabilizes.
+
+### Proof Vault Architecture Ready
+
+Freamon delivered full proof vault encryption architecture (`docs/architecture/proof-vault-spec.md`):
+- **Crypto:** AES-256-GCM (WebCrypto native) + PBKDF2-SHA-256
+- **Design:** Client-side encryption (zero-knowledge); server-side decryption for zip export only
+- **API:** 12 endpoints under `/api/vault/`
+- **Data model:** ProofVault + VaultDocument Prisma models
+- **RBAC:** 6 new permissions (`vault:*`)
+- **Phased rollout:** MVP (upload/download/delete) → Zip export → Argon2
+
+**Implication:** Proof list UI will need to integrate with vault document lifecycle. Coordinates with vault module for file uploads/deletions from ProofCard.
+
+### Sharing Specification Complete
+
+Freamon's sharing spec (`docs/architecture/sharing-spec.md`) adds vault organization layer:
+- **42 API endpoints** under `/api/vault/`
+- **6 new web screens** (W-24 through W-29) for sharing, requests, archive, deleted
+- **8 RBAC permissions** (ownership+share-based, not role-hierarchy-based)
+- **Phase 2b ready:** After Documents/Notifications stabilize
+
+**Implication:** Proof list screens will support sharing actions (share, request files, archive). May require proof-card action menus or sharing modals. Coordinate with Bunk for API availability.
 
 **Development workflow:**
 - `npm run dev -w @e-clat/web` — starts Vite dev server on port 5173
