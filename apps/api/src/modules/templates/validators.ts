@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeAttestationLevels, validateAttestationPolicy } from "./policies";
 
 const attestationLevelSchema = z.enum(["self_attest", "upload", "third_party", "validated"]);
 const proofTypeSchema = z.enum(["hours", "certification", "training", "clearance", "assessment", "compliance"]);
@@ -20,6 +21,22 @@ const baseRequirementSchema = z.object({
   validityDays: z.coerce.number().int().positive().optional(),
   renewalWarningDays: z.coerce.number().int().positive().optional(),
   isRequired: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+  // Normalize attestation levels to unique, ordered set
+  if (value.attestationLevels) {
+    const normalized = normalizeAttestationLevels(value.attestationLevels as any);
+    
+    // Validate attestation policy constraints
+    const errors = validateAttestationPolicy(value.proofType as any, normalized as any);
+    
+    if (errors.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["attestationLevels"],
+        message: errors.join("; "),
+      });
+    }
+  }
 });
 
 export const createTemplateSchema = z.object({
@@ -97,6 +114,15 @@ export const validateFulfillmentSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["reason"],
       message: "Rejection reason is required when approval is false.",
+    });
+  }
+  
+  // Validator notes/reason codes required for approvals
+  if (value.approved && !value.notes) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["notes"],
+      message: "Validator notes are required when approving a fulfillment.",
     });
   }
 });
