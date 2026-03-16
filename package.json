@@ -10,11 +10,11 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @e-clat/api",
-    "build": "npm run build -w @e-clat/shared && npm run build -w @e-clat/api",
+    "build": "npm run build -w @e-clat/shared && npm run build -w @e-clat/api && npm run build -w @e-clat/web",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "npm run typecheck -w @e-clat/shared && npm run typecheck -w @e-clat/api",
+    "typecheck": "npm run typecheck -w @e-clat/shared && npm run typecheck -w @e-clat/api && npm run typecheck -w @e-clat/web",
     "lint": "npm run lint -w @e-clat/api"
   },
   "keywords": [
