@@ -1,1 +1,9 @@
-squad: Phase 1 kickoff — orchestration logs
+chore: add test-and-rebuild skill, log Sydnor validation run
+
+- Create .squad/skills/test-and-rebuild/SKILL.md: reusable validation cycle for unit tests, TypeScript checks, Docker rebuild, and smoke tests
+- Log Sydnor (agent-61) validation run: 179/179 tests passed, TypeScript clean, Docker healthy, smoke checks green
+- Record orchestration event at .squad/orchestration-log/2026-03-16T01-59-24Z-sydnor-agent-61.md
+- Update Sydnor's history with validation outcome
+- Log session batch work in .squad/log/2026-03-16T01-59-24Z-scribe-validation-log.md
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

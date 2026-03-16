@@ -7,6 +7,23 @@
 - **API Modules:** auth, documents, employees, hours, labels, medical, notifications, qualifications, standards
 - **Created:** 2026-03-13
 
+## 📌 Team Update (2026-03-16T02:25:09Z)
+
+**Documentation Taxonomy Reorganized:**
+All project docs now live under category-based structure. Key migrations:
+- `docs/architecture/` → `docs/specs/` (architecture, technical design specs)
+- `docs/prds/` → `docs/requirements/` (product requirements, user stories)
+- `docs/adrs/` → `docs/decisions/` (architectural decisions)
+
+**Updated spec paths for Phase 1 implementation:**
+- RBAC API spec: `docs/architecture/rbac-api-spec.md` → `docs/specs/rbac-api-spec.md`
+- App spec: `docs/architecture/app-spec.md` → `docs/specs/app-spec.md`
+- Sharing spec: `docs/architecture/sharing-spec.md` → `docs/specs/sharing-spec.md`
+- Proof vault: `docs/architecture/proof-vault-spec.md` → `docs/specs/proof-vault-spec.md`
+- Templates: `docs/architecture/templates-attestation-spec.md` → `docs/specs/templates-attestation-spec.md`
+
+All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
+
 ## Learnings
 
 - **Proof-list UI coverage currently needs jsdom-based E2E (2026-03-16)** — `ProofList`/`ProofCard` are not yet mounted on a live route, so practical contract coverage lives in `tests/e2e/proof-list.test.tsx` with React Testing Library. Root Vitest and E2E configs must include `.test.tsx`, and shared DOM cleanup between tests is required to avoid duplicate tab/card queries.

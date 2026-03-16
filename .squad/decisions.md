@@ -80,6 +80,86 @@ npm run typecheck — 0 errors
 
 ---
 
+## Phase 1 Operations & Documentation Standardization (2026-03-16)
+
+### Reusable Ops Skills (2026-03-16)
+
+**Decision:** Add six reusable skills under `.squad/skills/` with assigned default coordinators by role.
+
+**Skills Created:**
+1. `commit-and-push` — Ralph (coord): safe push gates with secret scanning
+2. `secret-scan` — Ralph (coord): credential detection before pushes
+3. `git-status-report` — Ralph (coord): fast branch snapshots and status reporting
+4. `docker-reset` — Sydnor (coord): local Docker/Compose recovery
+5. `prisma-migrate` — Bunk (coord): Prisma migration verification and rollback
+6. `spec-review` — Freamon (coord): cross-spec consistency checks
+
+**Rationale:**
+- Recurring coordinator actions need standardized, reusable runbooks
+- Risk gates (secret scanning, migration verification, Docker recovery) deserve explicit pass/fail criteria
+- Shared report structure enables quick comparison of results across handoffs
+- Work assigned to role defaults reduces coordination overhead
+
+**Consequences:**
+- Coordinators have documented playbooks for six common operational tasks
+- Push workflows explicitly coupled to secret scanning and commit hygiene
+- Spec review formalized as cross-document consistency, not style pass
+- Prisma and Docker workflows have one canonical recovery path
+
+**Files Created:**
+- `.squad/skills/commit-and-push/` (directory with README, checklist, examples)
+- `.squad/skills/docker-reset/` (directory)
+- `.squad/skills/git-status-report/` (directory)
+- `.squad/skills/prisma-migrate/` (directory)
+- `.squad/skills/secret-scan/` (directory)
+- `.squad/skills/spec-review/` (directory)
+
+---
+
+### Category-Based Documentation Taxonomy (2026-03-16)
+
+**Decision:** Standardize project-facing markdown under `docs/` by purpose; retire legacy folder structure.
+
+**New Structure:**
+```
+docs/
+  ideas/           — brainstorming, open questions, exploration
+  requirements/    — PRDs, user stories, feature specs (formerly docs/prds/)
+  specs/           — architecture specs, technical design (formerly docs/architecture/)
+  guides/          — how-to guides, runbooks, walkthroughs
+  tests/           — test strategy, test data, validation approaches
+  plans/           — project plans, phase roadmaps, release notes
+  decisions/       — architectural decision records, governance docs
+  prompts/         — actual AI prompts (not prompt-adjacent artifacts like brainstorming)
+```
+
+**Retired Paths:**
+- `docs/prds/` (moved to `docs/requirements/`)
+- `docs/architecture/` (moved to `docs/specs/`)
+- `docs/adrs/` (merged into `docs/decisions/`)
+- Top-level `prompts/` (moved to `docs/prompts/`, with brainstorming split out)
+
+**Execution:**
+- 29 files moved with `git mv` (history preserved)
+- Cross-references updated across all markdown files
+- Old directories empty and retired
+- Tests: 179/179 passing (no regressions)
+- Commit: 84af84f, pushed to origin
+
+**Rationale:**
+- Navigation by purpose is clearer than historical source folders
+- Link maintenance centralized by category
+- Prompt assets no longer mixed with planning/brainstorming artifacts
+- Future docs filed by purpose, not legacy location
+
+**Consequences:**
+- All new documentation must follow category-based structure
+- Relative links should target new category paths
+- Retired directories kept empty; future cleanup can delete them
+- One source of truth for each document type
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

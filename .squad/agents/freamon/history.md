@@ -7,9 +7,30 @@
 - **API Modules:** auth, documents, employees, hours, labels, medical, notifications, qualifications, standards
 - **Created:** 2026-03-13
 
+## 📌 Team Update (2026-03-16T02:25:09Z)
+
+**Documentation Taxonomy Reorganized:**
+All project docs now live under category-based structure:
+- `docs/architecture/` → `docs/specs/` (architecture, technical design specs)
+- `docs/prds/` → `docs/requirements/` (product requirements, user stories)
+- `docs/adrs/` → `docs/decisions/` (architectural decisions)
+- `docs/prompts/` + planning artifacts → split: `docs/prompts/` (only actual AI prompts) + `docs/ideas/`, `docs/plans/`, etc.
+
+**Key paths updated:**
+- PRD: `docs/prds/eclat-spec.md` → `docs/requirements/eclat-spec.md`
+- App spec: `docs/architecture/app-spec.md` → `docs/specs/app-spec.md`
+- RBAC spec: `docs/architecture/rbac-api-spec.md` → `docs/specs/rbac-api-spec.md`
+- Sharing spec: `docs/architecture/sharing-spec.md` → `docs/specs/sharing-spec.md`
+- Proof vault spec: `docs/architecture/proof-vault-spec.md` → `docs/specs/proof-vault-spec.md`
+- Templates spec: `docs/architecture/templates-attestation-spec.md` → `docs/specs/templates-attestation-spec.md`
+- Proof taxonomy: `docs/architecture/proof-taxonomy.md` → `docs/specs/proof-taxonomy.md`
+
+All cross-references updated; 29 files moved with git history preserved; 179 tests passing. Commit 84af84f (pushed).
+
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- **Reusable squad operations skill pack added (2026-03-16):** Added six reusable runbooks under `.squad/skills/` to standardize recurring coordinator actions: `commit-and-push`, `secret-scan`, `spec-review`, `docker-reset`, `prisma-migrate`, and `git-status-report`. Rationale: the team repeatedly needs safe push gates, cross-spec consistency review, local stack recovery, Prisma migration verification, and fast branch snapshots, so these actions now have one shared structure, explicit pass/fail criteria, and clear ownership defaults (Ralph for repo hygiene/status, Sydnor for stack reset, Bunk for Prisma, Freamon for architecture review).
 - **Proof taxonomy consistency review completed (2026-03-18):** Reviewed `docs/architecture/proof-taxonomy.md` against `docs/architecture/templates-attestation-spec.md` and the industry proof reference at `.squad/decisions/inbox/copilot-directive-industry-proofs.md`. Key architecture pattern: the proof system is now a shared contract across taxonomy + templates, so schema, readiness states, and RBAC must be normalized in both docs before Bunk implements anything. Blocking gaps found: `ProofRequirement` contract drift (optional vs required `proofType`, string vs enum subtype/unit), unsupported quantitative `PARTIAL` progress for hours, broken preset provenance (`presetId` has no FK/template-level source relation), and preset route/RBAC mismatch. User preference reinforced: review in cross-spec terms first and call out contradictions before implementation. Detailed report captured at `.squad/decisions/inbox/freamon-taxonomy-review.md`.
 - **PRD ↔ Architecture reconciliation completed (2026-03-17):** Reconciled the PRD (`docs/prds/eclat-spec.md`) against both architecture specs. Key terminology mappings documented: PRD "Certifications" = our "Qualifications", PRD "Clearance" = our "Medical", PRD's 4 roles map to our 5 (PRD's "Manager" splits into Supervisor + Manager). Deleted stale duplicate at `docs/architecture/product-spec.md`. Added PRD Coverage Analysis (§9) to app-spec mapping all 20 PRD screens — 10 fully covered, 7 partially covered, 3 deferred. Added PRD RBAC Deltas table to RBAC spec. 12 features explicitly deferred to Phase 2+: hours/qualification approval workflows, Reports API, Compliance API, Integration endpoints, audit view screen, AI config, manager reports, escalation management, self-service requirements, team gaps view, user management admin. 7 architectural decisions documented (keep 5 roles, keep our naming, employee can't self-create qualifications, no approve/reject yet, only Admin edits employees). Decision at `.squad/decisions/inbox/freamon-prd-reconciliation.md`.
 - **Application specification authored (2026-03-17):** Comprehensive app spec at `docs/architecture/app-spec.md` defining 23 `apps/web` screens and 9 `apps/admin` screens, role-adaptive navigation, per-screen functionality matrices, screen→API mappings, and dashboard widget system. Key decisions: "Employees" nav renamed to "Team" and hidden from Employee role; employee dashboard rewritten around personal readiness + quick actions (clock in/out, upload doc, view profile); self-service cannot create compliance records (qualifications/medical managed by Supervisor+); standards read-only in `apps/web`; document review is Manager+ not Supervisor+. Identified 3 API gaps for Bunk: `GET /api/documents/employee/:employeeId` (P0), batch readiness endpoint (P1), compliance report endpoint (P2). 5-phase implementation order starting with Employee UX. Triggered by user feedback: "this screen is really confusing. no quick actions. employees should be trimmed. what is the directory?"
