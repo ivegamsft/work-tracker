@@ -1623,3 +1623,60 @@ Use `/team` and `/team/:id` as the canonical web routes for team management, mat
 
 ## Extra Validation Choice
 I also added `@e-clat/web` to the root `build` and `typecheck` scripts in `package.json` so monorepo validation now includes frontend route changes by default.
+
+---
+
+# Bunk — Proof Templates (Phase 3, Agent-83)
+
+- Proof template schema keeps Prisma enums uppercase (TemplateStatus, AttestationLevel, FulfillmentStatus, ProofType) while API responses map to lowercase strings for consistency with existing DTO patterns.
+- Employee now owns relation arrays for assignment creators (\ssignedTemplateAssignments\) and validators (\alidatedFulfillments\) to satisfy multi-relation Prisma constraints alongside assignee relations.
+- Templates module exports dedicated routers for templates, assignments, fulfillments, plus an employee assignments router mounted under \/api/employees/:id/assignments\ to avoid coupling with the employees module.
+- Fulfillment status computation sets validated-only requirements to \pending_review\ on assignment creation and blocks validation approval until all other required levels are satisfied.
+
+---
+
+# Bunk — Hours Service + Documents Listing (Phase 3, Agent-84)
+
+- Hours clock-in/out stores the event timestamp in \HourRecord.createdAt\ and keeps \HourRecord.date\ normalized to the calendar day, because the schema has no separate clock timestamp fields.
+- Hour audit trail lookup accepts both \HourRecord\-style names and the existing \/api/hours\ audit entity type so service lookups work with current middleware behavior.
+- Document employee listing authorization is enforced in the router: employees may read their own documents, while cross-employee access requires \SUPERVISOR\ or higher.
+
+---
+
+# Sydnor — Phase 3 Test Harness (Agent-85)
+
+## Context
+
+Templates and the new documents-by-employee endpoint are being tested in parallel with implementation. Some routes are not mounted yet, while Hours already has mounted routes but placeholder services.
+
+## Decision
+
+Use a two-path contract-testing pattern:
+1. For modules/routes not yet mounted, add fallback test-only routes through \createTestApp({ registerRoutes })\ so endpoint contracts and RBAC boundaries are testable now.
+2. For mounted routers with incomplete services, spy on service methods in tests and let the real router, auth middleware, validators, and error handler run unchanged.
+
+## Rationale
+
+This keeps RBAC assertions strict, preserves real route precedence when implementations land, and avoids blocking API contract coverage on unfinished service logic.
+
+---
+
+# Copilot Directive — Docs-to-Code Pipeline (2026-03-16T024927Z)
+
+**By:** Israel (Izzy) (via Copilot)
+
+**What:** Establish a docs-to-code workflow pipeline:
+1. **Ideas** (docs/ideas/) → brainstorming, exploration, rough concepts
+2. **Requirements** (docs/requirements/) → refined ideas become user stories, PRDs, feature specs
+3. **Specs** (docs/specs/) → requirements become technical architecture and design specs
+4. **Decisions** (docs/decisions/) → review gate — ADRs, scope calls, architecture decisions
+5. **Tests** (docs/tests/) → specs become test plans, test cases, acceptance criteria
+6. **Plans** (docs/plans/) → requirements + specs + tests become implementation plans with task breakdowns
+7. **Code** → plans become implementation
+8. **Guides** (docs/guides/) → operational docs, runbooks, how-tos written after shipping
+
+**Pipeline:** 💡 Ideas → 📋 Requirements → 📐 Specs → ✅ Decisions → 🧪 Tests → 📅 Plans → 💻 Code → 📖 Guides
+
+Each stage feeds the next. Ideas graduate to requirements. Requirements become specs. Specs go through a decision gate. Approved specs produce tests and plans. Code follows plans. Guides capture what you learn after shipping.
+
+**Why:** User request — structured pipeline from ideation to production. Ensures nothing ships without going through the full funnel. Maps 1:1 to existing docs/ folder structure.

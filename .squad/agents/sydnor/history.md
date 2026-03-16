@@ -54,14 +54,30 @@ All project docs now live under category-based structure. Key migrations:
 
 All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
 
-## Learnings
+## Core Context
 
-- **Test Infrastructure Priorities (2026-03-15):** Factories, request helpers, assertion matchers are foundational. Schema-first test design mandatory; tests must match Prisma schema exactly (not assumed interfaces). Document model: `fileName`+`mimeType` required. Service mappers lowercase enums; services return different shapes than endpoints suggest (NotificationsService returns arrays, DocumentsService returns ReviewQueueItem). Test resilience: accept multiple status codes (200, 500, 501) for partial implementation. RBAC tests: 3 variations per endpoint (unauthenticated, wrong role, correct role).
-- **Validation Cycle Complete (2026-03-16):** 179/179 tests passing, TypeScript clean, Docker healthy, smoke tests 200. Full rebuild cycle: `npm test`, `tsc --noEmit`, `docker compose`, live probes. E2E coverage via Vitest (no Playwright/Cypress configured). API /health returns 200; /api/health returns 404. Manual QA derives IDs from live API, not hardcoded.
-- **Auth Infrastructure Ready (2026-03-15):** Entra token claims: `iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`. Mock tokens mirror exact Entra structure. Phase 1: Backend `TokenValidator` interface + mock/Entra implementations. Auth middleware currently stub; needs JWT verification to unblock 192+ RBAC tests. Integration tests use local Docker Postgres, seeded users, direct Prisma inserts.
+### Test Infrastructure Foundations (Phases 0–2)
+- **Schema-first design:** Tests match Prisma exactly; Document model requires `fileName`+`mimeType`; Service mappers lowercase enums; services return different shapes than endpoints (NotificationsService arrays, DocumentsService ReviewQueueItem)
+- **RBAC test pattern:** 3 variations per endpoint (unauthenticated, wrong role, correct role)
+- **Test resilience:** Accept multiple status codes (200, 500, 501) for partial implementation
+- **Factories & helpers:** Schema-driven; shared in `apps/api/tests/helpers.ts` with deterministic demo user IDs
+- **Fixture isolation:** Direct Prisma inserts with unique prefixes; avoid chaining API mutations for prerequisites
+- **Docker stack:** API :3000, PostgreSQL :5432, Azurite :10000; Vitest uses `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eclat` when absent
+- **E2E coverage:** Vitest only (no Playwright/Cypress configured); `/api/health` endpoint returns 404, `/health` returns 200; manual QA derives IDs from live API
 
+### Auth & Validation Architecture (Phase 1–2)
+- **Entra token claims:** `iss`, `aud`, `oid`, `tid`, `roles`, `groups`, `scp`
+- **Mock tokens:** Mirror exact Entra structure for deterministic testing
+- **Auth middleware:** Currently stub; needs JWT verification (JWKS or mock parsing per `AUTH_MODE`)
+- **Validation cycle:** Full rebuild = `npm test` + `tsc --noEmit` + `docker compose` + live probes
+- **Phase 1 & 2 status:** 179/179 tests passing (140 Phase 1 + 39 Phase 2), TypeScript clean, Docker healthy
 
-## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
+### Phase 1 & 2 Integration Test Details
+- **Phase 1 (2026-03-15):** 94 tests (Employees, Standards, Qualifications, Medical) on seeded PostgreSQL; audit hooks + PrismaAuditLogger
+- **Phase 2 (2026-03-16):** 46 tests (Documents 20, Notifications 24, Audit 2); auth verification + route taxonomy realignment
+- **Learnings:** Validator schema mismatches (departmentId UUID vs opaque seed strings); readiness contract changes (returns employeeId/overallStatus/arrays); compliance contract changes (requirements[] vs synthetic gaps)
+
+### Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
 ### Team Status Update
 
@@ -74,64 +90,45 @@ All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
 - Auth middleware must validate tokens (currently stub); JWKS validation or mock token parsing per `AUTH_MODE`
 
 🎯 **Next Focus:** Implement JWT/token validation in auth middleware to unblock 192+ RBAC tests
-- **Key audit files** — app wiring lives in `apps/api/src/index.ts`, logger implementations live in `apps/api/src/services/audit.ts`, and comprehensive Vitest coverage lives in `apps/api/tests/audit.test.ts`.
-- **Core-module integration suites are staged** — `apps/api/tests/employees.test.ts`, `standards.test.ts`, `qualifications.test.ts`, and `medical.test.ts` all use the in-process app harness plus live Prisma lookups against seeded PostgreSQL data.
-- **Seeded auth identities belong in shared test helpers** — `apps/api/tests/helpers.ts` should mint tokens with the deterministic demo user IDs/emails so RBAC, ownership, and audit-path tests stay aligned with seeded data.
-- **Fixture setup should use direct Prisma inserts for update/audit scenarios** — endpoint tests stay isolated when prerequisite records are created with unique prefixes and cleaned up afterward instead of chaining one API mutation test to set up another.
-- **Current schema/validator mismatches affect test design** — employee write validators currently expect UUID `departmentId` values even though seed data uses opaque strings, and medical write validators accept `pass`/`fail` while seeded read data stores richer text results.
-- **Integration tests should default to the local Docker Postgres URL in Vitest setup** — `apps/api/tests/setup.ts` now seeds `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eclat` when absent so Prisma-backed suites can run from the repo root without depending on an external `.env` file.
-- **Readiness and compliance assertions must follow service contracts, not earlier mocks** — employees readiness now returns `employeeId`, `overallStatus`, and readiness item arrays; qualification compliance returns `requirements[]` instead of synthetic `gaps`, and employee qualification history is an array rather than a paginated wrapper.
 
-### Docker Stack Available for Test Integration (2026-03-14T20:46:38Z)
+---
 
-Local Docker stack fully operational: API :3000, PostgreSQL :5432, Azurite :10000. JWT auth verified (login endpoint returns tokens, protected endpoints enforce 401). Test factories for core models (Employee, Qualification, Document, Medical) should integrate with live PostgreSQL container for Phase 1 integration tests. See `.squad/orchestration-log/2026-03-14T20-46-38Z-coordinator.md` for validation details.
+---
 
-**Next:** Implement factories alongside Phase 1 services; use container Postgres for local test runs.
+## 📌 Team Update (2026-03-16T07:06:00Z) — Phase 3 Batch 1 Complete ✅
 
+**Proof Templates Schema & API Live (Agent-83, Bunk):**
+- Prisma models: ProofTemplate, ProofRequirement, TemplateAssignment, ProofFulfillment
+- 25 endpoints: `/api/templates`, `/api/assignments`, `/api/fulfillments`, `/api/employees/:id/assignments`
+- Enums: TemplateStatus, AttestationLevel, FulfillmentStatus, ProofType (uppercase in schema, lowercase in DTOs)
+- Fulfillment status: validated-only requirements set to pending_review on assignment; approval blocks until all other required levels satisfied
+- **Impact on Sydnor:** 40 new template tests in Phase 3 batch (CRUD, assignment workflows, fulfillment validation, RBAC boundaries) now live
 
-### Phase 0 Complete: MVP Scope + Test Harness Ready (2026-03-14T20:05:00Z)
+**Hours Service Delivered (Agent-84, Bunk):**
+- HoursService: 12 Prisma methods (getAll, getById, create, update, delete, getByEmployee, getRange, getTotalByEmployee, getByDateRange, getEmployeePeriodSummary, recordClockIn, recordClockOut)
+- Documents: listByEmployee service + `GET /api/documents/employee/:employeeId` endpoint
+- Hours clock design: createdAt = event timestamp; date = calendar day (no separate clock fields)
+- Documents RBAC: employees read own; supervisors+ read all
+- **Impact on Sydnor:** 20 new hours tests in Phase 3 batch (service methods, clock-in/out, audit, date normalization, period summaries) + 3 new documents tests (listByEmployee, RBAC enforcement)
 
-📌 **Sydnor delivered test harness with 10 passing tests (health, auth middleware, auth service, routing). Freamon locked MVP scope; Bunk now owns Phase 0 blocking implementation.**
+**Phase 3 Batch 1 Test Results (Agent-85, Sydnor):**
+- **242/242 tests green** (Phase 1: 140, Phase 2: 39, Phase 3: 63 new)
+- Templates: 40 tests covering CRUD, assignment workflows, fulfillment validation, compound status, RBAC boundaries
+- Hours: 20 tests covering service methods, clock-in/out flows, audit trail, date normalization, period summaries
+- Documents: +3 tests for listByEmployee endpoint, RBAC enforcement (employee scope vs supervisor cross-access)
+- Two-path contract testing pattern locked in:
+  1. **Unmounted modules:** Test-only routes via `createTestApp({ registerRoutes })` for endpoint contracts + RBAC boundaries
+  2. **Mounted incomplete routers:** Service spies via `vi.spyOn()` preserve real route/auth/error handling
+- **Result:** API contracts locked; RBAC assertions strict; real route precedence preserved for implementation landing
 
-**Test harness status:**
-- Vitest configured at root with V8 coverage, Node environment, path aliases
-- 10 passing tests validate: Express app creation, auth middleware behavior, auth service mock, routing structure
-- Test database choice ready for phase 1 (SQLite in-memory for dev + factories, PostgreSQL container for CI)
-- Auth mocking pattern established (mock token generation, deterministic test users)
+**Typecheck & Migration Status:**
+- ✅ TypeScript clean (agents 83, 84)
+- ⏳ Proof Templates migration pending (run after approval)
+- ✅ All 242 tests passing
 
-**MVP Scope (Freamon's 8 decisions):**
-- Core loop: Qualifications + Medical (no Hours for MVP)
-- Documents deferred Phase 2 (no OCR)
-- Department opaque string; single-org
-- `overallStatus` 3-state rule with 30-day warning
-- In-app notifications only; email deferred
-- All decisions unblock Phase 0/1 without debt
+**Phase 3 Batch 2 Ready:**
+- Proof Vault encryption architecture (AES-256-GCM + PBKDF2)
+- Sharing specification (42 endpoints, 6 screens, 8 RBAC permissions)
+- Phase 2b stabilization: Documents/Notifications hardening
 
-**Next phase (Phase 1 service implementation):**
-- Bunk will implement Phase 0 blocking: JWT tokens, labels routing, mock user store, auth middleware verification
-- Once Bunk's work is tested, Phase 1 opens: Prisma integration, core domain services (Employees, Standards, Qualifications, Medical)
-- Factories for core models (Employee, Qualification, Document, MedicalClearance) should be built alongside Phase 1 services
-- Coverage targets: 80% endpoints, 95% business logic, 100% middleware
-
-## Important Status: PRDs Available
-
-📌 **As of 2026-03-13T17:10:00Z**, comprehensive PRDs for E-CLAT are now available in `docs/prds/`:
-- **Platform Foundation PRD** — architecture, RBAC, audit, infra
-- **Workforce Operations PRD** — employees, hours, qualifications, standards
-- **Compliance Evidence PRD** — documents, medical records, evidence chain
-- **Governance Taxonomy PRD** — taxonomy versioning, labels, standards reference
-- **Frontend Admin PRD** — admin app scaffolds and workflows
-
-See `.squad/orchestration-log/2026-03-13T17-10-freamon.md` for details. Read PRDs before planning your QA and test strategy.
-
-## Validation Cycle Complete (2026-03-16T01:59:24Z)
-
-✅ **All Green — 179/179 Tests Pass**
-
-- Unit tests: 179 passed (Vitest suite with integration, smoke, component tests)
-- TypeScript: Clean in apps/api and apps/web
-- Docker: All containers healthy and stable
-- Smoke tests: API /health → 200, Web → 200
-- Status: Stack ready for feature work
-
-See `.squad/orchestration-log/2026-03-16T01-59-24Z-sydnor-agent-61.md` for full details.
+**New team members onboarded:** Pearlman (Compliance Specialist), Daniels (Microservices Engineer) — awaiting Phase 3 Batch 2 assignments

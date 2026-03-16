@@ -54,9 +54,37 @@
 
 ### Known Gaps
 
-- P0 backend gap: `GET /api/documents/employee/:employeeId` blocks W-06, W-13
+- P0 backend gap: `GET /api/documents/employee/:employeeId` blocks W-06, W-13 — **RESOLVED (Agent-84, 2026-03-16T070600Z)**
 - Auth middleware does not yet verify JWT (stub)
 - Playwright/Cypress not configured; E2E via Vitest
+
+---
+
+## 📌 Team Update (2026-03-16T07:06:00Z) — Phase 3 Backend Integration
+
+**Proof Templates Ready (Agent-83, Bunk):**
+- Proof schema live: ProofTemplate, ProofRequirement, TemplateAssignment, ProofFulfillment with dedicated routers at `/api/templates`, `/api/assignments`, `/api/fulfillments`
+- Enum mapping: uppercase in Prisma (TemplateStatus, AttestationLevel, FulfillmentStatus, ProofType), lowercase in DTOs for API consistency
+- Employee relations: assignedTemplateAssignments, validatedFulfillments satisfy multi-relation Prisma constraints
+- Fulfillment status: validated-only requirements set to pending_review on assignment creation; validation approval blocks until all other required levels satisfied
+- **Impact on Kima:** ProofList integration with ProofTemplate routers enabled; Assignment workflows can feed dashboard/team pages now
+
+**Hours Service Delivered (Agent-84, Bunk):**
+- HoursService: 12 Prisma methods live (getAll, getById, create, update, delete, getByEmployee, getRange, getTotalByEmployee, getByDateRange, getEmployeePeriodSummary, recordClockIn, recordClockOut)
+- Documents: listByEmployee service + `GET /api/documents/employee/:employeeId` **unblocks W-06, W-13**
+- Hours clock design: createdAt = event timestamp; date = calendar day (no separate clock fields)
+- Documents RBAC: employees read own; supervisors+ read all
+- **Impact on Kima:** MyHours, MyDocuments, TeamDocuments pages can now call stable endpoints; clock-in/out workflow flows can be tested
+
+**Integration Tests All Green (Agent-85, Sydnor):**
+- 242/242 tests passing (Phase 1: 140, Phase 2: 39, Phase 3: 63 new)
+- Templates: 40 tests covering CRUD, assignment workflows, fulfillment validation, RBAC boundaries
+- Hours: 20 tests covering service, clock-in/out, audit, date normalization, period summaries
+- Documents: +3 tests for listByEmployee, RBAC enforcement
+- Two-path contract testing: test-only routes for unmounted modules; service spies for mounted incomplete routers
+- **Impact on Kima:** API contracts locked down; RBAC assertions preserved; safe for ProofList integration and form submission wiring
+
+**Next Priority:** Documents/Notifications stabilization before Phase 2b hardening (Proof Vault sharing)
 
 ## Learnings
 

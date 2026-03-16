@@ -16,6 +16,8 @@
 | Bunk | Backend Dev | `.squad/agents/bunk/charter.md` | 🔧 Active |
 | Kima | Frontend Dev | `.squad/agents/kima/charter.md` | ⚛️ Active |
 | Sydnor | Tester | `.squad/agents/sydnor/charter.md` | 🧪 Active |
+| Pearlman | Compliance Specialist | `.squad/agents/pearlman/charter.md` | 🔒 Active |
+| Daniels | Microservices Engineer | `.squad/agents/daniels/charter.md` | ⚙️ Active |
 | Scribe | Session Logger | `.squad/agents/scribe/charter.md` | 📋 Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |
 

@@ -34,6 +34,22 @@
       "status": "active"
     },
     {
+      "persistent_name": "Pearlman",
+      "role": "Compliance Specialist",
+      "universe": "The Wire",
+      "created_at": "2026-03-16T06:59:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
+      "persistent_name": "Daniels",
+      "role": "Microservices Engineer",
+      "universe": "The Wire",
+      "created_at": "2026-03-16T07:02:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
       "persistent_name": "Scribe",
       "role": "Session Logger",
       "universe": null,

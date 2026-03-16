@@ -9,6 +9,8 @@ How to decide who handles what.
 | API endpoints, backend logic, Prisma, auth | Bunk | Build routes, services, middleware, database queries |
 | Frontend, React, UI components, web/admin apps | Kima | Build pages, components, forms, frontend state |
 | Architecture, design decisions, cross-cutting | Freamon | System design, patterns, scope calls |
+| Compliance, validation, proof types, terminology, attestation, type correctness | Pearlman | Review schemas, validate proof logic, enforce terminology, audit types |
+| Service architecture, feature flags, pipelines, interfaces, separation of concerns | Daniels | Define service boundaries, feature flags, pipeline configs, interface-first specs |
 | Code review | Freamon | Review PRs, check quality, suggest improvements |
 | Testing | Sydnor | Write tests, find edge cases, verify fixes |
 | Scope & priorities | Freamon | What to build next, trade-offs, decisions |
