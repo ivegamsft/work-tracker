@@ -1,10 +1,34 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import EmployeeListPage from './pages/EmployeeListPage';
-import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import TeamDirectoryPage from './pages/TeamDirectoryPage';
+import TeamMemberDetailPage from './pages/TeamMemberDetailPage';
+import {
+  MyDocumentsPage,
+  MyHoursPage,
+  MyMedicalPage,
+  MyNotificationsPage,
+  MyProfilePage,
+  MyQualificationsPage,
+  NotFoundPage,
+  ReviewDetailPage,
+  ReviewQueuePage,
+  StandardDetailPage,
+  StandardsLibraryPage,
+  TeamDocumentsPage,
+  TeamHoursPage,
+  TeamMedicalPage,
+  TeamQualificationsPage,
+  UnauthorizedPage,
+} from './pages/RoutePlaceholderPages';
+
+function LegacyEmployeeDetailRedirect() {
+  const { id } = useParams<{ id: string }>();
+
+  return <Navigate to={id ? `/team/${id}` : '/team'} replace />;
+}
 
 function App() {
   return (
@@ -20,22 +44,145 @@ function App() {
           }
         />
         <Route
-          path="/employees"
+          path="/me"
           element={
             <ProtectedRoute>
-              <EmployeeListPage />
+              <MyProfilePage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/employees/:id"
+          path="/me/qualifications"
           element={
             <ProtectedRoute>
-              <EmployeeDetailPage />
+              <MyQualificationsPage />
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/me/medical"
+          element={
+            <ProtectedRoute>
+              <MyMedicalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/documents"
+          element={
+            <ProtectedRoute>
+              <MyDocumentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/hours"
+          element={
+            <ProtectedRoute>
+              <MyHoursPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/notifications"
+          element={
+            <ProtectedRoute>
+              <MyNotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/:id"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamMemberDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/:id/qualifications"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamQualificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/:id/medical"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamMedicalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/:id/documents"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamDocumentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/:id/hours"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <TeamHoursPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/standards"
+          element={
+            <ProtectedRoute>
+              <StandardsLibraryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/standards/:id"
+          element={
+            <ProtectedRoute>
+              <StandardDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews"
+          element={
+            <ProtectedRoute minRole="manager">
+              <ReviewQueuePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/:id"
+          element={
+            <ProtectedRoute minRole="manager">
+              <ReviewDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/unauthorized"
+          element={
+            <ProtectedRoute>
+              <UnauthorizedPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/employees" element={<Navigate to="/team" replace />} />
+        <Route path="/employees/:id" element={<LegacyEmployeeDetailRedirect />} />
+        <Route path="/404" element={<NotFoundPage />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
     </AuthProvider>
   );

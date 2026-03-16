@@ -82,6 +82,60 @@
 - ✓ `/employees` routes returning 301 redirects
 - ✓ No breaking changes to service APIs
 
+---
+
+### Inline Management Forms for Supervisor Team Pages (2026-03-16)
+
+**Decision:** Use inline card-based forms within page shell instead of introducing a new modal/dialog system.
+
+**Rationale:**
+- Behavior consistent with existing My-section pages
+- Reduces implementation risk (no new modal library dependency)
+- Stays responsive on smaller screens
+- Forms are straightforward (no multi-step wizards)
+
+**Implementation:**
+- Team Qualifications: Card with create/update form inline
+- Team Medical: Status selector + date picker inline
+- Team Documents: Upload form within page (binary plumbing deferred to Phase 3)
+
+**Consequences:**
+- Simpler page architecture; easier to test
+- Form validation colocated with form UI
+- If UX team requests modals later, refactor is localized to page components
+
+**Validation:**
+- ✓ All Team pages built and TypeScript passing
+- ✓ 179/179 tests passing (no regressions)
+- ✓ Forms integrated with POST/PATCH endpoints
+
+---
+
+### Derived Review Priority Until Backend Support Exists (2026-03-16)
+
+**Decision:** Enrich the review queue client-side with document + employee lookups and derive a display-only priority from review status, age, and detected expiration.
+
+**Rationale:**
+- `GET /api/documents/review-queue` returns queue metadata but no explicit priority
+- Managers need a triage view now; backend priority endpoint not yet designed
+- Heuristic: Priority = (status: urgent > high > normal) + (age: older first) + (expiry: soon first)
+- Client-side priority can be replaced cleanly once API exposes first-class priority endpoint
+
+**Implementation:**
+- ReviewQueue.tsx calculates priority on fetch
+- Display reflects priority order (urgent documents first)
+- Once backend priority endpoint lands, swap in API value instead of heuristic
+
+**Consequences:**
+- Manager triage view functional in MVP without backend changes
+- If backend priority changes, only one component updates
+- Future: API contract iteration won't break this page
+
+**Validation:**
+- ✓ ReviewQueue page renders with derived priorities
+- ✓ Sort order reflects heuristic (status > age > expiry)
+- ✓ Ready for replacement once backend endpoint defined
+
 ## Phase 2 Authentication & Frontend Kickoff (2026-03-15)
 
 ### PrismaAuditLogger Implementation (2026-03-15)

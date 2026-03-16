@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
+import { hasMinimumRole } from '../rbac';
 import '../styles/dashboard.css';
 
 interface PaginatedResponse<T> {
@@ -40,8 +41,9 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [employeeAccessDenied, setEmployeeAccessDenied] = useState(false);
 
-  const isEmployee = user?.role?.toLowerCase() === 'employee';
-  const showStats = !employeeAccessDenied && stats !== null;
+  const canAccessTeam = hasMinimumRole(user?.role, 'supervisor');
+  const canReviewDocuments = hasMinimumRole(user?.role, 'manager');
+  const showStats = canAccessTeam && !employeeAccessDenied && stats !== null;
 
   useEffect(() => {
     if (authLoading) {
@@ -54,7 +56,7 @@ export default function DashboardPage() {
         return;
       }
 
-      if (isEmployee) {
+      if (!canAccessTeam) {
         setEmployeeAccessDenied(true);
         setStats(null);
         setError('');
@@ -93,7 +95,7 @@ export default function DashboardPage() {
     }
 
     fetchStats();
-  }, [authLoading, isEmployee, user]);
+  }, [authLoading, canAccessTeam, user]);
 
   if (authLoading || loading) {
     return <div className="loading">Loading dashboard...</div>;
@@ -109,9 +111,9 @@ export default function DashboardPage() {
 
       {employeeAccessDenied && (
         <p>
-          {isEmployee
-            ? "You're signed in with employee access. Quick actions are available below."
-            : 'Employee stats are not available for your account.'}
+          {canAccessTeam
+            ? 'Team stats are not available for your account.'
+            : "You're signed in with employee access. Quick actions are available below."}
         </p>
       )}
 
@@ -137,12 +139,26 @@ export default function DashboardPage() {
       <div className="quick-actions">
         <h2>Quick Actions</h2>
         <div className="action-links">
-          {!employeeAccessDenied ? (
-            <Link to="/employees" className="action-link">
-              View All Employees
+          <Link to="/me" className="action-link">
+            Open My Profile
+          </Link>
+          <Link to="/standards" className="action-link">
+            Browse Standards
+          </Link>
+          <Link to="/me/notifications" className="action-link">
+            View Notifications
+          </Link>
+          {canAccessTeam ? (
+            <Link to="/team" className="action-link">
+              View Team Directory
             </Link>
           ) : (
-            <p>Employee directory access is available to supervisors and above.</p>
+            <p>Team directory access is available to supervisors and above.</p>
+          )}
+          {canReviewDocuments && (
+            <Link to="/reviews" className="action-link">
+              Open Review Queue
+            </Link>
           )}
         </div>
       </div>

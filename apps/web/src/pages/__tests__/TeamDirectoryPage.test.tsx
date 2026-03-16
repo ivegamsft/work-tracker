@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import EmployeeListPage from '../EmployeeListPage';
+import TeamDirectoryPage from '../TeamDirectoryPage';
 
 vi.mock('../../api/client', () => ({
   api: {
@@ -10,9 +10,9 @@ vi.mock('../../api/client', () => ({
   },
 }));
 
-const MockedEmployeeListPage = () => (
+const MockedTeamDirectoryPage = () => (
   <BrowserRouter>
-    <EmployeeListPage />
+    <TeamDirectoryPage />
   </BrowserRouter>
 );
 
@@ -56,7 +56,7 @@ const mockPaginatedResponse = {
   limit: 20,
 };
 
-describe('EmployeeListPage', () => {
+describe('TeamDirectoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -66,20 +66,20 @@ describe('EmployeeListPage', () => {
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockImplementation(() => new Promise(() => {}));
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
-    expect(screen.getByText(/loading employees.../i)).toBeInTheDocument();
+    expect(screen.getByText(/loading team directory.../i)).toBeInTheDocument();
   });
 
-  it('renders employee table after data loads', async () => {
+  it('renders team member table after data loads', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /employees/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /team directory/i })).toBeInTheDocument();
     });
 
     expect(screen.getByText('John Doe')).toBeInTheDocument();
@@ -94,27 +94,27 @@ describe('EmployeeListPage', () => {
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /employees/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /team directory/i })).toBeInTheDocument();
     });
 
     const searchInput = screen.getByPlaceholderText(/search by name, email, or department/i);
     expect(searchInput).toBeInTheDocument();
   });
 
-  it('filters employees by search query', async () => {
+  it('filters team members by search query', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockResolvedValueOnce(mockPaginatedResponse);
 
     const user = userEvent.setup();
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /employees/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /team directory/i })).toBeInTheDocument();
     });
 
     const searchInput = screen.getByPlaceholderText(/search by name, email, or department/i);
@@ -127,15 +127,15 @@ describe('EmployeeListPage', () => {
     });
   });
 
-  it('displays employee count', async () => {
+  it('displays team member count', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/showing 3 of 3 employees/i)).toBeInTheDocument();
+      expect(screen.getByText(/showing 3 of 3 team members/i)).toBeInTheDocument();
     });
   });
 
@@ -144,10 +144,10 @@ describe('EmployeeListPage', () => {
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockRejectedValueOnce({ message: 'Forbidden', status: 403 });
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/you don't have permission to view employees/i)).toBeInTheDocument();
+      expect(screen.getByText(/you don't have permission to view your team/i)).toBeInTheDocument();
     });
   });
 
@@ -156,7 +156,7 @@ describe('EmployeeListPage', () => {
     const mockGet = vi.mocked(api.get);
 
     mockGet.mockRejectedValueOnce(new Error('Failed to fetch'));
-    render(<MockedEmployeeListPage />);
+    render(<MockedTeamDirectoryPage />);
 
     await waitFor(() => {
       expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();

@@ -27,7 +27,7 @@ describe('Layout', () => {
     localStorage.setItem('token', 'fake-token');
   });
 
-  it('renders navigation links', () => {
+  it('renders admin navigation links', () => {
     render(
       <MockedLayout>
         <div>Test Content</div>
@@ -35,7 +35,11 @@ describe('Layout', () => {
     );
 
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /employees/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /my profile/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^team$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /document review/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /standards/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /notifications/i })).toBeInTheDocument();
   });
 
   it('renders children content', () => {
@@ -88,15 +92,17 @@ describe('Layout', () => {
     );
 
     const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
-    const employeesLink = screen.getByRole('link', { name: /employees/i });
+    const teamLink = screen.getByRole('link', { name: /^team$/i });
+    const notificationsLink = screen.getByRole('link', { name: /notifications/i });
 
     expect(dashboardLink).toHaveAttribute('href', '/');
-    expect(employeesLink).toHaveAttribute('href', '/employees');
+    expect(teamLink).toHaveAttribute('href', '/team');
+    expect(notificationsLink).toHaveAttribute('href', '/me/notifications');
   });
 
   it('handles logout click', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <MockedLayout>
         <div>Test Content</div>
@@ -104,10 +110,9 @@ describe('Layout', () => {
     );
 
     const logoutButton = screen.getByRole('button', { name: /logout/i });
-    
+
     await user.click(logoutButton);
 
-    // After logout, localStorage should be cleared
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
   });

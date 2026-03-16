@@ -1,13 +1,16 @@
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { hasMinimumRole, type AppRole } from '../rbac';
 import Layout from './Layout';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
+  minRole?: AppRole;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth();
+export default function ProtectedRoute({ children, minRole }: ProtectedRouteProps) {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -19,6 +22,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (minRole && !hasMinimumRole(user?.role, minRole)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <Layout>{children}</Layout>;

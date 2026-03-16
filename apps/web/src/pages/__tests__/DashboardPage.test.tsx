@@ -139,7 +139,7 @@ describe('DashboardPage', () => {
 
     expect(mockGet).not.toHaveBeenCalled();
     expect(screen.queryByText(/total employees/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/employee directory access is available to supervisors and above/i)).toBeInTheDocument();
+    expect(screen.getByText(/team directory access is available to supervisors and above/i)).toBeInTheDocument();
   });
 
   it('falls back to the simplified dashboard on forbidden responses', async () => {
@@ -150,7 +150,7 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(screen.getByText(/employee stats are not available for your account/i)).toBeInTheDocument();
+      expect(screen.getByText(/team stats are not available for your account/i)).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/error:/i)).not.toBeInTheDocument();
@@ -168,6 +168,7 @@ describe('DashboardPage', () => {
       expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('link', { name: /view all employees/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view team directory/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open review queue/i })).toBeInTheDocument();
   });
 });

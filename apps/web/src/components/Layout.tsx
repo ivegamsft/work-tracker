@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { hasMinimumRole } from '../rbac';
 import '../styles/layout.css';
 
 interface LayoutProps {
@@ -9,12 +10,17 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
-  const location = useLocation();
+  const canAccessTeam = hasMinimumRole(user?.role, 'supervisor');
+  const canReviewDocuments = hasMinimumRole(user?.role, 'manager');
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
-    { path: '/employees', label: 'Employees' },
-  ];
+    { path: '/me', label: 'My Profile' },
+    canAccessTeam ? { path: '/team', label: 'Team' } : null,
+    canReviewDocuments ? { path: '/reviews', label: 'Document Review' } : null,
+    { path: '/standards', label: 'Standards' },
+    { path: '/me/notifications', label: 'Notifications' },
+  ].filter((item): item is { path: string; label: string } => item !== null);
 
   return (
     <div className="layout">
@@ -24,13 +30,14 @@ export default function Layout({ children }: LayoutProps) {
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
-            <Link
+            <NavLink
               key={item.path}
               to={item.path}
-              className={location.pathname === item.path ? 'active' : ''}
+              end={item.path === '/'}
+              className={({ isActive }) => (isActive ? 'active' : '')}
             >
               {item.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
       </aside>
