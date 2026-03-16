@@ -30,4 +30,11 @@
 
 ## Learnings
 
-(New agent — no learnings yet)
+- Parallel-delivery architecture for E-CLAT should be framed as a **modular monolith evolving into service groups**, not as an immediate microservice rewrite.
+- Recommended backend service groups: **Identity Platform (`auth`)**, **Workforce Core (`employees`)**, **Compliance Service (`qualifications`, `medical`, `templates`)**, **Records Service (`documents`, `hours`)**, **Reference Data (`standards`, `labels`)**, **Notification Service (`notifications`)**.
+- The best first acceleration step is **pipeline separation before runtime separation**: split CI/CD by subsystem and keep `00-foundation` + `10-data` shared while compute grows into per-service modules.
+- Feature flags should start as a **repo-backed shared schema plus environment overrides** with a client-safe bootstrap endpoint, not an external flag service.
+- Frontend route taxonomy already trends in the right direction (`/me/*`, `/team/*`, `/standards/*`, `/reviews/*`), but navigation is still constrained by the hard-coded menu in `apps/web/src/components/Layout.tsx`.
+- Key architecture files for this domain review: `apps/api/src/index.ts`, `apps/api/src/modules/*`, `apps/web/src/App.tsx`, `apps/web/src/components/Layout.tsx`, `data/prisma/schema.prisma`, `infra/layers/*`, `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`.
+- Current workflow/IaC mismatch to remember: `deploy.yml` reads `api_app_name`, while `infra/layers/20-compute/outputs.tf` publishes `api_container_app_name`.
+- Izzy values **logical subsystem ownership, rollout safety, and faster independent deployments** over a rewrite narrative.
