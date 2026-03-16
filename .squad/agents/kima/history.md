@@ -9,159 +9,59 @@
 
 ## Core Context
 
-### Frontend Architecture & Components
-- **Frontend Scaffold Complete (2026-03-15):** React 19 + Vite + TypeScript SPA with React Router 7, auth context, protected routes, centralized API client, 4 core pages (Login, Dashboard, EmployeeList, EmployeeDetail). 243KB gzipped production build. API contracts: login returns `{ token, user }`, employees list + detail, readiness endpoint with expiry.
-- **ProofList Component Pattern (2026-03-18):** Parent-provided proof items (no component fetching), client-side 4-tab filtering (All/Active/Expiring/Expired), progress tracking (`requirementsMet`, `requirementsTotal`), permission-gated Add New, paperclip labels for files. 28/28 tests passing.
-- **Documentation Taxonomy (2026-03-16):** Specs at `docs/specs/` (app-spec, rbac-api-spec, sharing-spec, proof-vault-spec, templates-attestation-spec). 179 tests passing.
+### Delivery History
 
-### Phase Architecture & Coordination
-- **MVP Scope Locked (2026-03-14):** Core loop: Qualifications + Medical (no Hours); Documents deferred Phase 2; single-org; `overallStatus` 3-state rule; in-app notifications only. Phase 1: Admin login + basic shell. Phase 2: Employee management, standards, qualifications. Phase 3: Medical workflows, notifications UI.
-- **Entra ID Auth Architecture (2026-03-15):** Token validation (direct, no re-sign), mock tokens mirror Entra claims, backend `TokenValidator` pattern, Phase 1 (backend interface) independent, Phases 2-3 blocked on tenant/consent.
-- **Proof Vault Encryption (2026-03-18):** AES-256-GCM + PBKDF2 (client-side zero-knowledge encryption), server-side decryption for zip export only. 12 API endpoints, 2 Prisma models, 3-phase rollout (MVP → zip → Argon2).
-- **Sharing Specification (2026-03-18):** 42 API endpoints, 6 new web screens (W-24–W-29), 8 RBAC permissions (ownership+share-based). Phase 2b ready after Documents/Notifications.
+**Phase 0 (2026-03-14):** Frontend scaffold created with React 19 + Vite + TypeScript. Auth context, protected routes, centralized API client, 4 core pages (Login, Dashboard, EmployeeList, EmployeeDetail). 243KB gzipped production build.
 
-### Development Workflow
-- **Dev environment:** `npm run dev -w @e-clat/web` (Vite :5173), `docker compose up web` (container)
-- **API proxy:** `/api/*` → `http://localhost:3000` or `http://api:3000` (Docker)
-- **RBAC boundaries:** Dashboard role-adaptive, employee directory supervisor+, employee-directory 403s should render permission-aware UI, auth context hydration blocks protected requests
+**Phase 1 (2026-03-15):** Frontend scaffold completed with React Router 7, auth context hydration, protected routes, role-adaptive Dashboard. ProofList component pattern established (parent-provided items, client-side 4-tab filtering, progress tracking, permission gating). 28/28 tests passing.
+
+**Phase 2 (2026-03-16):** My section pages delivered (Profile, Qualifications, Medical, Documents, Notifications, Hours) with normalized API response shapes. Route taxonomy aligned with app spec (`/team` instead of `/employees`). Team supervision pages built (TeamQualifications, TeamMedical, TeamDocuments, Standards, Review Queue). All pages reuse my-section CSS system + inline forms pattern. 179/179 tests passing.
+
+**Phase 3 (2026-03-18):** Proof Vault encryption architecture (AES-256-GCM + PBKDF2), Sharing specification (42 endpoints, 6 screens, 8 RBAC permissions), ProofList integration points clarified. Phase 2b ready after Documents/Notifications stabilize.
+
+### Frontend Architecture
+
+**Dev Environment:**
+- `npm run dev -w @e-clat/web` — Vite dev server on port 5173
+- `docker compose up web` — Container service
+- API proxy: `/api/*` → `http://localhost:3000` (or `http://api:3000` in Docker)
+
+**Core Pages:**
+- **My Section:** MyProfile, MyQualifications, MyMedical, MyDocuments, MyNotifications, MyHours (auth-hydrated, own-scope fetches, API normalization)
+- **Team Section:** TeamQualifications, TeamMedical, TeamDocuments, TeamHours, StandardsLibrary, StandardDetail, ReviewQueue, ReviewDetail (supervisor workflows)
+- **System:** Login, Dashboard (role-adaptive), ProtectedRoute (auth guards)
+
+**Key Components:**
+- AuthContext — JWT token + user hydration, blocks protected requests until ready
+- PageShell — Breadcrumbs, tabs, nav structure shared across managed pages
+- ProofList — Parent-provided items, 4-tab filtering (All/Active/Expiring/Expired), progress tracking, permission-gated Add New
+- RoutePlaceholderPages — Stubs for future routes; tab/breadcrumb templates
+
+**Styling System:**
+- `my-section.css` — Cards, tables, forms, badges, nav links, empty states, coming-soon states (reused across My + Team pages)
+- `managed-pages.css` — Supervisor page layouts (qualifications, medical, documents, standards, review)
+- `page-shell.css` — Breadcrumb, tab, nav structure
+- CSS custom properties for compliance state colors (--color-success, --color-warning, --color-danger)
+
+### API Integration Pattern
+
+**Data Normalization:** Pages normalize API response shapes in-component before rendering. Adapter functions centralize API complexity; allows backend flexibility without cascading refactors. Example:
+- API sends `firstName`/`lastName` → page normalizes to `name`
+- API sends `certificationName`/`issuingBody` → page normalizes to `name`/`issuer`
+- API sends `status`/`readAt` → page normalizes to `state`/`read`
+
+**Types:** Shared type definitions in `packages/shared/src/types/my-section.ts`. RBAC types in `apps/web/src/rbac.ts`.
 
 ### Known Gaps
+
 - P0 backend gap: `GET /api/documents/employee/:employeeId` blocks W-06, W-13
 - Auth middleware does not yet verify JWT (stub)
 - Playwright/Cypress not configured; E2E via Vitest
 
----
-
-## 📌 Team Update (2026-03-16T034500Z)
-
-**My Section Pages Delivered — 6 Components Built:**
-- `MyProfile.tsx` — Read/edit basic employee profile (firstName, lastName, department, email)
-- `MyQualifications.tsx` — List + status of personal qualifications with expiry tracking
-- `MyMedical.tsx` — View medical clearance status and history (graceful 404/501 handling)
-- `MyDocuments.tsx` — Upload & manage personal documents (metadata-only, binary deferred)
-- `MyNotifications.tsx` — View in-app notifications, mark-as-read
-- `MyHours.tsx` — Placeholder for Phase 2 API (404/501 → "Coming Soon" UX)
-
-**Frontend Normalization Pattern Approved:**
-- Pages normalize API response shapes in-component before rendering
-- Centralizes API complexity; allows backend flexibility without cascading refactors
-- Adapter functions for each domain (profile, qualifications, medical, documents, notifications)
-- Types codified in `packages/shared/src/types/my-section.ts`
-- All pages consume `AuthContext.user.id` for self-service data fetches
-
-**Route Taxonomy Alignment (Bunk):**
-- Backend routes now use `/team/*` per app spec (was `/employees/*`)
-- Self-service patterns ready: `/team/me`, `/team/me/qualifications`, `/team/me/documents`, `/team/me/notifications`
-- Legacy `/employees/*` routes 301-redirect for backward compatibility
-- Frontend can now confidently route My pages under `/team/my/*` hierarchy
-
-**Outcome:** My pages ready for routing integration + breadcrumb wiring. Tests: 179/179 passing.
-
----
-
-## 📌 Team Update (2026-03-16T02:25:09Z)
-
-**Documentation Taxonomy Reorganized:**
-All project docs now live under category-based structure. Key migrations:
-- `docs/architecture/` → `docs/specs/` (architecture, technical design specs)
-- `docs/prds/` → `docs/requirements/` (product requirements, user stories)
-- `docs/adrs/` → `docs/decisions/` (architectural decisions)
-
-**Updated spec paths for Phase 1 implementation:**
-- RBAC API spec: `docs/architecture/rbac-api-spec.md` → `docs/specs/rbac-api-spec.md`
-- App spec: `docs/architecture/app-spec.md` → `docs/specs/app-spec.md`
-- Sharing spec: `docs/architecture/sharing-spec.md` → `docs/specs/sharing-spec.md`
-- Proof vault: `docs/architecture/proof-vault-spec.md` → `docs/specs/proof-vault-spec.md`
-- Templates: `docs/architecture/templates-attestation-spec.md` → `docs/specs/templates-attestation-spec.md`
-
-All cross-references updated. Tests: 179/179 passing. Commit 84af84f (pushed).
-
 ## Learnings
 
-- **Frontend Auth & RBAC (2026-03-16):** Role-gated pages must wait for AuthContext hydration before protected requests. Employee users skip employee-directory fetches; 403s should render permission-aware UI, not fatal errors. ProofList: parent-provided items, client-side filtering (All/Active/Expiring/Expired), Add New gated by create permission.
-- **Specifications Ground Truth (2026-03-17):** RBAC spec (65 endpoints, 36 permissions, 5-role matrix) and App spec (23 core + 9 admin screens, 5-phase implementation) are canonical. Product spec locked 5-role model and terminology. All decisions merged to `.squad/decisions.md`.
-- **My Section Self-Service UI (2026-03-15):** Built shared `my-section` API types and a reusable `my-section.css` system for cards, tables, forms, badges, nav links, empty states, and coming-soon states across My Profile, Qualifications, Medical, Documents, Notifications, and Hours. Pattern is auth-hydrated own-scope fetching with explicit loading/error/empty handling, ProofList mapping for qualifications, read-only preferences normalization for notifications, and 404/501 hours responses downgraded to planned UI instead of fatal errors. API integration pattern is adapter-first: pages accept current backend shapes (employee `firstName`/`lastName`/`departmentId`, qualification `certificationName`/`issuingBody`/`documentIds`, medical `issuedBy`/`effectiveDate`, document `fileName`/`mimeType`, notification `status`/`readAt`) and normalize them in-page before rendering. File paths created: `apps/web/src/pages/MyProfile.tsx`, `apps/web/src/pages/MyQualifications.tsx`, `apps/web/src/pages/MyMedical.tsx`, `apps/web/src/pages/MyDocuments.tsx`, `apps/web/src/pages/MyNotifications.tsx`, `apps/web/src/pages/MyHours.tsx`, `apps/web/src/types/my-section.ts`, `apps/web/src/styles/my-section.css`. Assumed contracts: `/employees/:id` + `/employees/:id/readiness`, qualifications/medical/documents employee lists, notifications list + preferences, metadata-only document upload, and a future hours payload with date/clock totals.
-- **Team / Standards / Review Pages (2026-03-18):** Replaced route placeholders with real supervisor and manager workflows. Team pages reuse the My-section visual system plus PageShell tabs/breadcrumbs, keep employee fetch + record fetch separate for resilient loading/error states, and use inline forms for qualification/medical/document actions instead of introducing a modal pattern. Standards use client-side search/filter over the authenticated list endpoint, while review queue rows enrich the minimal queue payload with document + employee lookups and derive a display-only priority until the backend exposes one.
-
-## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
-
-### Freamon Status Update (Lead)
-
-✅ **Entra ID Authentication Architecture Complete:**
-- Token validation (direct, no re-sign), `TokenValidator` pattern, `AUTH_MODE` toggle
-- Phase 1 (backend interface) independent; Phases 2-3 blocked on tenant/consent
-
-### Kima Status Update (Frontend)
-
-### Frontend Scaffold Complete (2026-03-15)
-
-📌 **apps/web/ now has a complete React + Vite + TypeScript foundation ready for Phase 1 work.**
-
-**What was built:**
-- **Build system:** Vite config with React plugin, dev server proxy to `/api`, TypeScript strict mode
-- **App shell:** React Router setup, auth context with JWT token handling, protected routes
-- **Core pages:** Login, Dashboard (compliance stats), Employee List (paginated, searchable), Employee Detail (readiness dashboard)
-- **Layout:** Responsive sidebar navigation, header with user info, logout functionality
-- **API client:** Centralized fetch wrapper with token attachment, error handling, 401 redirect
-- **Styling:** Plain CSS with custom properties for color scheme (compliant/at-risk/non-compliant indicators)
-- **Docker integration:** `web` service added to docker-compose.yml, proxies to API container
-- **Dependencies:** React 19, React Router 7, Vite 8, TypeScript 5 — all installed and verified
-
-**TypeScript build:** Clean typecheck (no errors), production build successful (243KB gzipped)
-
-**Color scheme (CSS custom properties):**
-- `--color-success: #22c55e` (compliant)
-- `--color-warning: #f59e0b` (at risk)
-- `--color-danger: #ef4444` (non-compliant)
-- `--color-primary: #3b82f6`
-
-**API contracts assumed (from PRD):**
-- `POST /api/auth/login` → `{ token, user }`
-- `GET /api/employees` → Employee list with `overallStatus`
-- `GET /api/employees/:id` → Employee detail
-- `GET /api/employees/:id/readiness` → Qualifications + medical status with expiry dates
-
-**Ready for:**
-- Phase 1: Integration with live API once Bunk's auth endpoints are deployed
-- Phase 2: Additional pages (Standards, Qualifications CRUD)
-- Phase 3: Medical clearance workflows, notification preferences UI
-
-## Team Updates (2026-03-18T00:47Z)
-
-### ProofList Component Pattern Established
-
-Kima's ProofList component + ProofCard pattern now locked in `.squad/decisions.md`:
-- **Contract:** Parent-provided proof items (no component fetching)
-- **Filtering:** Client-side 4-tab system (All, Active, Expiring Soon, Expired)
-- **Progress tracking:** Requirement progress (`requirementsMet`, `requirementsTotal`)
-- **Permission gating:** Add New control only shown when `canCreate && !isOwnProfile`
-- **Evidence pattern:** Paperclip label for files; Upload hook for missing evidence
-
-**Status:** 28/28 tests passing; TypeScript clean. Ready for integration with ProofVault screens once Freamon's vault API stabilizes.
-
-### Proof Vault Architecture Ready
-
-Freamon delivered full proof vault encryption architecture (`docs/architecture/proof-vault-spec.md`):
-- **Crypto:** AES-256-GCM (WebCrypto native) + PBKDF2-SHA-256
-- **Design:** Client-side encryption (zero-knowledge); server-side decryption for zip export only
-- **API:** 12 endpoints under `/api/vault/`
-- **Data model:** ProofVault + VaultDocument Prisma models
-- **RBAC:** 6 new permissions (`vault:*`)
-- **Phased rollout:** MVP (upload/download/delete) → Zip export → Argon2
-
-**Implication:** Proof list UI will need to integrate with vault document lifecycle. Coordinates with vault module for file uploads/deletions from ProofCard.
-
-### Sharing Specification Complete
-
-Freamon's sharing spec (`docs/architecture/sharing-spec.md`) adds vault organization layer:
-- **42 API endpoints** under `/api/vault/`
-- **6 new web screens** (W-24 through W-29) for sharing, requests, archive, deleted
-- **8 RBAC permissions** (ownership+share-based, not role-hierarchy-based)
-- **Phase 2b ready:** After Documents/Notifications stabilize
-
-**Implication:** Proof list screens will support sharing actions (share, request files, archive). May require proof-card action menus or sharing modals. Coordinate with Bunk for API availability.
-
-**Development workflow:**
-- `npm run dev -w @e-clat/web` — starts Vite dev server on port 5173
-- `docker compose up web` — runs web service in container
-- API proxy: `/api/*` → `http://localhost:3000` (or `http://api:3000` in Docker)
+<!-- Append new learnings below. -->
+- 2026-03-15: Built shared `my-section` API types and reusable `my-section.css` system for cards, tables, forms, badges, nav links, empty states, and coming-soon states across My Profile, Qualifications, Medical, Documents, Notifications, and Hours. Pattern is auth-hydrated own-scope fetching with explicit loading/error/empty handling, ProofList mapping for qualifications, read-only preferences normalization for notifications, and 404/501 hours responses downgraded to planned UI instead of fatal errors.
+- 2026-03-16: My section pages deliver self-service UI with API response shape normalization in-component. All pages consume `AuthContext.user.id` for personalized queries. Graceful degradation for pending 404/501 endpoints ("Coming Soon" UX).
+- 2026-03-16: Team supervision pages reuse My-section visual system plus PageShell tabs/breadcrumbs, keep employee fetch + record fetch separate for resilient loading/error states, and use inline forms for qualification/medical/document actions instead of introducing a modal pattern.
+- 2026-03-18: ReviewQueue enriches minimal queue payload with document + employee lookups and derives a display-only priority until the backend exposes one. Inline management forms for team supervision pages (card-based vs modal system) keep behavior consistent with My section, reduce implementation risk, and stay responsive.
