@@ -55,6 +55,7 @@ All cross-references updated; 29 files moved with git history preserved; 179 tes
 - **Proof architecture unified across specs (2026-03-18):** Proof system is shared contract across taxonomy + templates + vault. Must normalize schema, readiness states, RBAC in all specs before implementation. Blocking gaps in taxonomy: `ProofRequirement` contract drift, unsupported quantitative `PARTIAL` progress, broken preset provenance, preset route/RBAC mismatch.
 - **Phase 2b Integration Scope (2026-03-18):** Proof Vault (12 endpoints, 2 Prisma models, AES-256-GCM client encryption), Sharing (42 endpoints, 6 web screens, 8 RBAC perms), Templates/Attestation (25 endpoints, 9 web screens, 4-level system). All spec-ready; implementation after Phase 1.
 - **Backlog Decomposition Pattern (2026-03-16):** Decomposed 51 issues from 18 source documents into 5 epics across 4 releases. Key patterns: (1) Create epics first to establish context, (2) Pre-assign to squads based on domain expertise from specs, (3) Use go:yes for well-defined work and go:needs-research for spikes/design, (4) Document source, dependencies, and acceptance criteria in every issue body, (5) Cross-reference related issues by number. Squad distribution: Bunk (16 backend), Kima (13 frontend), Daniels (12 architecture/DevOps), Pearlman (7 compliance), Freamon (3 spikes), Sydnor (1 testing). Priority split: 14 P0, 25 P1, 13 P2. Release targeting based on dependency chains and risk: v0.4.0 (bugs + template UI), v0.5.0 (architecture + compliance), v0.6.0 (service extraction).
+- **Admin Shell Dormant Decision (2026-03-19):** Decided to mark `apps/admin` as dormant for MVP (v0.4.0–v0.6.0) after investigation revealed it's a pure scaffold (2 files, zero code). Admin features will be implemented in `apps/web` with `requireRole(Roles.ADMIN)` guards during MVP, then extracted to dedicated admin app during service extraction phase (v0.7.0+). Rationale: (1) No code = wasted CI cycles if pipeline added now, (2) Admin features ship faster in web app, (3) RBAC provides security boundary, (4) Aligns with service extraction strategy. Created `apps/admin/DORMANT.md` (developer guide), `docs/specs/admin-shell-status.md` (full decision record with 9-step migration plan), and `.squad/decisions/inbox/freamon-admin-shell.md`. No CI lane added (path detection exists but no validation job needed). Related: #49.
 
 
 ## 📌 Team Update (2026-03-16T073200Z — Daniels' Copilot Instructions & Docs Update)
@@ -73,3 +74,13 @@ This affects all squad planning and copilot context:
 - Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
 
 Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n
+
+## 📌 Team Update (2026-03-16T170500Z — Round 2 Spawned)
+
+**All 4 agents complete:**
+- Bunk: audit-safe-expiration (PR #56, 3 endpoints)
+- Daniels: terraform-compute-stubs (PR #57, 6 modules)
+- Freamon: api-v1-namespace (PR #55, decision merged to decisions.md)
+- Kima: coverage audit (54-71% partial, P0 blockers identified)
+
+**Scribe:** Orchestration logs created, decision inbox merged, histories updated
