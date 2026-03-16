@@ -15,6 +15,7 @@ import { medicalRouter } from "./modules/medical";
 import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
 import { assignmentsRouter, employeeAssignmentsRouter, fulfillmentsRouter, templatesRouter } from "./modules/templates";
+import { platformRouter } from "./modules/platform";
 import { PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
@@ -48,6 +49,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/api/medical", medicalRouter);
   app.use("/api/standards", standardsRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/v1/platform", platformRouter);
   app.use("/api/templates", templatesRouter);
   app.use("/api/assignments", assignmentsRouter);
   app.use("/api/fulfillments", fulfillmentsRouter);
