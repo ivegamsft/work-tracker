@@ -11,15 +11,20 @@ import {
 } from '../components/templates/templateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { hasMinimumRole } from '../rbac';
-import type { AssignTemplateResult, ProofTemplateRecord } from '../types/templates';
+import type { AssignTemplateResult, ProofTemplateRecord, TemplateAssignmentEmployeeRecord } from '../types/templates';
+import type { PaginatedResponse } from '../types/my-section';
+import { formatDate, toArray } from './pageHelpers';
 import '../styles/my-section.css';
 import '../styles/managed-pages.css';
 import '../styles/template-screens.css';
+
+type AssignmentHistoryResponse = TemplateAssignmentEmployeeRecord[] | PaginatedResponse<TemplateAssignmentEmployeeRecord>;
 
 export default function TemplateDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [template, setTemplate] = useState<ProofTemplateRecord | null>(null);
+  const [assignmentHistory, setAssignmentHistory] = useState<TemplateAssignmentEmployeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -32,15 +37,23 @@ export default function TemplateDetailPage() {
       setLoading(true);
 
       try {
-        const response = await api.get<ProofTemplateRecord>(`/templates/${id}`);
+        const [templateResponse, assignmentsResponse] = await Promise.all([
+          api.get<ProofTemplateRecord>(`/templates/${id}`),
+          hasMinimumRole(user?.role, 'supervisor')
+            ? api.get<AssignmentHistoryResponse>(`/templates/${id}/assignments?page=1&limit=50`)
+                .catch(() => [] as TemplateAssignmentEmployeeRecord[])
+            : Promise.resolve([] as TemplateAssignmentEmployeeRecord[]),
+        ]);
 
         if (!ignore) {
-          setTemplate(response);
+          setTemplate(templateResponse);
+          setAssignmentHistory(toArray(assignmentsResponse as AssignmentHistoryResponse));
           setError('');
         }
       } catch (fetchError) {
         if (!ignore) {
           setTemplate(null);
+          setAssignmentHistory([]);
           setError(fetchError instanceof Error ? fetchError.message : 'Failed to load template detail');
         }
       } finally {
@@ -60,7 +73,7 @@ export default function TemplateDetailPage() {
     return () => {
       ignore = true;
     };
-  }, [id]);
+  }, [id, user?.role]);
 
   const canAssignToSelf = hasMinimumRole(user?.role, 'supervisor');
   const canEditTemplate = hasMinimumRole(user?.role, 'manager');
@@ -199,6 +212,41 @@ export default function TemplateDetailPage() {
                 />
               ))}
             </section>
+
+            {hasMinimumRole(user?.role, 'supervisor') ? (
+              <section className="my-card" aria-labelledby="assignment-history-heading">
+                <div className="managed-page__section-header">
+                  <div className="managed-page__card-title">
+                    <span className="my-page__eyebrow">Assignment tracking</span>
+                    <h2 id="assignment-history-heading">Assignment history</h2>
+                  </div>
+                  <span className="my-badge">{assignmentHistory.length} assignment{assignmentHistory.length === 1 ? '' : 's'}</span>
+                </div>
+
+                {assignmentHistory.length === 0 ? (
+                  <div className="my-empty-state">No employees have been assigned this template yet.</div>
+                ) : (
+                  <div className="managed-page__list">
+                    {assignmentHistory.map((assignment) => (
+                      <article key={assignment.id} className="managed-page__list-item template-screen__employee-row">
+                        <div className="managed-page__list-copy">
+                          <strong>{assignment.employeeName || assignment.employeeEmail || 'Unknown employee'}</strong>
+                          <p className="my-page__muted">
+                            Assigned {formatDate(assignment.createdAt)} · Due {formatDate(assignment.dueDate, 'No deadline')}
+                          </p>
+                        </div>
+                        <div className="template-screen__employee-meta">
+                          {assignment.department ? <span className="my-badge">{assignment.department}</span> : null}
+                          <span className={assignment.completedAt ? 'my-badge my-badge--active' : assignment.isActive ? 'my-badge my-badge--warning' : 'my-badge'}>
+                            {assignment.completedAt ? 'Completed' : assignment.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>
