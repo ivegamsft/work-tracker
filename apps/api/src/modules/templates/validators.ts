@@ -107,6 +107,30 @@ export const thirdPartyVerifySchema = z.object({
   data: z.unknown().optional(),
 });
 
+export const fulfillmentReviewFiltersSchema = z.object({
+  status: z.string().optional(),
+  proofType: z.string().optional(),
+  employeeId: z.string().uuid().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});
+
+export const reviewDecisionSchema = z.object({
+  decision: z.enum(["approve", "reject", "request_changes"]),
+  notes: z.string().max(2000),
+  reason: z.string().max(2000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.decision === "reject" && !value.reason) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reason"],
+      message: "Rejection reason is required when decision is reject.",
+    });
+  }
+});
+
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
 export type CreateRequirementInput = z.infer<typeof createRequirementSchema>;
@@ -117,3 +141,5 @@ export type SelfAttestInput = z.infer<typeof selfAttestSchema>;
 export type AttachDocumentInput = z.infer<typeof attachDocumentSchema>;
 export type ValidateFulfillmentInput = z.infer<typeof validateFulfillmentSchema>;
 export type ThirdPartyVerifyInput = z.infer<typeof thirdPartyVerifySchema>;
+export type FulfillmentReviewFiltersInput = z.infer<typeof fulfillmentReviewFiltersSchema>;
+export type ReviewDecisionInput = z.infer<typeof reviewDecisionSchema>;
