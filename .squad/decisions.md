@@ -1427,3 +1427,36 @@ curl https://api-dev.eclat.example.com/api/employees?role=employee \
 - No code changes required — spec-level reconciliation only
 
 ---
+
+---
+
+## Implementation Status Classification (2026-03-16)
+
+For the implementation status matrix in \docs/implementation-status.md\:
+
+### Decision
+
+1. **\🔧 API Only\ means a working backend surface exists but no routed UI screen exists.**
+2. **\❌ Not Started\ takes precedence over exposed routes when the service layer still throws \
+otImplemented(...)\.** Router scaffolds alone do not count as implementation.
+3. **\📋 Spec Only\ is reserved for features that are documented in \docs/specs/\ or \docs/specs/app-spec.md\ but do not yet exist in frontend routes, API modules, or Prisma schema.**
+4. **Reusable components without routing do not count as implemented UI screens.** Current example: \pps/web/src/components/ProofList.tsx\ and \ProofCard.tsx\.
+
+### Rationale
+
+Without this rule, the matrix would overstate progress in \hours\, \labels\, and several auth flows that have router signatures but no working service implementation. The team needs the document to reflect execution reality, not just file presence.
+
+### Immediate Consequences
+
+- \hours\ features are tracked as **❌**, not **🔧**.
+- \labels\ management is tracked as **❌**, not **🔧**.
+- \uth/register\, \uth/change-password\, and \uth/oauth/callback\ are tracked as **❌**.
+- \GET /api/documents/employee/:employeeId\ remains the P0 backend gap that blocks both W-06 and W-13.
+
+---
+
+## User Directive: Name Preference (2026-03-16T03:22:36Z)
+
+**By:** Israel (Izzy) (via Copilot)  
+**What:** User's name is Israel, not Isaac. Preferred name: Izzy.  
+**Why:** User request — captured for team memory
