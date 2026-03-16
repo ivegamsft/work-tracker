@@ -14,6 +14,7 @@ import { qualificationsRouter } from "./modules/qualifications";
 import { medicalRouter } from "./modules/medical";
 import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
+import { assignmentsRouter, employeeAssignmentsRouter, fulfillmentsRouter, templatesRouter } from "./modules/templates";
 import { ConsoleAuditLogger, PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
@@ -39,6 +40,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // API routes
   app.use("/api/auth", authRouter);
   app.use("/api/employees", employeesRouter);
+  app.use("/api/employees", employeeAssignmentsRouter);
   app.use("/api/labels", labelsRouter);
   app.use("/api/hours", hoursRouter);
   app.use("/api/documents", documentsRouter);
@@ -46,6 +48,9 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/api/medical", medicalRouter);
   app.use("/api/standards", standardsRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/templates", templatesRouter);
+  app.use("/api/assignments", assignmentsRouter);
+  app.use("/api/fulfillments", fulfillmentsRouter);
   options.registerRoutes?.(app);
 
   // Error handling

@@ -21,6 +21,7 @@ export interface PaginatedResult<T> {
 export interface DocumentsService {
   upload(input: UploadDocumentInput, fileBuffer: Buffer, uploadedBy: string): Promise<Document>;
   getDocument(id: string): Promise<Document>;
+  listByEmployee(employeeId: string, page?: number, limit?: number): Promise<PaginatedResult<Document>>;
   getExtraction(documentId: string): Promise<ExtractionResult[]>;
   correctExtraction(documentId: string, fieldId: string, input: CorrectExtractionInput, correctedBy: string): Promise<ExtractionResult>;
   reviewDocument(id: string, input: ReviewDocumentInput, reviewedBy: string): Promise<ReviewQueueItem>;
@@ -239,6 +240,31 @@ export const documentsService: DocumentsService = {
     }
 
     return mapDocument(document);
+  },
+
+  async listByEmployee(employeeId, page = 1, limit = 50) {
+    await ensureEmployeeExists(employeeId);
+
+    const boundedLimit = Math.min(limit, 100);
+    const skip = (page - 1) * boundedLimit;
+
+    const [documents, total] = await Promise.all([
+      prisma.document.findMany({
+        where: { employeeId },
+        skip,
+        take: boundedLimit,
+        orderBy: { createdAt: "desc" },
+        select: documentDetailSelect,
+      }),
+      prisma.document.count({ where: { employeeId } }),
+    ]);
+
+    return {
+      data: documents.map(mapDocument),
+      total,
+      page,
+      limit: boundedLimit,
+    };
   },
 
   async getExtraction(documentId) {

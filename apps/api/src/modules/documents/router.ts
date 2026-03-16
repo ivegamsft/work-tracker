@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireMinRole, AuthenticatedRequest } from "../../middleware";
-import { Roles } from "@e-clat/shared";
+import { ForbiddenError, RoleHierarchy, Roles } from "@e-clat/shared";
 import { param } from "../../common/utils";
 import { documentsService } from "./service";
 import {
@@ -27,6 +27,21 @@ router.get("/review-queue", authenticate, requireMinRole(Roles.MANAGER), async (
   try {
     const query = documentQuerySchema.parse(req.query);
     const result = await documentsService.listReviewQueue(query.page, query.limit);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// GET /api/documents/employee/:employeeId
+router.get("/employee/:employeeId", authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const employeeId = param(req, "employeeId");
+    const query = documentQuerySchema.parse(req.query);
+
+    if (req.user!.id !== employeeId && RoleHierarchy[req.user!.role] < RoleHierarchy[Roles.SUPERVISOR]) {
+      throw new ForbiddenError();
+    }
+
+    const result = await documentsService.listByEmployee(employeeId, query.page, query.limit);
     res.json(result);
   } catch (err) { next(err); }
 });

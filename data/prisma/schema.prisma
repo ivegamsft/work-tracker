@@ -29,6 +29,11 @@ model Employee {
   medicalClearances MedicalClearance[]
   notifications     Notification[]
   preferences       NotificationPreference[]
+  createdTemplates  ProofTemplate[]     @relation("TemplateCreator")
+  templateAssignments TemplateAssignment[] @relation("TemplateAssignee")
+  proofFulfillments ProofFulfillment[] @relation("FulfillmentEmployee")
+  assignedTemplateAssignments TemplateAssignment[] @relation("AssignmentCreator")
+  validatedFulfillments ProofFulfillment[] @relation("FulfillmentValidator")
 
   @@map("employees")
 }
@@ -230,6 +235,7 @@ model Document {
   extractionResults ExtractionResult[]
   reviewQueueItems  ReviewQueueItem[]
   qualifications    QualificationDocument[]
+  proofFulfillments ProofFulfillment[]
 
   @@index([employeeId])
   @@index([status])
@@ -359,6 +365,7 @@ model ComplianceStandard {
 
   requirements   StandardRequirement[]
   qualifications Qualification[]
+  templates      ProofTemplate[]
 
   @@map("compliance_standards")
 }
@@ -372,9 +379,163 @@ model StandardRequirement {
   minimumHours                Decimal?           @db.Decimal(7, 2)
   recertificationPeriodMonths Int?
   requiredTests               String[]
+  proofRequirements           ProofRequirement[]
 
   @@index([standardId])
   @@map("standard_requirements")
+}
+
+// ─── Proof Templates ────────────────────────────────────────
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttestationLevel {
+  SELF_ATTEST
+  UPLOAD
+  THIRD_PARTY
+  VALIDATED
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PENDING_REVIEW
+  FULFILLED
+  EXPIRED
+  REJECTED
+}
+
+enum ProofType {
+  HOURS
+  CERTIFICATION
+  TRAINING
+  CLEARANCE
+  ASSESSMENT
+  COMPLIANCE
+}
+
+model ProofTemplate {
+  id              String         @id @default(uuid())
+  name            String
+  description     String         @default("")
+  category        String?
+  status          TemplateStatus @default(DRAFT)
+  version         Int            @default(1)
+  previousVersion String?
+  createdBy       String
+  createdByEmployee Employee     @relation("TemplateCreator", fields: [createdBy], references: [id])
+  updatedBy       String?
+  standardId      String?
+  standard        ComplianceStandard? @relation(fields: [standardId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  publishedAt     DateTime?
+  archivedAt      DateTime?
+
+  requirements ProofRequirement[]
+  assignments  TemplateAssignment[]
+
+  @@index([status])
+  @@index([createdBy])
+  @@index([standardId])
+  @@map("proof_templates")
+}
+
+model ProofRequirement {
+  id                String            @id @default(uuid())
+  templateId        String
+  template          ProofTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name              String
+  description       String            @default("")
+  attestationLevels AttestationLevel[]
+  proofType         ProofType?
+  proofSubType      String?
+  typeConfig        Json?
+  threshold         Float?
+  thresholdUnit     String?
+  rollingWindowDays Int?
+  universalCategory String?
+  qualificationType String?
+  medicalTestType   String?
+  standardReqId     String?
+  standardReq       StandardRequirement? @relation(fields: [standardReqId], references: [id])
+  validityDays      Int?
+  renewalWarningDays Int?              @default(30)
+  sortOrder         Int               @default(0)
+  isRequired        Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  fulfillments ProofFulfillment[]
+
+  @@index([templateId])
+  @@map("proof_requirements")
+}
+
+model TemplateAssignment {
+  id              String        @id @default(uuid())
+  templateId      String
+  template        ProofTemplate @relation(fields: [templateId], references: [id])
+  templateVersion Int
+  employeeId      String?
+  employee        Employee?     @relation("TemplateAssignee", fields: [employeeId], references: [id])
+  role            String?
+  department      String?
+  assignedBy      String
+  assignedByEmployee Employee   @relation("AssignmentCreator", fields: [assignedBy], references: [id])
+  dueDate         DateTime?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  completedAt     DateTime?
+
+  fulfillments ProofFulfillment[]
+
+  @@unique([templateId, employeeId])
+  @@index([employeeId])
+  @@index([role])
+  @@index([department])
+  @@index([assignedBy])
+  @@map("template_assignments")
+}
+
+model ProofFulfillment {
+  id                 String            @id @default(uuid())
+  assignmentId       String
+  assignment         TemplateAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  requirementId      String
+  requirement        ProofRequirement   @relation(fields: [requirementId], references: [id])
+  employeeId         String
+  employee           Employee           @relation("FulfillmentEmployee", fields: [employeeId], references: [id])
+  status             FulfillmentStatus  @default(UNFULFILLED)
+  selfAttestedAt     DateTime?
+  selfAttestation    String?
+  uploadedAt         DateTime?
+  documentId         String?
+  document           Document?          @relation(fields: [documentId], references: [id])
+  thirdPartyVerifiedAt DateTime?
+  thirdPartySource     String?
+  thirdPartyRefId      String?
+  thirdPartyData       Json?
+  validatedAt        DateTime?
+  validatedBy        String?
+  validatorEmployee  Employee?          @relation("FulfillmentValidator", fields: [validatedBy], references: [id])
+  validatorNotes     String?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+  expiresAt          DateTime?
+  expiredAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@unique([assignmentId, requirementId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("proof_fulfillments")
 }
 
 // ─── Audit Trail ────────────────────────────────────────

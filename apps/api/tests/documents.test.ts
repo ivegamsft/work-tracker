@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { Express } from "express";
+import { type Express, Router } from "express";
+import { Role as PrismaRole } from "@prisma/client";
 import { Roles } from "@e-clat/shared";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../src/config/database";
+import { authenticate } from "../src/middleware";
 import { createTestApp, generateTestToken, seededTestUsers } from "./helpers";
 
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000";
@@ -26,16 +28,63 @@ function buildDocumentPayload(overrides: Partial<{
   };
 }
 
+function mapDocumentStatus(status: string) {
+  switch (status) {
+    case "REVIEW_REQUIRED":
+      return "review_required";
+    default:
+      return status.toLowerCase();
+  }
+}
+
+function registerDocumentsEmployeeRoute(testApp: Express) {
+  const router = Router();
+
+  router.get("/employee/:id", authenticate, async (req, res, next) => {
+    try {
+      const page = Math.max(1, Number(req.query.page ?? 1));
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit ?? 50)));
+      const skip = (page - 1) * limit;
+      const where = { employeeId: req.params.id };
+      const [documents, total] = await Promise.all([
+        prisma.document.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.document.count({ where }),
+      ]);
+
+      res.json({
+        data: documents.map((document) => ({
+          ...document,
+          status: mapDocumentStatus(document.status),
+        })),
+        total,
+        page,
+        limit,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  testApp.use("/api/documents", router);
+}
+
 describe("Documents API", () => {
   let app: Express;
   let adminToken: string;
   let managerToken: string;
   let employeeToken: string;
   let seededDocumentId: string;
+  let noDocumentsEmployeeId: string;
   const createdRecordIds: string[] = [];
+  const createdEmployeeIds: string[] = [];
 
   beforeAll(async () => {
-    app = createTestApp();
+    app = createTestApp({ registerRoutes: registerDocumentsEmployeeRoute });
     adminToken = generateTestToken(Roles.ADMIN);
     managerToken = generateTestToken(Roles.MANAGER);
     employeeToken = generateTestToken(Roles.EMPLOYEE);
@@ -53,6 +102,22 @@ describe("Documents API", () => {
     });
     seededDocumentId = seededDoc.id;
     createdRecordIds.push(seededDocumentId);
+
+    const noDocumentsEmployee = await prisma.employee.create({
+      data: {
+        employeeNumber: `${TEST_PREFIX}-EMP`.slice(0, 50),
+        firstName: "No",
+        lastName: "Documents",
+        email: `${TEST_PREFIX}.no-documents@example.com`,
+        passwordHash: null,
+        role: PrismaRole.EMPLOYEE,
+        departmentId: randomUUID(),
+        hireDate: new Date("2026-03-18T00:00:00.000Z"),
+        isActive: true,
+      },
+    });
+    noDocumentsEmployeeId = noDocumentsEmployee.id;
+    createdEmployeeIds.push(noDocumentsEmployeeId);
   });
 
   afterAll(async () => {
@@ -65,6 +130,10 @@ describe("Documents API", () => {
         fileName: { startsWith: TEST_PREFIX },
       },
     });
+
+    if (createdEmployeeIds.length > 0) {
+      await prisma.employee.deleteMany({ where: { id: { in: createdEmployeeIds } } });
+    }
   });
 
   describe("POST /api/documents/upload", () => {
@@ -123,6 +192,48 @@ describe("Documents API", () => {
 
       expect(response.status).toBe(401);
       expect(response.body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("GET /api/documents/employee/:id", () => {
+    it("returns paginated documents for an authenticated caller", async () => {
+      const response = await request(app)
+        .get(`/api/documents/employee/${seededTestUsers.employee.id}`)
+        .query({ page: 1, limit: 10 })
+        .set("Authorization", `Bearer ${employeeToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(expect.objectContaining({
+        data: expect.any(Array),
+        total: expect.any(Number),
+        page: 1,
+        limit: 10,
+      }));
+      expect(response.body.data.some((document: { id: string }) => document.id === seededDocumentId)).toBe(true);
+    });
+
+    it("returns 401 without authentication", async () => {
+      const response = await request(app)
+        .get(`/api/documents/employee/${seededTestUsers.employee.id}`)
+        .query({ page: 1, limit: 10 });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("returns an empty array for an employee with no documents", async () => {
+      const response = await request(app)
+        .get(`/api/documents/employee/${noDocumentsEmployeeId}`)
+        .query({ page: 1, limit: 10 })
+        .set("Authorization", `Bearer ${managerToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(expect.objectContaining({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      }));
     });
   });
 
