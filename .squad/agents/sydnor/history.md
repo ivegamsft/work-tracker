@@ -170,3 +170,29 @@ This affects all squad planning and copilot context:
 - Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
 
 Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n
+
+## Learnings
+
+### Phase 3+ Integration Test Expansion (PR #62)
+
+**Date:** 2026-03-16
+
+**What:** Added 135 new integration tests across two files:
+- `apps/api/tests/templates-integration.test.ts` (80 tests)
+- `apps/api/tests/hours-integration.test.ts` (55 tests)
+
+**Pattern used:** Real Express app via `createTestApp()` + `vi.spyOn(service, method)` for service-level mocking. This tests the full request pipeline: routing → auth middleware → RBAC middleware → Zod validation → handler → error handling.
+
+**Key coverage areas:**
+- All 25 template endpoints hit through real router
+- All 12 hours endpoints hit
+- 42 RBAC boundary tests
+- Zod validation edge cases
+- Compliance edge cases: attestation enforcement, reason requirements, ownership checks
+
+**Learnings:**
+1. Two-file split keeps test suites focused and fast (~1.5s total)
+2. `vi.spyOn` on exported service singletons is the cleanest pattern for testing real router + middleware without DB
+3. Zod validation on the real router catches payload issues the test-harness pattern misses
+4. RBAC tests should cover both "role too low" (403) and "no auth" (401)
+5. `requireRole(Roles.ADMIN)` (exact match) vs `requireMinRole(Roles.MANAGER)` (range) — important distinction
