@@ -79,7 +79,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      api_app_name: ${{ steps.capture.outputs.api_app_name }}
+      api_container_app_name: ${{ steps.capture.outputs.api_container_app_name }}
       api_url: ${{ steps.capture.outputs.api_url }}
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
         id: capture
         working-directory: infra/layers/20-compute
         run: |
-          echo "api_app_name=$(terraform output -raw api_app_name)" >> "$GITHUB_OUTPUT"
+          echo "api_container_app_name=$(terraform output -raw api_container_app_name)" >> "$GITHUB_OUTPUT"
           echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
 
   deploy-api:
@@ -133,7 +133,7 @@ jobs:
       - name: Deploy API artifact
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ needs.compute.outputs.api_app_name }}
+          app-name: ${{ needs.compute.outputs.api_container_app_name }}
           package: api-package.zip
       - name: Deployment summary
         run: echo "API deployed to ${{ needs.compute.outputs.api_url }}"

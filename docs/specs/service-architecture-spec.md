@@ -33,7 +33,7 @@ Define the bounded contexts, deployment groupings, contract boundaries, and migr
 - Current compute deploys a single API Container App.
 - CI is workspace-aware but not subsystem-aware.
 - Deploy is sequential and manual; no path-based promotion model exists.
-- Workflow/IaC mismatch exists today: `.github/workflows/deploy.yml` captures `terraform output -raw api_app_name`, while `infra/layers/20-compute/outputs.tf` exposes `api_container_app_name`.
+- Deploy consumes compute outputs by their Terraform contract names (for example, `api_container_app_name`).
 
 ## 3. Architectural Principles
 
