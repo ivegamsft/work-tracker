@@ -9,6 +9,8 @@
 
 ## Learnings
 
+- **Smoke E2E must enumerate every seeded persona (2026-03-16)** — The live-stack smoke suite should iterate admin, supervisor, manager, compliance_officer, and employee. It should verify login success, JWT role claims, missing-auth 401s, and route-specific RBAC boundaries. Current live behavior confirms `/api/employees` and `/api/qualifications` are supervisor+ while `/api/standards` and `/api/medical/:id` allow any authenticated role.
+- **Team coordination phase complete (2026-03-17)** — All 4 specification decisions merged and archived. RBAC API spec (65 endpoints, 36 permissions, 5-role matrix) and App spec (23 core + 9 admin screens) provide ground truth for implementation. Product spec reconciliation locked 5-role model and terminology. E2E smoke suite ready to align to finalized RBAC boundaries.
 - **Phase 2 integration tests written (2026-03-15)** — Comprehensive test coverage for Documents (20 tests), Notifications (24 tests), and PrismaAuditLogger (2 tests added to audit.test.ts). All 55 Phase 2 tests pass. Tests are resilient to partial service implementation by accepting multiple valid status codes (e.g., 200, 500, 501) where services may still be under development.
 - **Schema-first test design is critical** — Tests must match the actual Prisma schema, not assumed interfaces. Document model requires `fileName` and `mimeType` (not `title`/`description`); Notification requires `deliveryChannel`; EscalationRule uses `trigger`/`delayHours` (not `eventType`/`delayMinutes`).
 - **Service mappers lowercase enum values** — NotificationsService converts Prisma's uppercase enums (SENT, READ, DISMISSED) to lowercase for API responses. Tests must expect lowercase values in response bodies but uppercase in direct Prisma queries.

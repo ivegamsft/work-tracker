@@ -857,3 +857,70 @@ curl https://api-dev.eclat.example.com/api/employees?role=employee \
 - `bootstrap/` — Bootstrap scripts (for context; test data different from bootstrap)
 
 
+
+## Coordination & Specification Phase (2026-03-17)
+
+### 1. Product Spec Reconciliation (By: Squad Coordinator)
+
+**Decision:** Align implementation against external product spec while retaining 5-role model and implementation terminology.
+
+**Key Points:**
+1. **Keep 5 roles (Supervisor retained)** — Regulated industries need team lead / shift lead distinction. Supervisor handles direct-report oversight without department-wide authority. Already implemented and tested.
+2. **Terminology: Use implementation names** — qualifications, not "certifications"; medical, not "clearance". UI displays user-friendly labels while API stays as-is.
+3. **Product spec is functional north star** — Screen inventory and employee self-service UX from product spec is authoritative. RBAC matrix from Freamon's spec (5-role, granular) is authoritative for enforcement.
+4. **Labels module stays** — Not in product spec but needed for standards versioning and compliance taxonomy. Keep it.
+
+**Why:** Product spec comparison revealed gaps; decisions unblock continued development.
+
+---
+
+### 2. RBAC API Specification (By: Freamon)
+
+**Decision:** Single authoritative reference for role-based access control across all team implementations.
+
+**Specification:** docs/architecture/rbac-api-spec.md — 65 endpoints, 36 permissions, 5-role matrix.
+
+**Key Decisions:**
+1. **Permission model:** {resource}:{action} syntax. 36 permissions across 11 resource categories (read, create, update, delete, approve, export).
+2. **Three-layer enforcement:** UI (route guards + visibility) → API (middleware) → Data (Prisma filters).
+3. **Data scoping is mandatory:** Employee (own), Supervisor (direct + own), Manager (department), Compliance Officer (org read + dept write), Admin (unrestricted).
+4. **Permission-first authorization:** hasPermission(user, 'resource:action'), never role-only checks. Prerequisite for custom roles Phase 2+.
+5. **Migration path for custom roles:** Phase 1: equireRole. Phase 2: add equirePermission. Phase 3+: DB custom roles + Entra groups.
+6. **Endpoint catalog verified:** 65 total (5 public, 27 auth-only, 33 role-restricted) across 9 modules verified against router files.
+
+**Consequences:** This is the contract; any deviation requires ADR. Sydnor generates test cases directly from access table. Bunk implements scope filters; Kima implements visibility.
+
+---
+
+### 3. Application Specification (By: Freamon)
+
+**Decision:** Authoritative screen inventory, navigation, and employee UX aligned to product spec feedback.
+
+**Specification:** docs/architecture/app-spec.md — 23 core + 9 admin screens, navigation wireframes, 5-phase implementation.
+
+**Key Decisions:**
+1. **"Employees" → "Team"** — Renamed, hidden entirely from Employee role.
+2. **Employee dashboard:** Personal readiness, upcoming expirations, quick actions (clock in/out, upload document, profile/hours/qualifications).
+3. **/me/* route family:** All roles get self-service paths; /team/:id/* for managing others.
+4. **Self-service cannot create compliance records** — View only; Supervisors+ manage through /team/:id/*.
+5. **Document review:** Manager+, not Supervisor+ (aligns with RBAC spec).
+6. **Standards:** Read-only in web app; CRUD admin-only via admin app.
+7. **Three API gaps (P0/P1/P2):** Missing GET /api/documents/employee/:employeeId, batch readiness endpoint, compliance report.
+8. **5-phase implementation:** Employee UX → Team Management → Manager Operations → Compliance/Standards → Admin App.
+
+**Consequences:** Kima restructures routes/sidebar/dashboard first. Bunk adds missing document endpoint. All UI work traces to spec.
+
+---
+
+### 4. Role-aware Employee Access UX (By: Kima)
+
+**Decision:** Treat employee-directory access as role-aware UI concern; skip fetches for employee role, render 403 as permission state.
+
+**Why:** Avoids broken UX for valid employee logins, prevents auth-hydration races, keeps RBAC UX consistent.
+
+**Implementation:**
+- Wait for AuthContext hydration before making role-gated requests.
+- Skip employee-directory fetches entirely for employee-role users on dashboard.
+- Render 403 responses as permission-aware states, not fatal errors.
+
+---

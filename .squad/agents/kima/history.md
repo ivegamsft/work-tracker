@@ -10,6 +10,8 @@
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- 2026-03-16: Role-gated frontend pages should wait for AuthContext to finish hydrating before making protected requests; employee users must skip employee-directory fetches, and employee-directory 403s should render permission-aware UI instead of fatal generic errors.
+- 2026-03-17: Team coordination phase complete. RBAC API spec (65 endpoints, 36 permissions, 5-role matrix) at `docs/architecture/rbac-api-spec.md` and App spec (23 core + 9 admin screens, 5-phase implementation) at `docs/architecture/app-spec.md` are ground truth. Product spec reconciliation locked 5-role model. All decisions merged to `.squad/decisions.md`. Dashboard implementation aligns to role-aware design pattern.
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
