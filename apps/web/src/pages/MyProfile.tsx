@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import { useAuth } from '../contexts/AuthContext';
 import type { ComplianceStatus, EmployeeProfile, MedicalReadinessItem, Readiness, ReadinessItem } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/medical', label: 'Medical' },
   { to: '/me/documents', label: 'Documents' },
   { to: '/me/notifications', label: 'Notifications' },
-  { to: '/me/hours', label: 'Hours' },
+  { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 
 function formatDate(value?: string | null) {
@@ -188,13 +189,7 @@ export default function MyProfilePage() {
         </span>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       <div className="my-grid my-grid--wide">
         <section className="my-card" aria-labelledby="my-profile-details">

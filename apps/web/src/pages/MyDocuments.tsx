@@ -1,16 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentUploadPayload, EmployeeDocument, PaginatedResponse } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me', label: 'Profile' },
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/medical', label: 'Medical' },
   { to: '/me/notifications', label: 'Notifications' },
-  { to: '/me/hours', label: 'Hours' },
+  { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 
 const initialFormState = {
@@ -190,13 +190,7 @@ export default function MyDocumentsPage() {
         </div>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       {notice ? <div className="my-card">{notice}</div> : null}
 

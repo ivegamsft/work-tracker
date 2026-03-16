@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import { useAuth } from '../contexts/AuthContext';
 import type { MedicalRecord } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me', label: 'Profile' },
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/documents', label: 'Documents' },
   { to: '/me/notifications', label: 'Notifications' },
-  { to: '/me/hours', label: 'Hours' },
+  { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 
 function formatDate(value?: string | null) {
@@ -141,13 +141,7 @@ export default function MyMedicalPage() {
             <p className="my-page__description">Review your current medical clearances and restrictions.</p>
           </div>
         </header>
-        <nav className="my-nav-links" aria-label="My pages">
-          {MY_LINKS.map((link) => (
-            <Link key={link.to} to={link.to}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MySectionNav links={MY_LINKS} />
         <div className="my-empty-state">No medical clearances are on file yet.</div>
       </div>
     );
@@ -163,13 +157,7 @@ export default function MyMedicalPage() {
         </div>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       <div className="my-grid my-grid--wide">
         {records.map((record) => {

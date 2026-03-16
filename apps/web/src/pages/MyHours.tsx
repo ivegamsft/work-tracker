@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import { useAuth } from '../contexts/AuthContext';
+import { useFeatureFlag } from '../hooks/useFeatureFlags';
 import type { HoursRecord, PaginatedResponse } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me', label: 'Profile' },
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/medical', label: 'Medical' },
@@ -44,6 +45,7 @@ function formatTime(value?: string | null) {
 
 export default function MyHoursPage() {
   const { user, loading: authLoading } = useAuth();
+  const hoursEnabled = useFeatureFlag('records.hours-ui');
   const [hours, setHours] = useState<HoursRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,6 +58,14 @@ export default function MyHoursPage() {
 
     async function fetchHours() {
       if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      if (!hoursEnabled) {
+        setComingSoon(true);
+        setHours([]);
+        setError('');
         setLoading(false);
         return;
       }
@@ -80,7 +90,7 @@ export default function MyHoursPage() {
     }
 
     fetchHours();
-  }, [authLoading, user]);
+  }, [authLoading, hoursEnabled, user]);
 
   if (authLoading || loading) {
     return <div className="loading">Loading hours...</div>;
@@ -105,13 +115,7 @@ export default function MyHoursPage() {
           </div>
         </header>
 
-        <nav className="my-nav-links" aria-label="My pages">
-          {MY_LINKS.map((link) => (
-            <Link key={link.to} to={link.to}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MySectionNav links={MY_LINKS} />
 
         <section className="my-coming-soon" aria-labelledby="my-hours-coming-soon">
           <div>
@@ -153,13 +157,7 @@ export default function MyHoursPage() {
             <p className="my-page__description">Review your logged hours and daily time entries.</p>
           </div>
         </header>
-        <nav className="my-nav-links" aria-label="My pages">
-          {MY_LINKS.map((link) => (
-            <Link key={link.to} to={link.to}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MySectionNav links={MY_LINKS} />
         <div className="my-empty-state">No hours have been logged yet.</div>
       </div>
     );
@@ -175,13 +173,7 @@ export default function MyHoursPage() {
         </div>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       <section className="my-card" aria-labelledby="my-hours-table">
         <div>

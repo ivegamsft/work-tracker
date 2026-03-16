@@ -94,14 +94,19 @@ export function isUnavailableError(error: unknown) {
   );
 }
 
-export function buildTeamTabs(id: string): TabItem[] {
-  return [
+export function buildTeamTabs(id: string, options: { showHours?: boolean } = {}): TabItem[] {
+  const tabs: TabItem[] = [
     { label: 'Overview', to: `/team/${id}`, end: true },
     { label: 'Qualifications', to: `/team/${id}/qualifications` },
     { label: 'Medical', to: `/team/${id}/medical` },
     { label: 'Documents', to: `/team/${id}/documents` },
-    { label: 'Hours', to: `/team/${id}/hours` },
   ];
+
+  if (options.showHours) {
+    tabs.push({ label: 'Hours', to: `/team/${id}/hours` });
+  }
+
+  return tabs;
 }
 
 export function buildTeamBreadcrumbs(id: string, employeeLabel: string, currentPage: string): BreadcrumbItem[] {

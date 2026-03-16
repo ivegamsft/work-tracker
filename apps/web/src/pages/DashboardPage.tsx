@@ -5,6 +5,7 @@ import ReadinessSummary from '../components/ReadinessSummary';
 import RecentActivity, { type DashboardActivityItem } from '../components/RecentActivity';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { normalizeRole, type AppRole } from '../rbac';
 import type {
   ComplianceStatus,
@@ -17,12 +18,19 @@ import type {
 import { getDaysUntil, normalizeKey, toTitleCase } from './pageHelpers';
 import '../styles/dashboard.css';
 
-const QUICK_ACTIONS: Record<AppRole, QuickActionCard[]> = {
+type QuickActionDefinition = QuickActionCard & {
+  flag?: string;
+  disabledDescription?: string;
+};
+
+const QUICK_ACTIONS: Record<AppRole, QuickActionDefinition[]> = {
   employee: [
     {
       title: 'Clock In',
       description: 'Jump into your hours workspace to review shifts and prepare for time tracking.',
       to: '/me/hours',
+      flag: 'records.hours-ui',
+      disabledDescription: 'Hours tracking is still rolling out. We will unlock this workspace soon.',
     },
     {
       title: 'Upload Document',
@@ -38,6 +46,8 @@ const QUICK_ACTIONS: Record<AppRole, QuickActionCard[]> = {
       title: 'My Templates',
       description: 'Open the standards library to reuse the guidance tied to your work.',
       to: '/standards',
+      flag: 'compliance.templates',
+      disabledDescription: 'Assigned templates are being staged behind a feature flag and will land soon.',
     },
   ],
   supervisor: [
@@ -55,6 +65,8 @@ const QUICK_ACTIONS: Record<AppRole, QuickActionCard[]> = {
       title: 'Team Templates',
       description: 'Browse standards and requirement templates to support your team workflow.',
       to: '/standards',
+      flag: 'compliance.templates',
+      disabledDescription: 'Template assignment workflows are still being staged for supervisors.',
     },
   ],
   manager: [
@@ -129,6 +141,22 @@ function formatRoleLabel(role: AppRole) {
 
 function normalizeNotifications(response: NotificationsResponse) {
   return Array.isArray(response) ? response : response.data;
+}
+
+function applyFeatureFlags(actions: QuickActionDefinition[], flags: Record<string, boolean>): QuickActionCard[] {
+  return actions.map((action) => {
+    if (!action.flag || flags[action.flag]) {
+      return action;
+    }
+
+    return {
+      ...action,
+      description: action.disabledDescription ?? action.description,
+      disabled: true,
+      badgeText: 'Coming soon',
+      to: undefined,
+    };
+  });
 }
 
 function mapQualificationReadinessStatus(item: ReadinessItem): ComplianceStatus {
@@ -264,6 +292,7 @@ function buildRecentActivity(notifications: MyNotification[]): DashboardActivity
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
+  const { flags } = useFeatureFlags();
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [notifications, setNotifications] = useState<MyNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,7 +357,7 @@ export default function DashboardPage() {
 
   const workspaceRole = normalizeRole(user?.role) ?? 'employee';
   const roleLabel = formatRoleLabel(workspaceRole);
-  const quickActions = QUICK_ACTIONS[workspaceRole] ?? QUICK_ACTIONS.employee;
+  const quickActions = applyFeatureFlags(QUICK_ACTIONS[workspaceRole] ?? QUICK_ACTIONS.employee, flags);
   const readinessSummary = useMemo(
     () => buildReadinessSummary(readiness, readinessUnavailable),
     [readiness, readinessUnavailable],
@@ -374,7 +403,7 @@ export default function DashboardPage() {
           <div className="dashboard-hero__highlights" aria-label="Workspace snapshot">
             <div className="dashboard-hero__highlight">
               <span className="dashboard-hero__highlight-label">Quick actions</span>
-              <strong>{quickActions.length}</strong>
+              <strong>{quickActions.filter((action) => !action.disabled).length}</strong>
             </div>
             <div className="dashboard-hero__highlight">
               <span className="dashboard-hero__highlight-label">Readiness score</span>

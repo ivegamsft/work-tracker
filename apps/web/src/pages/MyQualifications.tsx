@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import ProofList from '../components/ProofList';
 import type { ProofListItem, ProofStatus } from '../components/ProofCard';
 import { api } from '../api/client';
@@ -7,12 +7,12 @@ import { useAuth } from '../contexts/AuthContext';
 import type { Qualification } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me', label: 'Profile' },
   { to: '/me/medical', label: 'Medical' },
   { to: '/me/documents', label: 'Documents' },
   { to: '/me/notifications', label: 'Notifications' },
-  { to: '/me/hours', label: 'Hours' },
+  { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 
 function normalizeStatus(status: string, expiresAt?: string | null): ProofStatus {
@@ -169,13 +169,7 @@ export default function MyQualificationsPage() {
             <p className="my-page__description">Track your current credentials and upcoming renewals.</p>
           </div>
         </header>
-        <nav className="my-nav-links" aria-label="My pages">
-          {MY_LINKS.map((link) => (
-            <Link key={link.to} to={link.to}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MySectionNav links={MY_LINKS} />
         <div className="my-empty-state">No qualifications are currently assigned to your profile.</div>
       </div>
     );
@@ -191,13 +185,7 @@ export default function MyQualificationsPage() {
         </div>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       <section className="my-grid" aria-label="Qualification summary">
         <div className="my-card">

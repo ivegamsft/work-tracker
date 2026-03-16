@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import PageShell from '../components/PageShell';
+import { useFeatureFlag } from '../hooks/useFeatureFlags';
+import { buildTeamTabs } from './pageHelpers';
 import '../styles/employee-detail.css';
 
 interface Employee {
@@ -34,6 +36,8 @@ interface Readiness {
 export default function TeamMemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const hoursEnabled = useFeatureFlag('records.hours-ui');
+  const teamSubnavEnabled = useFeatureFlag('web.team-subnav');
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,13 +103,7 @@ export default function TeamMemberDetailPage() {
     { label: 'Team', to: '/team' },
     { label: employee?.name ?? teamMemberId },
   ];
-  const tabs = [
-    { label: 'Overview', to: `/team/${teamMemberId}`, end: true },
-    { label: 'Qualifications', to: `/team/${teamMemberId}/qualifications` },
-    { label: 'Medical', to: `/team/${teamMemberId}/medical` },
-    { label: 'Documents', to: `/team/${teamMemberId}/documents` },
-    { label: 'Hours', to: `/team/${teamMemberId}/hours` },
-  ];
+  const tabs = teamSubnavEnabled ? buildTeamTabs(teamMemberId, { showHours: hoursEnabled }) : [];
   const backButton = (
     <button onClick={() => navigate('/team')} className="back-btn">
       ← Back to Team

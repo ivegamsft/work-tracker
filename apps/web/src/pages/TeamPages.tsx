@@ -4,6 +4,7 @@ import PageShell from '../components/PageShell';
 import ProofList from '../components/ProofList';
 import type { ProofListItem, ProofStatus } from '../components/ProofCard';
 import { api } from '../api/client';
+import { useFeatureFlag } from '../hooks/useFeatureFlags';
 import type {
   ComplianceStandardRecord,
   EmployeeDocument,
@@ -71,6 +72,8 @@ const initialDocumentForm = {
 function useTeamMemberContext(currentPage: string) {
   const { id } = useParams<{ id: string }>();
   const employeeId = id ?? '';
+  const hoursEnabled = useFeatureFlag('records.hours-ui');
+  const teamSubnavEnabled = useFeatureFlag('web.team-subnav');
   const [employee, setEmployee] = useState<TeamMemberSummary | null>(null);
   const [employeeLoading, setEmployeeLoading] = useState(true);
   const [employeeError, setEmployeeError] = useState('');
@@ -110,7 +113,7 @@ function useTeamMemberContext(currentPage: string) {
     employeeLoading,
     employeeError,
     breadcrumbs: buildTeamBreadcrumbs(employeeId || 'employee', employeeLabel, currentPage),
-    tabs: buildTeamTabs(employeeId || 'employee'),
+    tabs: teamSubnavEnabled ? buildTeamTabs(employeeId || 'employee', { showHours: hoursEnabled }) : [],
   };
 }
 

@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 export interface QuickActionCard {
   title: string;
   description: string;
-  to: string;
+  to?: string;
+  disabled?: boolean;
+  badgeText?: string;
 }
 
 interface QuickActionsGridProps {
@@ -22,15 +24,32 @@ export default function QuickActionsGrid({ actions, roleLabel }: QuickActionsGri
         <span className="dashboard-panel__meta">{roleLabel} workflow</span>
       </div>
       <div className="dashboard-actions-grid">
-        {actions.map((action) => (
-          <Link key={action.title} to={action.to} className="dashboard-action-card">
-            <div className="dashboard-action-card__header">
-              <h3>{action.title}</h3>
-              <span className="dashboard-action-card__cta">Open</span>
-            </div>
-            <p>{action.description}</p>
-          </Link>
-        ))}
+        {actions.map((action) => {
+          if (action.disabled || !action.to) {
+            return (
+              <article key={action.title} className="dashboard-action-card dashboard-action-card--disabled">
+                <div className="dashboard-action-card__header">
+                  <div className="dashboard-action-card__title-block">
+                    <h3>{action.title}</h3>
+                    {action.badgeText ? <span className="dashboard-action-card__badge">{action.badgeText}</span> : null}
+                  </div>
+                  <span className="dashboard-action-card__cta">Soon</span>
+                </div>
+                <p>{action.description}</p>
+              </article>
+            );
+          }
+
+          return (
+            <Link key={action.title} to={action.to} className="dashboard-action-card">
+              <div className="dashboard-action-card__header">
+                <h3>{action.title}</h3>
+                <span className="dashboard-action-card__cta">Open</span>
+              </div>
+              <p>{action.description}</p>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

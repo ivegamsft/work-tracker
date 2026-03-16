@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import MySectionNav, { type MySectionNavItem } from '../components/MySectionNav';
 import { useAuth } from '../contexts/AuthContext';
 import type {
   MyNotification,
@@ -10,12 +10,12 @@ import type {
 } from '../types/my-section';
 import '../styles/my-section.css';
 
-const MY_LINKS = [
+const MY_LINKS: MySectionNavItem[] = [
   { to: '/me', label: 'Profile' },
   { to: '/me/qualifications', label: 'Qualifications' },
   { to: '/me/medical', label: 'Medical' },
   { to: '/me/documents', label: 'Documents' },
-  { to: '/me/hours', label: 'Hours' },
+  { to: '/me/hours', label: 'Hours', flag: 'records.hours-ui' },
 ];
 
 type NotificationsResponse = MyNotification[] | PaginatedResponse<MyNotification>;
@@ -173,13 +173,7 @@ export default function MyNotificationsPage() {
         </div>
       </header>
 
-      <nav className="my-nav-links" aria-label="My pages">
-        {MY_LINKS.map((link) => (
-          <Link key={link.to} to={link.to}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <MySectionNav links={MY_LINKS} />
 
       {activeView === 'preferences' ? (
         <section className="my-card" aria-labelledby="notification-preferences">

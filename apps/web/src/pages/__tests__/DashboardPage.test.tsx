@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../DashboardPage';
 import { AuthProvider } from '../../contexts/AuthContext';
+import { FeatureFlagsProvider } from '../../hooks/useFeatureFlags';
 import type { MyNotification, Readiness } from '../../types/my-section';
 
 vi.mock('../../api/client', () => ({
@@ -44,7 +45,9 @@ const complianceOfficerUser = {
 const MockedDashboardPage = () => (
   <BrowserRouter>
     <AuthProvider>
-      <DashboardPage />
+      <FeatureFlagsProvider>
+        <DashboardPage />
+      </FeatureFlagsProvider>
     </AuthProvider>
   </BrowserRouter>
 );
@@ -157,6 +160,15 @@ async function mockDashboardApi(options?: {
   const notifications = options?.notifications ?? mockNotifications;
 
   mockGet.mockImplementation((path: string) => {
+    if (path === '/v1/platform/feature-flags') {
+      return Promise.resolve({
+        'records.hours-ui': true,
+        'compliance.templates': true,
+        'reference.labels-admin': false,
+        'web.team-subnav': true,
+      });
+    }
+
     if (path.endsWith('/readiness')) {
       return options?.failReadiness ? Promise.reject(new Error('Readiness unavailable')) : Promise.resolve(readiness);
     }

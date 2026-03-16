@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { FeatureFlagsProvider } from './hooks/useFeatureFlags';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TeamDirectoryPage from './pages/TeamDirectoryPage';
@@ -33,7 +34,8 @@ function LegacyEmployeeDetailRedirect() {
 function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <FeatureFlagsProvider>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/"
@@ -183,7 +185,8 @@ function App() {
         <Route path="/employees/:id" element={<LegacyEmployeeDetailRedirect />} />
         <Route path="/404" element={<NotFoundPage />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
-      </Routes>
+        </Routes>
+      </FeatureFlagsProvider>
     </AuthProvider>
   );
 }

@@ -158,6 +158,36 @@
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
 }
 
+.dashboard-action-card--disabled {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.08) 0%, rgba(255, 255, 255, 1) 100%);
+  color: var(--color-text);
+  opacity: 0.88;
+}
+
+.dashboard-action-card--disabled:hover {
+  transform: none;
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.dashboard-action-card__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dashboard-action-card__badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .dashboard-action-card__cta {
   display: inline-flex;
   align-items: center;
