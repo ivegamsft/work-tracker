@@ -14,6 +14,8 @@ import TemplateDetailPage from './pages/TemplateDetailPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import TemplateAssignPage from './pages/TemplateAssignPage';
 import TemplatesFeatureUnavailablePage from './pages/TemplatesFeatureUnavailablePage';
+import FulfillmentReviewQueuePage from './pages/FulfillmentReviewQueuePage';
+import FulfillmentReviewDetailPage from './pages/FulfillmentReviewDetailPage';
 import {
   MyDocumentsPage,
   MyHoursPage,
@@ -238,6 +240,26 @@ function App() {
           element={
             <ProtectedRoute minRole="manager">
               <ReviewDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/templates"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <FulfillmentReviewQueuePage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/templates/:fulfillmentId"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <FulfillmentReviewDetailPage />
+              </FeatureGate>
             </ProtectedRoute>
           }
         />
