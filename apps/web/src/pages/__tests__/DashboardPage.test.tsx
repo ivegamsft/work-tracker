@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../DashboardPage';
 import { AuthProvider } from '../../contexts/AuthContext';
+import type { MyNotification, Readiness } from '../../types/my-section';
 
 vi.mock('../../api/client', () => ({
   api: {
@@ -10,18 +11,34 @@ vi.mock('../../api/client', () => ({
   },
 }));
 
-const adminUser = {
-  id: '1',
-  email: 'admin@example.com',
-  name: 'Admin User',
-  role: 'admin',
-};
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const employeeUser = {
   id: '2',
   email: 'employee@example.com',
   name: 'Employee User',
   role: 'employee',
+};
+
+const supervisorUser = {
+  id: '3',
+  email: 'supervisor@example.com',
+  name: 'Supervisor User',
+  role: 'supervisor',
+};
+
+const managerUser = {
+  id: '4',
+  email: 'manager@example.com',
+  name: 'Manager User',
+  role: 'manager',
+};
+
+const complianceOfficerUser = {
+  id: '5',
+  email: 'compliance@example.com',
+  name: 'Compliance User',
+  role: 'compliance_officer',
 };
 
 const MockedDashboardPage = () => (
@@ -32,23 +49,126 @@ const MockedDashboardPage = () => (
   </BrowserRouter>
 );
 
-const mockPaginatedResponse = {
-  data: [
-    { id: '1', firstName: 'Alice', lastName: 'Smith', isActive: true },
-    { id: '2', firstName: 'Bob', lastName: 'Jones', isActive: true },
-    { id: '3', firstName: 'Carol', lastName: 'Davis', isActive: true },
-    { id: '4', firstName: 'Dave', lastName: 'Wilson', isActive: false },
+function isoDaysFromNow(days: number) {
+  return new Date(Date.now() + days * DAY_IN_MS).toISOString();
+}
+
+const mockReadiness: Readiness = {
+  employeeId: '2',
+  qualifications: [
+    {
+      qualificationId: 'q1',
+      qualificationName: 'Ramp safety',
+      status: 'active',
+      readinessStatus: 'compliant',
+      expirationDate: isoDaysFromNow(90),
+    },
+    {
+      qualificationId: 'q2',
+      qualificationName: 'Dangerous goods',
+      status: 'expiring_soon',
+      readinessStatus: 'at_risk',
+      expirationDate: isoDaysFromNow(10),
+    },
+    {
+      qualificationId: 'q3',
+      qualificationName: 'Annual refresher',
+      status: 'expired',
+      readinessStatus: 'non_compliant',
+      expirationDate: isoDaysFromNow(-5),
+    },
   ],
-  total: 4,
-  page: 1,
-  limit: 20,
+  medicalClearances: [
+    {
+      clearanceType: 'Medical',
+      status: 'cleared',
+      readinessStatus: 'compliant',
+      expirationDate: isoDaysFromNow(20),
+    },
+  ],
+  overallStatus: 'at_risk',
 };
 
-function renderDashboard(user = adminUser) {
+const mockNotifications: MyNotification[] = [
+  {
+    id: 'n6',
+    message: 'Legacy entry archived from your workspace.',
+    type: 'archive_notice',
+    createdAt: isoDaysFromNow(-6),
+    read: true,
+  },
+  {
+    id: 'n4',
+    message: 'A qualification expires in 10 days.',
+    type: 'expiring_soon',
+    createdAt: isoDaysFromNow(-2),
+    read: false,
+    actionUrl: '/me/qualifications',
+  },
+  {
+    id: 'n1',
+    message: 'Document review queue was updated.',
+    type: 'review_update',
+    createdAt: isoDaysFromNow(0),
+    read: false,
+    actionUrl: '/reviews',
+  },
+  {
+    id: 'n3',
+    message: 'A readiness conflict needs resolution.',
+    type: 'conflict_alert',
+    createdAt: isoDaysFromNow(-1),
+    read: false,
+    actionUrl: '/me/notifications',
+  },
+  {
+    id: 'n2',
+    message: 'Your latest document upload was approved.',
+    type: 'document_approved',
+    createdAt: isoDaysFromNow(-1.5),
+    read: true,
+  },
+  {
+    id: 'n5',
+    message: 'Template guidance was refreshed for your team.',
+    type: 'template_update',
+    createdAt: isoDaysFromNow(-4),
+    read: true,
+    actionUrl: '/standards',
+  },
+];
+
+function renderDashboard(user = employeeUser) {
   localStorage.setItem('user', JSON.stringify(user));
   localStorage.setItem('token', 'fake-token');
 
   render(<MockedDashboardPage />);
+}
+
+async function mockDashboardApi(options?: {
+  readiness?: Readiness;
+  notifications?: MyNotification[];
+  failReadiness?: boolean;
+  failNotifications?: boolean;
+}) {
+  const { api } = await import('../../api/client');
+  const mockGet = vi.mocked(api.get);
+  const readiness = options?.readiness ?? mockReadiness;
+  const notifications = options?.notifications ?? mockNotifications;
+
+  mockGet.mockImplementation((path: string) => {
+    if (path.endsWith('/readiness')) {
+      return options?.failReadiness ? Promise.reject(new Error('Readiness unavailable')) : Promise.resolve(readiness);
+    }
+
+    if (path === '/notifications') {
+      return options?.failNotifications ? Promise.reject(new Error('Notifications unavailable')) : Promise.resolve(notifications);
+    }
+
+    return Promise.reject(new Error(`Unexpected path: ${path}`));
+  });
+
+  return mockGet;
 }
 
 describe('DashboardPage', () => {
@@ -57,52 +177,79 @@ describe('DashboardPage', () => {
     localStorage.clear();
   });
 
-  it('renders welcome message', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
+  it('renders the workspace header and dashboard shell', async () => {
+    await mockDashboardApi();
+    renderDashboard(managerUser);
 
-    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    renderDashboard();
+    expect(await screen.findByRole('heading', { name: /welcome back, manager user/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/manager workspace/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: /everything you need to move work forward/i })).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, admin user/i })).toBeInTheDocument();
+  it.each([
+    {
+      user: employeeUser,
+      expected: ['Clock In', 'Upload Document', 'View My Qualifications', 'My Templates'],
+      unexpected: ['View Team', 'Review Documents', 'Compliance Overview'],
+    },
+    {
+      user: supervisorUser,
+      expected: ['View Team', 'Add Qualification', 'Team Templates'],
+      unexpected: ['Clock In', 'Review Documents', 'Compliance Overview'],
+    },
+    {
+      user: managerUser,
+      expected: ['Review Documents', 'Resolve Conflicts', 'Manager Dashboard'],
+      unexpected: ['Clock In', 'View Team', 'Compliance Overview'],
+    },
+    {
+      user: complianceOfficerUser,
+      expected: ['Compliance Overview', 'Export Report', 'Audit Log'],
+      unexpected: ['Clock In', 'View Team', 'Review Documents'],
+    },
+  ])('shows role-adaptive quick actions for $user.role', async ({ user, expected, unexpected }) => {
+    await mockDashboardApi();
+    renderDashboard(user);
+
+    expect(await screen.findByRole('heading', { name: /quick actions/i })).toBeInTheDocument();
+
+    expected.forEach((label) => {
+      expect(screen.getByRole('link', { name: new RegExp(label, 'i') })).toBeInTheDocument();
+    });
+
+    unexpected.forEach((label) => {
+      expect(screen.queryByRole('link', { name: new RegExp(label, 'i') })).not.toBeInTheDocument();
     });
   });
 
-  it('shows dashboard stats cards for users with employee access', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
+  it('renders readiness summary metrics', async () => {
+    await mockDashboardApi();
+    renderDashboard(employeeUser);
 
-    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    renderDashboard();
+    const readinessHeading = await screen.findByRole('heading', { name: /readiness summary/i });
+    const readinessPanel = readinessHeading.closest('section');
 
-    await waitFor(() => {
-      expect(screen.getByText(/total employees/i)).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('heading', { name: /^active$/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /^inactive$/i })).toBeInTheDocument();
+    expect(readinessPanel).not.toBeNull();
+    expect(within(readinessPanel as HTMLElement).getByText('63%')).toBeInTheDocument();
+    expect(within(readinessPanel as HTMLElement).getByText(/overall readiness/i)).toBeInTheDocument();
+    expect(within(readinessPanel as HTMLElement).getByText(/overdue items/i)).toBeInTheDocument();
+    expect(within(readinessPanel as HTMLElement).getByText(/upcoming expirations/i)).toBeInTheDocument();
+    expect(within(readinessPanel as HTMLElement).getByText(/^1$/)).toBeInTheDocument();
+    expect(within(readinessPanel as HTMLElement).getByText(/^2$/)).toBeInTheDocument();
   });
 
-  it('displays correct statistics', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
+  it('shows the five most recent activity items', async () => {
+    await mockDashboardApi();
+    renderDashboard(employeeUser);
 
-    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    renderDashboard();
+    const activityHeading = await screen.findByRole('heading', { name: /recent activity/i });
+    const activityPanel = activityHeading.closest('section');
+    const activityList = within(activityPanel as HTMLElement).getByRole('list');
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, admin user/i })).toBeInTheDocument();
-    });
-
-    const totalEmployeesCard = screen.getByText(/total employees/i).closest('.stat-card');
-    expect(totalEmployeesCard).toHaveTextContent('4');
-
-    const activeCard = screen.getByRole('heading', { name: /^active$/i }).closest('.stat-card');
-    expect(activeCard).toHaveTextContent('3');
-
-    const inactiveCard = screen.getByRole('heading', { name: /^inactive$/i }).closest('.stat-card');
-    expect(inactiveCard).toHaveTextContent('1');
+    expect(within(activityList).getAllByRole('listitem')).toHaveLength(5);
+    expect(screen.getByText(/document review queue was updated/i)).toBeInTheDocument();
+    expect(screen.getByText(/a readiness conflict needs resolution/i)).toBeInTheDocument();
+    expect(screen.queryByText(/legacy entry archived from your workspace/i)).not.toBeInTheDocument();
   });
 
   it('shows loading state initially', async () => {
@@ -115,60 +262,13 @@ describe('DashboardPage', () => {
     expect(screen.getByText(/loading dashboard.../i)).toBeInTheDocument();
   });
 
-  it('shows error message when fetch fails', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
-
-    mockGet.mockRejectedValueOnce(new Error('Failed to load stats'));
-    renderDashboard();
-
-    await waitFor(() => {
-      expect(screen.getByText(/error: failed to load stats/i)).toBeInTheDocument();
-    });
-  });
-
-  it('shows a simplified dashboard for employee users without fetching stats', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
-
+  it('falls back gracefully when dashboard data cannot be loaded', async () => {
+    await mockDashboardApi({ failReadiness: true, failNotifications: true });
     renderDashboard(employeeUser);
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, employee user/i })).toBeInTheDocument();
-    });
-
-    expect(mockGet).not.toHaveBeenCalled();
-    expect(screen.queryByText(/total employees/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/team directory access is available to supervisors and above/i)).toBeInTheDocument();
-  });
-
-  it('falls back to the simplified dashboard on forbidden responses', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
-
-    mockGet.mockRejectedValueOnce({ message: 'Forbidden', status: 403 });
-    renderDashboard();
-
-    await waitFor(() => {
-      expect(screen.getByText(/team stats are not available for your account/i)).toBeInTheDocument();
-    });
-
-    expect(screen.queryByText(/error:/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/total employees/i)).not.toBeInTheDocument();
-  });
-
-  it('displays quick actions section', async () => {
-    const { api } = await import('../../api/client');
-    const mockGet = vi.mocked(api.get);
-
-    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
-    renderDashboard();
-
-    await waitFor(() => {
-      expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('link', { name: /view team directory/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open review queue/i })).toBeInTheDocument();
+    expect(await screen.findByText(/dashboard insights are temporarily unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /clock in/i })).toBeInTheDocument();
+    expect(screen.getByText(/readiness details are temporarily unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/recent activity is temporarily unavailable/i)).toBeInTheDocument();
   });
 });
