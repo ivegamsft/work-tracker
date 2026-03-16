@@ -70,3 +70,41 @@
 - Updated active web route references in `apps/web/src/components/Layout.tsx`, `apps/web/src/pages/DashboardPage.tsx`, `apps/web/src/pages/TeamDirectoryPage.tsx`, `apps/web/src/pages/TeamMemberDetailPage.tsx`; root `package.json` build/typecheck now include `@e-clat/web` for repo-level validation.
 - 2026-03-16: Hours now uses Prisma-backed clock-in/out, manual entry, import conflict creation, soft deletes, and audit-log lookup in `apps/api/src/modules/hours/service.ts`; documents gained paginated employee listing plus self-or-supervisor access at `GET /api/documents/employee/:employeeId`.
 - 2026-03-18: Added proof templates/assignments/fulfillments backend module with RBAC enforcement, status computation, and new Prisma models/relations; mounted `/api/templates`, `/api/assignments`, `/api/fulfillments`, and employee assignment listing routes.
+
+## 📌 Team Update (2026-03-16T073200Z — Freamon's Backlog Decomposition)
+
+Freamon decomposed the full E-CLAT backlog into **51 GitHub issues** across 5 epics and 4 releases.
+
+This affects all squad work planning:
+- **Bunk:** 16 backend issues assigned (architecture, bugs, stabilization)
+- **Kima:** 13 frontend issues assigned (template UI screens W-30 to W-38, navigation)
+- **Sydnor:** 1 testing issue assigned
+- **Pearlman:** 7 compliance issues assigned (attestation, proof audit findings)
+- **Daniels:** 12 architecture/DevOps issues assigned (contracts, feature flags, pipeline)
+- **Freamon:** 3 spike/research issues (dependency critical path)
+
+Key metrics:
+- Priority split: P0 14, P1 25, P2 13
+- Release targets: v0.4.0 (16), v0.5.0 (19), v0.6.0 (10), backlog (5)
+- Go/No-Go: go:yes 29, go:needs-research 22
+
+All 18 source documents (specs, requirements, ideas, known bugs) have corresponding issues with cross-references and traceability links. Squad leads should review assigned issues and refine acceptance criteria.
+
+Decision file: \.squad/decisions/inbox/freamon-backlog-decomposition.md\`n
+
+## 📌 Team Update (2026-03-16T073200Z — Daniels' Copilot Instructions & Docs Update)
+
+Daniels updated core team memory files for better agent and copilot coordination:
+
+**Files Updated:**
+- \.github/copilot-instructions.md\ — Added templates module context (242 tests, docs pipeline, compliance guardrails, 8-member squad roster, service architecture, parallel deployment strategy)
+- \docs/README.md\ — Reorganized docs taxonomy into category-based structure (specs/, requirements/, decisions/, guides/, plans/, ideas/, tests/, prompts/)
+- \.github/agents/squad.agent.md\ — Refined agent charters and responsibilities
+
+This affects all squad planning and copilot context:
+- All agents now have clearer service architecture context (6 logical backend service groups)
+- Copilot instructions include templates module spec (policy constraints, attestation 4-level system)
+- Docs are now organized for better cross-referencing and discovery
+- Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
+
+Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n

@@ -54,4 +54,22 @@ All cross-references updated; 29 files moved with git history preserved; 179 tes
 - **Reusable squad operations skill pack (2026-03-16):** Six runbooks at `.squad/skills/`: `commit-and-push`, `secret-scan`, `spec-review`, `docker-reset`, `prisma-migrate`, `git-status-report`. Standardized recurring coordinator actions with pass/fail criteria.
 - **Proof architecture unified across specs (2026-03-18):** Proof system is shared contract across taxonomy + templates + vault. Must normalize schema, readiness states, RBAC in all specs before implementation. Blocking gaps in taxonomy: `ProofRequirement` contract drift, unsupported quantitative `PARTIAL` progress, broken preset provenance, preset route/RBAC mismatch.
 - **Phase 2b Integration Scope (2026-03-18):** Proof Vault (12 endpoints, 2 Prisma models, AES-256-GCM client encryption), Sharing (42 endpoints, 6 web screens, 8 RBAC perms), Templates/Attestation (25 endpoints, 9 web screens, 4-level system). All spec-ready; implementation after Phase 1.
+- **Backlog Decomposition Pattern (2026-03-16):** Decomposed 51 issues from 18 source documents into 5 epics across 4 releases. Key patterns: (1) Create epics first to establish context, (2) Pre-assign to squads based on domain expertise from specs, (3) Use go:yes for well-defined work and go:needs-research for spikes/design, (4) Document source, dependencies, and acceptance criteria in every issue body, (5) Cross-reference related issues by number. Squad distribution: Bunk (16 backend), Kima (13 frontend), Daniels (12 architecture/DevOps), Pearlman (7 compliance), Freamon (3 spikes), Sydnor (1 testing). Priority split: 14 P0, 25 P1, 13 P2. Release targeting based on dependency chains and risk: v0.4.0 (bugs + template UI), v0.5.0 (architecture + compliance), v0.6.0 (service extraction).
 
+
+## 📌 Team Update (2026-03-16T073200Z — Daniels' Copilot Instructions & Docs Update)
+
+Daniels updated core team memory files for better agent and copilot coordination:
+
+**Files Updated:**
+- \.github/copilot-instructions.md\ — Added templates module context (242 tests, docs pipeline, compliance guardrails, 8-member squad roster, service architecture, parallel deployment strategy)
+- \docs/README.md\ — Reorganized docs taxonomy into category-based structure (specs/, requirements/, decisions/, guides/, plans/, ideas/, tests/, prompts/)
+- \.github/agents/squad.agent.md\ — Refined agent charters and responsibilities
+
+This affects all squad planning and copilot context:
+- All agents now have clearer service architecture context (6 logical backend service groups)
+- Copilot instructions include templates module spec (policy constraints, attestation 4-level system)
+- Docs are now organized for better cross-referencing and discovery
+- Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
+
+Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n

@@ -1134,13 +1134,14 @@ Humans can join the Squad roster alongside AI agents. They appear in routing, ca
 
 ## Copilot Coding Agent Member
 
-The GitHub Copilot coding agent (`@copilot`) can join the Squad as an autonomous team member. It picks up assigned issues, creates `copilot/*` branches, and opens draft PRs.
+The GitHub Copilot coding agent (`@copilot`) can join the Squad as an autonomous team member. It picks up assigned issues, uses `.github/copilot-instructions.md` as its primary memory file, and opens draft PRs from `copilot/*` branches.
 
 **On-demand reference:** Read `.squad/templates/copilot-agent.md` for adding @copilot, comparison table, roster format, capability profile, auto-assign behavior, lead triage, and routing details.
 
 **Core rules (always loaded):**
-- Badge: 🤖 Coding Agent. Always "@copilot" (no casting). No charter — uses `copilot-instructions.md`.
+- Badge: 🤖 Coding Agent. Always "@copilot" (no casting). No charter — uses `.github/copilot-instructions.md`.
 - NOT spawnable — works via issue assignment, asynchronous.
 - Capability profile (🟢/🟡/🔴) lives in team.md. Lead evaluates issues against it during triage.
+- Preferred branch naming convention: `copilot/{issue-number}-{slug}`. GitHub may still emit generic `copilot/*` branches until native branch-naming configuration exists, so preserve the issue number and slug whenever naming or renaming is available.
 - Auto-assign controlled by `<!-- copilot-auto-assign: true/false -->` in team.md.
 - Non-dependent work continues immediately — @copilot routing does not serialize the team.

@@ -1680,3 +1680,211 @@ This keeps RBAC assertions strict, preserves real route precedence when implemen
 Each stage feeds the next. Ideas graduate to requirements. Requirements become specs. Specs go through a decision gate. Approved specs produce tests and plans. Code follows plans. Guides capture what you learn after shipping.
 
 **Why:** User request — structured pipeline from ideation to production. Ensures nothing ships without going through the full funnel. Maps 1:1 to existing docs/ folder structure.
+
+---
+
+# Backlog Decomposition Decision — E-CLAT
+
+> **Date:** 2026-03-16  
+> **Decision Owner:** Freamon (Lead)  
+> **Requested By:** Israel (Izzy)  
+> **Scope:** Entire E-CLAT backlog from specs, audits, requirements, and ideas
+
+## Context
+
+E-CLAT reached releases v0.1.0, v0.2.0, and v0.3.0 with zero GitHub issues. The repository had extensive documentation (18 source documents) but no actionable backlog for parallel squad work. This created bottlenecks:
+- No visibility into prioritized work
+- No squad-level ownership of features
+- No release planning or dependency tracking
+- No go/no-go gates on implementation-ready items
+
+## Decision
+
+Decomposed the full backlog into **51 GitHub issues** organized into **5 epics** across **4 releases** (v0.4.0, v0.5.0, v0.6.0, backlog).
+
+### Epic Structure
+
+1. **Compliance Hardening** (P0, v0.5.0, Pearlman) — Audit findings from proof-compliance-audit.md
+2. **Architecture Foundation** (P0, v0.5.0, Daniels) — Service boundaries, contracts, feature flags
+3. **Template UI Screens** (P1, v0.4.0, Kima) — Phase 3 Batch 2 (W-30 through W-38)
+4. **Pipeline & DevOps** (P1, v0.5.0, Daniels) — Parallel deployment, CI/CD separation
+5. **Bug Fixes & Stabilization** (P0, v0.4.0, Bunk) — Known issues blocking v0.4.0
+
+### Decomposition Rules
+
+| Rule | Rationale |
+|------|-----------|
+| **Epic-first creation** | Establish context before creating child issues |
+| **Pre-assign to squads** | Use spec ownership and domain expertise (Bunk=backend, Kima=frontend, Daniels=arch/DevOps, Pearlman=compliance, Sydnor=testing) |
+| **go:yes vs go:needs-research** | go:yes = clearly defined and implementable; go:needs-research = needs spike/design first |
+| **Document source in every issue** | Link to originating spec/req/idea doc for traceability |
+| **Cross-reference dependencies** | Use issue numbers (#6, #23, etc.) to track blocking relationships |
+| **All work captured** | Every backlog item from every source gets an issue (completeness over convenience) |
+
+### Issue Breakdown
+
+- **By Squad:** Bunk 16, Kima 13, Daniels 12, Pearlman 7, Freamon 3, Sydnor 1
+- **By Priority:** P0 14, P1 25, P2 13
+- **By Release:** v0.4.0 16, v0.5.0 19, v0.6.0 10, backlog 5
+- **By Go/No-Go:** go:yes 29, go:needs-research 22
+
+### Release Targeting Strategy
+
+| Release | Focus | Key Items |
+|---------|-------|-----------|
+| **v0.4.0** | Bugs + Template UI | Fix P0 bugs (#6-#8, #10), build 9 template screens (W-30 to W-38), Prisma migration |
+| **v0.5.0** | Architecture + Compliance | Shared contracts, repository layer, feature flags, attestation policy, expiration handling |
+| **v0.6.0** | Service Extraction | Reference/Notification extraction, issuer verification, evidence packages, preview envs |
+| **backlog** | Future Enhancements | Hour reconciliation, label taxonomy, AI document review, access/notifications |
+
+### Source Documents (18 total)
+
+**Specifications:**
+- proof-compliance-audit.md (Pearlman's audit)
+- service-architecture-spec.md (Daniels' SA-01 through SA-08)
+- feature-flags-spec.md
+- pipeline-architecture-spec.md
+- templates-attestation-spec.md (W-30 through W-38)
+
+**Requirements:**
+- attestation-policy-constraints.md
+- audit-trail-retention-and-revocation.md
+- feature-flag-requirements.md
+- parallel-deployment-requirements.md
+
+**Ideas:**
+- ui-menu-architecture.md
+- recertification-lifecycle.md
+- evidence-package-sharing.md
+- issuer-registry-integrations.md
+- document-uploads-ai-review.md
+- hour-capture-reconciliation.md
+- label-taxonomy-mapping.md
+- access-visibility-notifications.md
+
+**Known Bugs:**
+- Template validation errors (500 vs 400)
+- npm run lint failures
+- Prisma migration not applied
+- Deploy workflow output mismatch
+
+## Alternatives Considered
+
+### Option 1: Incremental Issue Creation
+Create issues only for immediate sprint work, backlog stays in docs.
+
+**Rejected:** No visibility into future work, no release planning, squads can't parallelize.
+
+### Option 2: Flat Issue List (No Epics)
+Create all 51 issues without epic organization.
+
+**Rejected:** Too hard to navigate, no thematic grouping, harder to track progress by domain.
+
+### Option 3: Separate Repos or Projects
+Use GitHub Projects or separate repos per service.
+
+**Rejected:** Premature for monorepo; adds coordination overhead before service extraction.
+
+## Consequences
+
+### Positive
+
+- **Squad parallelization:** Each squad has clear backlog, can work independently
+- **Release planning:** P0/P1/P2 + release tags enable sequencing decisions
+- **Dependency tracking:** Cross-references in issue bodies reveal blocking chains
+- **Go/no-go gates:** go:needs-research flags items needing design work before implementation
+- **Traceability:** Every issue links back to authoritative spec/req/idea doc
+- **Completeness:** Nothing from specs/audits/requirements is lost or forgotten
+
+### Negative / Risks
+
+- **51 issues may overwhelm:** Mitigation: Epics group thematically, release tags filter by horizon
+- **Pre-assignment may be wrong:** Mitigation: squad label is inbox; squad leads can reassign
+- **Dependencies may shift:** Mitigation: Issue bodies are editable; update as design evolves
+- **go:needs-research items block progress:** Mitigation: Prioritize spikes (#27, #49) to unblock
+
+## Next Actions
+
+1. **Squad leads** review assigned issues, refine acceptance criteria, estimate effort
+2. **Freamon** sequence P0 issues for v0.4.0 sprint (likely #6, #7, #8, #10)
+3. **Spikes prioritized:** #27 (API v1 namespace), #49 (admin shell decision)
+4. **Epics updated:** Add child issue links to epic bodies for tracking
+5. **Dependencies tracked:** Review cross-references, identify critical path
+
+## Validation Criteria
+
+- ✅ All backlog items from all 18 source documents have corresponding issues
+- ✅ All issues have: title, body (context/AC/source/deps), labels (type/priority/release/squad/go)
+- ✅ All issues pre-triaged to squads based on domain expertise
+- ✅ All issues cross-referenced where dependencies exist
+- ✅ Epics provide thematic organization and progress tracking
+- ✅ Release targets align with dependency chains and risk profiles
+
+## Related Artifacts
+
+- GitHub issues #1 through #51: https://github.com/ivegamsft/work-tracker/issues
+- Backlog summary: `.squad/decisions/inbox/backlog-summary.md` (temporary summary doc)
+- Freamon history: `.squad/agents/freamon/history.md` (updated with decomposition pattern)
+
+## Approval Status
+
+**Status:** Proposed (awaiting squad lead review)  
+**Approvers:** Freamon (decision owner), squad leads (validators)  
+**Effective Date:** 2026-03-16 (issues created)  
+**Review Date:** After v0.4.0 release (validate decomposition effectiveness)
+
+---
+
+# Daniels decisions — service architecture and parallel deployment
+
+## Context
+Izzy requested an audit of API/app architecture against Terraform and workflows, with a proposal that enables parallel subsystem development and faster independent deployments.
+
+## Decisions
+1. Treat the current backend as a **modular monolith with explicit future service boundaries**, not as a rewrite candidate.
+2. Use six logical backend service groups:
+   - Identity Platform (`auth`)
+   - Workforce Core (`employees`)
+   - Compliance Service (`qualifications`, `medical`, `templates`)
+   - Records Service (`documents`, `hours`)
+   - Reference Data (`standards`, `labels`)
+   - Notification Service (`notifications`)
+3. Keep `qualifications + medical + templates` co-located until shared contracts and query facades exist.
+4. Keep `documents + hours` co-located because they share ingestion, reconciliation, storage, and worker concerns.
+5. Move cross-domain aggregation out of CRUD services and into named query/facade layers (`ReadinessQueryService`, `NotificationDigestQueryService`, etc.).
+6. Add shared interface contracts under `packages/shared/src/contracts/*` before any runtime extraction.
+7. Introduce an MVP feature-flag system as repo-backed config plus environment overrides, with a client-safe bootstrap endpoint.
+8. Split CI/CD by subsystem before splitting runtimes; pipeline separation is the first speed multiplier.
+9. Preserve shared Terraform layers for `00-foundation` and `10-data`, but split compute by logical service group when extraction begins.
+10. Align workflow outputs and Terraform outputs immediately; current deploy flow references `api_app_name` while Terraform exposes `api_container_app_name`.
+
+## Backlog pushed from architecture review
+- Add shared contract files for workforce/compliance/records/reference/notifications/feature flags.
+- Add repository interfaces to remove direct Prisma coupling from services.
+- Add subsystem-aware path filters and promotion logic to CI/CD.
+- Add deploy target/module naming per backend service group.
+- Gate incomplete domains (hours, labels, escalation rules, route registry rollout) with feature flags.
+- Add an architecture test plan covering path filters, deploy isolation, menu visibility, and flag parity.
+---
+
+### 2026-03-16: Copilot branch convention and branch protection limit
+**By:** Daniels
+**Decision:** Keep `.github/copilot-instructions.md` as the primary memory file for `@copilot`. Use `copilot/{issue-number}-{slug}` as the preferred Copilot branch naming convention, but treat it as a documented repo standard for now because GitHub does not currently expose a repository setting to force that pattern.
+**Why:** Squad and Copilot issue routing both benefit from stable issue-numbered branches. During this update, both repository rulesets and classic branch protection APIs returned GitHub plan-limit 403s for the private `ivegamsft/work-tracker` repo, so server-side enforcement remains pending a repo upgrade or public visibility.
+
+---
+
+# Pearlman Proof Audit — Decision Intake
+
+## Proposed durable decisions
+
+1. **Keep the six top-level proof types.** Do not add a separate `medical` proof type; medical remains a `clearance` subtype.
+2. **Do not silently default legacy untyped requirements to `compliance`.** Published templates must be explicitly classified before they are treated as authoritative.
+3. **Treat expiration as historical evidence plus next-cycle work.** Expiration must not clear prior fulfillment evidence.
+4. **Require policy constraints for attestation combinations.** `clearance` cannot be L1-only, and Level 4 validation requires separation of duties.
+5. **Use evidence packages for external vault sharing.** Zero-knowledge vault content should not be exposed by raw share-link decryption.
+
+## Why this matters
+
+These decisions align the proof model with regulated-industry expectations for auditability, trust hierarchy, and controlled disclosure. They also reduce downstream churn by tightening terminology and lifecycle semantics before more UI/API work lands.
+
