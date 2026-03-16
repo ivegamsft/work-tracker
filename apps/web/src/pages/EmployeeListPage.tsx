@@ -3,13 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import '../styles/employee-list.css';
 
+interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+interface EmployeeRecord {
+  id: string;
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  departmentId: string;
+  isActive: boolean;
+}
+
 interface Employee {
   id: string;
   email: string;
   name: string;
   department: string;
   role: string;
-  overallStatus: 'compliant' | 'at_risk' | 'non_compliant';
+  isActive: boolean;
+}
+
+function isForbiddenError(error: unknown): error is { status: number } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    (error as { status?: unknown }).status === 403
+  );
 }
 
 export default function EmployeeListPage() {
@@ -25,11 +52,23 @@ export default function EmployeeListPage() {
   useEffect(() => {
     async function fetchEmployees() {
       try {
-        const data = await api.get<Employee[]>('/employees');
-        setEmployees(data);
-        setFilteredEmployees(data);
+        const response = await api.get<PaginatedResponse<EmployeeRecord>>('/employees');
+        const mapped: Employee[] = response.data.map((employee) => ({
+          id: employee.id,
+          email: employee.email,
+          name: `${employee.firstName} ${employee.lastName}`,
+          department: employee.departmentId,
+          role: employee.role,
+          isActive: employee.isActive,
+        }));
+        setEmployees(mapped);
+        setFilteredEmployees(mapped);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load employees');
+        if (isForbiddenError(err)) {
+          setError("You don't have permission to view employees");
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load employees');
+        }
       } finally {
         setLoading(false);
       }
@@ -41,10 +80,10 @@ export default function EmployeeListPage() {
   useEffect(() => {
     const query = searchQuery.toLowerCase();
     const filtered = employees.filter(
-      (emp) =>
-        emp.name.toLowerCase().includes(query) ||
-        emp.email.toLowerCase().includes(query) ||
-        emp.department.toLowerCase().includes(query),
+      (employee) =>
+        employee.name.toLowerCase().includes(query) ||
+        employee.email.toLowerCase().includes(query) ||
+        employee.department.toLowerCase().includes(query),
     );
     setFilteredEmployees(filtered);
     setCurrentPage(1);
@@ -54,22 +93,12 @@ export default function EmployeeListPage() {
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedEmployees = filteredEmployees.slice(startIndex, startIndex + pageSize);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'compliant': return 'status-compliant';
-      case 'at_risk': return 'status-at-risk';
-      case 'non_compliant': return 'status-non-compliant';
-      default: return '';
-    }
+  const getStatusClass = (isActive: boolean) => {
+    return isActive ? 'status-compliant' : 'status-non-compliant';
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'compliant': return 'Compliant';
-      case 'at_risk': return 'At Risk';
-      case 'non_compliant': return 'Non-Compliant';
-      default: return status;
-    }
+  const getStatusLabel = (isActive: boolean) => {
+    return isActive ? 'Active' : 'Inactive';
   };
 
   if (loading) {
@@ -77,7 +106,7 @@ export default function EmployeeListPage() {
   }
 
   if (error) {
-    return <div className="error">Error: {error}</div>;
+    return <div className="error">{error}</div>;
   }
 
   return (
@@ -119,8 +148,8 @@ export default function EmployeeListPage() {
               <td>{employee.department}</td>
               <td>{employee.role}</td>
               <td>
-                <span className={`status-badge ${getStatusClass(employee.overallStatus)}`}>
-                  {getStatusLabel(employee.overallStatus)}
+                <span className={`status-badge ${getStatusClass(employee.isActive)}`}>
+                  {getStatusLabel(employee.isActive)}
                 </span>
               </td>
             </tr>
@@ -131,7 +160,7 @@ export default function EmployeeListPage() {
       {totalPages > 1 && (
         <div className="pagination">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
             disabled={currentPage === 1}
           >
             Previous
@@ -140,7 +169,7 @@ export default function EmployeeListPage() {
             Page {currentPage} of {totalPages}
           </span>
           <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
             disabled={currentPage === totalPages}
           >
             Next

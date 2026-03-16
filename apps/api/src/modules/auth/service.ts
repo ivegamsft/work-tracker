@@ -30,7 +30,8 @@ interface MockAuthUser extends AuthTokenUser {
 }
 
 const MOCK_USER_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
-const MOCK_PASSWORD_HASH = "$2b$10$ZjJCuZWxfaG9NT8p6R6iV.7yMWy.kHequ/VpRsnTk/zp4ZkbdCPdi";
+// Password123! — matches test expectations
+const MOCK_PASSWORD_HASH = "$2b$10$ZXFw0QtD.9bPiT.5dvv10e94YbLeopla0m5ElRoSL/9pK3B0.iHm6";
 
 const mockUsers: MockAuthUser[] = [
   { id: uuidv5("employee@example.com", MOCK_USER_NAMESPACE), email: "employee@example.com", role: Roles.EMPLOYEE, passwordHash: MOCK_PASSWORD_HASH },

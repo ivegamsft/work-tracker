@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import LoginPage from '../LoginPage';
 import { AuthProvider } from '../../contexts/AuthContext';
 
+function createToken(payload: Record<string, string>) {
+  return `header.${btoa(JSON.stringify(payload))}.signature`;
+}
+
 // Mock the API
 vi.mock('../../api/client', () => ({
   api: {
@@ -42,6 +46,38 @@ describe('LoginPage', () => {
     const submitButton = screen.getByRole('button', { name: /login/i });
     expect(submitButton).toBeInTheDocument();
     expect(submitButton).toHaveAttribute('type', 'submit');
+  });
+
+  it('stores the decoded user after successful login', async () => {
+    const { api } = await import('../../api/client');
+    const mockPost = vi.mocked(api.post);
+
+    mockPost.mockResolvedValueOnce({
+      accessToken: createToken({
+        id: 'user-123',
+        email: 'test@example.com',
+        role: 'admin',
+      }),
+      refreshToken: 'refresh-token',
+      expiresIn: 3600,
+    });
+
+    const user = userEvent.setup();
+    render(<MockedLoginPage />);
+
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(localStorage.getItem('token')).toContain('header.');
+      expect(JSON.parse(localStorage.getItem('user') ?? '{}')).toEqual({
+        id: 'user-123',
+        email: 'test@example.com',
+        name: 'test',
+        role: 'admin',
+      });
+    });
   });
 
   it('shows error message on failed login', async () => {

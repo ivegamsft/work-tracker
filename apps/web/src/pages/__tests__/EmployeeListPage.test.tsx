@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import EmployeeListPage from '../EmployeeListPage';
 
-// Mock the API
 vi.mock('../../api/client', () => ({
   api: {
     get: vi.fn(),
@@ -17,32 +16,45 @@ const MockedEmployeeListPage = () => (
   </BrowserRouter>
 );
 
-const mockEmployees = [
+const mockEmployeeRecords = [
   {
     id: '1',
-    name: 'John Doe',
+    employeeNumber: 'E001',
+    firstName: 'John',
+    lastName: 'Doe',
     email: 'john@example.com',
-    department: 'Engineering',
+    departmentId: 'Engineering',
     role: 'Developer',
-    overallStatus: 'compliant' as const,
+    isActive: true,
   },
   {
     id: '2',
-    name: 'Jane Smith',
+    employeeNumber: 'E002',
+    firstName: 'Jane',
+    lastName: 'Smith',
     email: 'jane@example.com',
-    department: 'Marketing',
+    departmentId: 'Marketing',
     role: 'Manager',
-    overallStatus: 'at_risk' as const,
+    isActive: false,
   },
   {
     id: '3',
-    name: 'Bob Johnson',
+    employeeNumber: 'E003',
+    firstName: 'Bob',
+    lastName: 'Johnson',
     email: 'bob@example.com',
-    department: 'Engineering',
+    departmentId: 'Engineering',
     role: 'Senior Developer',
-    overallStatus: 'non_compliant' as const,
+    isActive: true,
   },
 ];
+
+const mockPaginatedResponse = {
+  data: mockEmployeeRecords,
+  total: 3,
+  page: 1,
+  limit: 20,
+};
 
 describe('EmployeeListPage', () => {
   beforeEach(() => {
@@ -52,10 +64,8 @@ describe('EmployeeListPage', () => {
   it('renders loading state initially', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    // Keep the promise pending
-    mockGet.mockImplementation(() => new Promise(() => {}));
 
+    mockGet.mockImplementation(() => new Promise(() => {}));
     render(<MockedEmployeeListPage />);
 
     expect(screen.getByText(/loading employees.../i)).toBeInTheDocument();
@@ -64,9 +74,8 @@ describe('EmployeeListPage', () => {
   it('renders employee table after data loads', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    mockGet.mockResolvedValueOnce(mockEmployees);
 
+    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
     render(<MockedEmployeeListPage />);
 
     await waitFor(() => {
@@ -76,17 +85,15 @@ describe('EmployeeListPage', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
     expect(screen.getAllByText('Engineering')).toHaveLength(2);
-    expect(screen.getByText('Compliant')).toBeInTheDocument();
-    expect(screen.getByText('At Risk')).toBeInTheDocument();
-    expect(screen.getByText('Non-Compliant')).toBeInTheDocument();
+    expect(screen.getAllByText('Active')).toHaveLength(2);
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
 
   it('has search input', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    mockGet.mockResolvedValueOnce(mockEmployees);
 
+    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
     render(<MockedEmployeeListPage />);
 
     await waitFor(() => {
@@ -100,8 +107,8 @@ describe('EmployeeListPage', () => {
   it('filters employees by search query', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    mockGet.mockResolvedValueOnce(mockEmployees);
+
+    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
 
     const user = userEvent.setup();
     render(<MockedEmployeeListPage />);
@@ -111,7 +118,7 @@ describe('EmployeeListPage', () => {
     });
 
     const searchInput = screen.getByPlaceholderText(/search by name, email, or department/i);
-    
+
     await user.type(searchInput, 'john');
 
     await waitFor(() => {
@@ -123,9 +130,8 @@ describe('EmployeeListPage', () => {
   it('displays employee count', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    mockGet.mockResolvedValueOnce(mockEmployees);
 
+    mockGet.mockResolvedValueOnce(mockPaginatedResponse);
     render(<MockedEmployeeListPage />);
 
     await waitFor(() => {
@@ -133,16 +139,27 @@ describe('EmployeeListPage', () => {
     });
   });
 
-  it('shows error message when fetch fails', async () => {
+  it('shows a permission message when the API returns 403', async () => {
     const { api } = await import('../../api/client');
     const mockGet = vi.mocked(api.get);
-    
-    mockGet.mockRejectedValueOnce(new Error('Failed to fetch'));
 
+    mockGet.mockRejectedValueOnce({ message: 'Forbidden', status: 403 });
     render(<MockedEmployeeListPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/error: failed to fetch/i)).toBeInTheDocument();
+      expect(screen.getByText(/you don't have permission to view employees/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows the fetch error message for non-permission failures', async () => {
+    const { api } = await import('../../api/client');
+    const mockGet = vi.mocked(api.get);
+
+    mockGet.mockRejectedValueOnce(new Error('Failed to fetch'));
+    render(<MockedEmployeeListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();
     });
   });
 });

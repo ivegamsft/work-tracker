@@ -4,8 +4,30 @@
 > **Owner:** Freamon (Lead / Architect)  
 > **Last Updated:** 2026-03-17  
 > **Applies To:** `apps/web` (employee/manager SPA), `apps/admin` (admin SPA), all API modules  
+> **Source PRD:** [`docs/prds/eclat-spec.md`](../prds/eclat-spec.md) — Product north star. This spec is the implementation authority.  
 > **Companion Docs:** [RBAC API Spec](./rbac-api-spec.md) · [Entra Auth Design](./entra-auth-design.md)  
 > **Triggered By:** User feedback — "this screen is really confusing. no quick actions. employees should be trimmed. what is the directory?"
+>
+> ### Terminology Mapping (PRD → Implementation)
+>
+> | PRD Term | Implementation Term | Notes |
+> |----------|-------------------|-------|
+> | Certifications | Qualifications | API module: `qualifications`, Prisma model: `Qualification` |
+> | Clearance / Medical Clearance | Medical | API module: `medical`, Prisma model: `MedicalClearance` |
+> | Manager (PRD role) | Supervisor + Manager | PRD's single "Manager" role maps to our Supervisor (team lead, Level 1) + Manager (department ops, Level 2). See §1.4. |
+> | Standard Framework | Standard | API module: `standards`, Prisma model: `Standard` |
+> | Compliance Officer | Compliance Officer | Same; internal value: `compliance_officer` |
+>
+> ### Role Mapping: PRD (4 roles) → Implementation (5 roles)
+>
+> The PRD defines 4 roles: Employee, Manager, Compliance Officer, Admin. Our implementation uses 5 roles by splitting the PRD's "Manager" into two tiers:
+>
+> | PRD Role | Implementation Role(s) | Rationale |
+> |----------|----------------------|-----------|
+> | Employee | Employee (Level 0) | 1:1 mapping |
+> | Manager | **Supervisor (Level 1)** + **Manager (Level 2)** | Regulated industries need a team-lead tier that can manage qualifications/medical but cannot approve documents or resolve conflicts. The Supervisor handles day-to-day team oversight; the Manager handles department-wide operations. |
+> | Compliance Officer | Compliance Officer (Level 3) | 1:1 mapping |
+> | Admin | Admin (Level 4) | 1:1 mapping |
 
 ---
 
@@ -19,7 +41,8 @@
 6. [Employee Role UX — Special Focus](#6-employee-role-ux--special-focus)
 7. [Role-Specific Dashboard Widgets](#7-role-specific-dashboard-widgets)
 8. [RBAC Master Cross-Reference](#8-rbac-master-cross-reference)
-9. [Implementation Notes for Kima & Bunk](#9-implementation-notes-for-kima--bunk)
+9. [PRD Coverage Analysis](#9-prd-coverage-analysis)
+10. [Implementation Notes for Kima & Bunk](#10-implementation-notes-for-kima--bunk)
 
 ---
 
@@ -540,7 +563,7 @@ Legend: ✅ = can do | ❌ = hidden/no access | 👁️ = read-only | 🔒 = vis
 | Click document | `GET /api/documents/:id` | Document detail |
 | View extraction | `GET /api/documents/:id/extraction` | Extraction fields |
 
-> **⚠️ Gap:** There is no `GET /api/documents/employee/:employeeId` endpoint. Either add one, or the frontend uses the user's own ID context from the auth token + a filtered general endpoint. **Recommendation: Add `GET /api/documents/employee/:employeeId`** to match the qualifications and medical patterns. See [Section 9](#9-implementation-notes-for-kima--bunk).
+> **⚠️ Gap:** There is no `GET /api/documents/employee/:employeeId` endpoint. Either add one, or the frontend uses the user's own ID context from the auth token + a filtered general endpoint. **Recommendation: Add `GET /api/documents/employee/:employeeId`** to match the qualifications and medical patterns. See [Section 10](#10-implementation-notes-for-kima--bunk).
 
 ### W-07: My Hours
 
@@ -656,7 +679,7 @@ Legend: ✅ = can do | ❌ = hidden/no access | 👁️ = read-only | 🔒 = vis
 | For each employee | `GET /api/employees/:id/readiness` | Readiness status |
 | Export report | (needs new endpoint or client-side aggregation) | Compliance report data |
 
-> **⚠️ Gap:** No dedicated compliance report endpoint exists. For MVP, the frontend can aggregate readiness data client-side. Post-MVP, add `GET /api/reports/compliance` as a dedicated endpoint. See [Section 9](#9-implementation-notes-for-kima--bunk).
+> **⚠️ Gap:** No dedicated compliance report endpoint exists. For MVP, the frontend can aggregate readiness data client-side. Post-MVP, add `GET /api/reports/compliance` as a dedicated endpoint. See [Section 10](#10-implementation-notes-for-kima--bunk).
 
 ### W-20/W-21: Standards Reference / Detail
 
@@ -911,7 +934,7 @@ Login
 | `DW-10` | `GET /api/employees` (CO: all) + readiness aggregation | Cross-department |
 | `DW-11` | Derived from DW-10 data | Filter to at_risk + non_compliant |
 
-> **⚠️ Performance Note:** Widgets DW-06, DW-07, and DW-10 require N+1 API calls (one per employee for readiness). For MVP, this is acceptable with small team sizes. Post-MVP, add a batch readiness endpoint: `GET /api/employees/readiness?scope=team|department|org`. See [Section 9](#9-implementation-notes-for-kima--bunk).
+> **⚠️ Performance Note:** Widgets DW-06, DW-07, and DW-10 require N+1 API calls (one per employee for readiness). For MVP, this is acceptable with small team sizes. Post-MVP, add a batch readiness endpoint: `GET /api/employees/readiness?scope=team|department|org`. See [Section 10](#10-implementation-notes-for-kima--bunk).
 
 ---
 
@@ -972,7 +995,7 @@ This is the single authoritative table mapping Screen × Role × API × Permissi
 | Compliance Overview | `GET /employees` (all), readiness aggregation | `employees:read`(org), `employees:readiness`(org), `export:reports` | Org |
 | Standards Reference | `GET /standards`, `GET /standards/:id`, `GET /standards/:id/requirements` | `standards:read` | All (global) |
 
-> † Endpoint `GET /api/documents/employee/:employeeId` does not yet exist — see [Section 9](#9-implementation-notes-for-kima--bunk).
+> † Endpoint `GET /api/documents/employee/:employeeId` does not yet exist — see [Section 10](#10-implementation-notes-for-kima--bunk).
 
 ### 8.3 Route Guard Configuration
 
@@ -1020,9 +1043,69 @@ const routes = [
 
 ---
 
-## 9. Implementation Notes for Kima & Bunk
+## 9. PRD Coverage Analysis
 
-### 9.1 API Gaps to Address (Bunk)
+> Cross-reference with [Source PRD](../prds/eclat-spec.md). This section documents which PRD screens and features are covered, deferred, or intentionally omitted.
+
+### 9.1 PRD Screens → App-Spec Coverage
+
+#### Employee Self-Service (PRD §3.1)
+
+| PRD Screen | App-Spec Screen | Status | Notes |
+|-----------|----------------|--------|-------|
+| 1.1 Dashboard | W-02 Dashboard | ✅ Covered | Role-adaptive; exceeds PRD spec |
+| 1.2 My Certifications | W-04 My Qualifications | ✅ Covered | PRD allows employee cert upload; we restrict self-creation (Supervisor+ only). Employees can upload *documents* (W-06) which enter the review queue. |
+| 1.3 My Hours | W-07 My Hours | ✅ Covered | Clock in/out, manual entry, calendar sync |
+| 1.4 My Requirements | W-15 Compliance Check + W-20/W-21 Standards | ⚠️ Partial | PRD has a standalone "My Requirements" screen showing per-requirement status. We have Standards Reference (read-only) and per-employee Compliance Check (Supervisor+). **Gap:** Employee cannot self-serve their own compliance status against a standard. Consider adding a self-service variant of W-15 at `/me/compliance` in Phase 2. |
+| 1.5 Medical Clearance Status | W-05 My Medical | ✅ Covered | |
+| 1.6 Notifications | W-08 My Notifications | ✅ Covered | |
+
+#### Manager/Supervisor (PRD §3.2)
+
+| PRD Screen | App-Spec Screen | Status | Notes |
+|-----------|----------------|--------|-------|
+| 2.1 Team Dashboard | W-02 Dashboard (Supervisor/Manager view) | ✅ Covered | Role-adaptive dashboard with team/dept widgets |
+| 2.2 Employee Profile (Manager View) | W-10 Employee Detail + W-11 through W-14 | ✅ Covered | Tab-based sub-navigation covers all data categories |
+| 2.3 Certifications Approval Queue | W-16 Document Review Queue | ⚠️ Redirected | PRD treats cert approvals separately; our architecture routes cert documents through the general Document Review Queue. **Approval workflow for qualifications entered manually (not via document upload) is not yet covered — deferred.** |
+| 2.4 Hours Verification | W-18 Hour Conflicts | ⚠️ Partial | PRD has explicit approve/reject for manual hours. Our W-18 covers conflict resolution but **we lack dedicated hours approve/reject endpoints and a standalone hours approval screen. Deferred: needs `POST /api/hours/:id/approve` and `POST /api/hours/:id/reject` endpoints.** |
+| 2.5 Requirements & Gaps | W-15 Compliance Check | ⚠️ Partial | PRD shows team-wide gaps view; W-15 is per-employee. The Team Directory (W-09) shows readiness column which partially covers this. **Gap: no dedicated team gaps view. Consider adding a batch compliance gaps screen in Phase 2.** |
+| 2.6 Escalations & Alerts | W-08 Notifications (Supervisor+ view) | ⚠️ Partial | PRD has a dedicated escalations screen with resolve/snooze/escalate actions. **Our notifications screen covers escalation viewing but lacks escalation management actions. Deferred to Phase 2.** |
+| 2.7 Reports | W-19 Compliance Overview | ⚠️ Partial | PRD's Manager reports (PDF export, cert status, hours summary, audit trail) are partially covered by W-19 (CO+). **Manager-scoped reports not yet available. Deferred: needs Reports API module.** |
+
+#### Compliance/Auditor (PRD §3.3)
+
+| PRD Screen | App-Spec Screen | Status | Notes |
+|-----------|----------------|--------|-------|
+| 3.1 Organization Dashboard | W-19 Compliance Overview | ✅ Covered | |
+| 3.2 Employee Directory & Bulk Search | W-09 Team Directory (CO view: org-wide) | ✅ Covered | CO sees all employees; advanced filters are implementation details |
+| 3.3 Compliance Audit View | — | ❌ Not covered | PRD has a dedicated audit trail screen with search, change log, and approval chain visibility. **Deferred: needs dedicated audit screen + `GET /api/audit/trail` endpoint. Phase 2+.** |
+| 3.4 Standards Configuration | A-05/A-06 Standards Management | ✅ Covered | In `apps/admin` |
+| 3.5 Reports & Analytics | W-19 Compliance Overview (partial) | ⚠️ Partial | PRD has expiration forecast, hours trend analysis, readiness timeline, full export. **W-19 covers basic metrics + export. Advanced analytics deferred to Phase 3.** |
+| 3.6 Document Processing Configuration | — | ❌ Not covered | AI/OCR configuration screen. **Deferred: AI document processing is Phase 2+ per MVP scope.** |
+| 3.7 User & Role Management | `apps/admin` (A-03/A-04 + future) | ⚠️ Partial | Employee CRUD exists in admin. User account management + role assignment not yet in admin screen inventory. |
+
+### 9.2 PRD Approval Workflows → Implementation Status
+
+| PRD Workflow | API Support | Screen Support | Status |
+|-------------|------------|----------------|--------|
+| Hours approve/reject (§4.3) | ❌ No `POST /hours/approve/:id` or `POST /hours/reject/:id` | ❌ No approval screen | **Deferred.** Our architecture uses conflict resolution (W-18) rather than per-entry approval. PRD's approve/reject model may be needed for manual entries. |
+| Certifications approve/reject (§4.4) | ❌ No `POST /qualifications/approve/:id` or `POST /qualifications/reject/:id` | ❌ No qualification approval screen | **Deferred.** Document-based certs go through Document Review (W-16/W-17). Manual qualification entry by Supervisor+ bypasses approval. |
+| Document approve/reject (§4.10) | ✅ `POST /api/documents/:id/review` | ✅ W-16/W-17 Document Review | **Covered.** |
+
+### 9.3 PRD API Modules Not Yet Implemented
+
+| PRD API Section | Our Status | Notes |
+|----------------|-----------|-------|
+| §4.7 Compliance & Readiness | ⚠️ Partial | Readiness via `GET /api/employees/:id/readiness`. No dedicated compliance module. Gaps, forecast, batch check, audit trail endpoints deferred. |
+| §4.9 Reports | ❌ Not implemented | No reports module. W-19 uses client-side aggregation. Reports API deferred to Phase 2+. |
+| §4.11 Integration Endpoints | ❌ Not implemented | OAuth calendar, payroll import, scheduling sync. Deferred to Phase 2+ per MVP scope. |
+| §4.12 Admin & Configuration | ⚠️ Partial | User management not yet in API. Standards config exists. Notification rules are admin-only endpoint. Custom framework config deferred. |
+
+---
+
+## 10. Implementation Notes for Kima & Bunk
+
+### 10.1 API Gaps to Address (Bunk)
 
 | Gap | Priority | Description | Recommended Endpoint |
 |-----|----------|-------------|---------------------|
@@ -1030,7 +1113,7 @@ const routes = [
 | **Batch readiness** | P1 | Dashboard widgets require N+1 calls for team/dept readiness. OK for MVP but will not scale. | `GET /api/employees/readiness/summary?scope=team|department|org` — returns aggregate counts by status |
 | **Compliance report** | P2 | No report generation endpoint. CO Overview page needs aggregated data. | `GET /api/reports/compliance?format=json|csv` — CO+ only |
 
-### 9.2 Frontend Architecture Changes (Kima)
+### 10.2 Frontend Architecture Changes (Kima)
 
 1. **Route restructure:** Rename `/employees` → `/team`, add `/me/*` routes, add role-gated routes.
 2. **Layout refactor:** Make sidebar dynamic based on `user.role`. Use the nav structure from [Section 5.1](#51-sidebar-navigation-by-role).
@@ -1039,7 +1122,7 @@ const routes = [
 5. **PermissionGate component:** Implement per [RBAC API Spec §7.4](./rbac-api-spec.md) for conditional rendering of actions.
 6. **Tab navigation:** Add horizontal tab bars for `/me/*` and `/team/:id/*` sub-navigation.
 
-### 9.3 Implementation Order
+### 10.3 Implementation Order
 
 | Phase | Screens | Dependencies |
 |-------|---------|-------------|
@@ -1049,7 +1132,7 @@ const routes = [
 | **Phase 4: Compliance & Standards** | W-19, W-20, W-21 | Phase 2 complete (can parallel with Phase 3) |
 | **Phase 5: Admin App** | A-01 through A-09 | Core API implementations complete |
 
-### 9.4 Key Design Decisions in This Spec
+### 10.4 Key Design Decisions in This Spec
 
 1. **No "Employees" nav for employees.** The employee directory is renamed "Team" and hidden from the Employee role entirely.
 2. **Self-service cannot create compliance records.** Qualifications and medical clearances are managed by Supervisors+ — employees can only view their own. This is a deliberate choice for regulated industries.

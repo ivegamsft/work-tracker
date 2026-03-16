@@ -9,6 +9,18 @@ interface User {
   role: string;
 }
 
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+interface JwtPayload {
+  id: string;
+  email: string;
+  role: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
@@ -18,6 +30,24 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function decodeUserFromToken(token: string): User {
+  const [, payload] = token.split('.');
+
+  if (!payload) {
+    throw new Error('Invalid token');
+  }
+
+  const decodedPayload = JSON.parse(atob(payload)) as JwtPayload;
+  const emailPrefix = decodedPayload.email.split('@')[0] || decodedPayload.email;
+
+  return {
+    id: decodedPayload.id,
+    email: decodedPayload.email,
+    name: emailPrefix,
+    role: decodedPayload.role,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -40,14 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await api.post<{ token: string; user: User }>(
-      '/auth/login',
-      { email, password },
-    );
+    const response = await api.post<LoginResponse>('/auth/login', {
+      email,
+      password,
+    });
+    const user = decodeUserFromToken(response.accessToken);
 
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    setUser(response.user);
+    localStorage.setItem('token', response.accessToken);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
     navigate('/');
   };
 
