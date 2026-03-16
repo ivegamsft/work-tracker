@@ -6,6 +6,68 @@
 
 ---
 
+## Template UI Architecture (2026-03-19)
+
+### Template Screen Architecture Pattern
+
+**Decision:** Delivered 6 template UI screens following the My section pattern with reusable components, feature gates, and RBAC guards.
+
+**Context:**
+- Issue #34 required proof template workflows: browse, detail, create/edit, bulk assign, fulfillment tracking, feature-gate fallback
+- Frontend needed consistent styling and component patterns
+
+**Implementation:**
+1. All 6 pages follow the My section pattern (cards, inline forms, PageShell breadcrumbs)
+2. Reusable components extracted: `TemplateStatusBadge`, `TemplateRequirementPanel`, `templateUtils`
+3. All routes wrapped in `FeatureGate` + RBAC guards (`minRole`)
+4. Styling in dedicated `template-screens.css` with responsive grids and sticky panels
+5. Types defined in `apps/web/src/types/templates.ts` (mirrors API DTOs)
+6. Template editing is draft-only (status checks before save)
+
+**Key Patterns:**
+- **Library filtering:** Client-side search + proof type + category filters (no pagination needed for <100 templates)
+- **Bulk assignment:** Employee selection with search, preview panel, due date picker
+- **Fulfillment tracking:** Draft progress saved to localStorage, evidence uploads via document API
+- **RBAC layering:** Detail page shows different actions based on role (employees see "assign to me", supervisors see "open assign flow", managers see "edit template")
+
+**Component Reuse:**
+- `TemplateRequirementPanel` accepts optional `badge`, `meta`, `children` slots for different contexts (detail, editor, fulfillment)
+- `templateUtils` centralizes status badge logic, proof type formatting, requirement sorting, completion calculation
+
+**Rationale:**
+- **Consistency:** Following My section pattern reduces cognitive load for users and maintainers
+- **Performance:** Template counts are low (<100), so client-side filtering is simpler than server pagination
+- **RBAC clarity:** Feature gate + minRole guards keep routes declarative; role-specific UI logic in components
+- **Extensibility:** Reusable components make it easy to add template cards in dashboard or team pages later
+- **Offline drafts:** localStorage for fulfillment progress lets employees work offline and submit when ready
+
+**Alternatives Considered:**
+1. **Server-side filtering:** Not needed yet; client-side is faster and simpler
+2. **Modal editor:** Rejected to stay consistent with inline forms in My section
+3. **Wizard flow:** Considered for assignment, but preview panel + bulk actions is more efficient
+
+**Impact:**
+- **Frontend:** +2210 lines (6 pages, 3 components, 1 stylesheet, 1 types file)
+- **Routing:** 6 new routes in App.tsx (all feature-gated)
+- **RBAC:** Manager+ for edit, supervisor+ for assign/bulk actions, employee for view/fulfill
+- **Dependencies:** None (uses existing API client, PageShell, FeatureGate, ProtectedRoute)
+
+**Validation:**
+- ✓ All 6 pages TypeScript passing
+- ✓ Feature gates gating access correctly
+- ✓ localStorage fulfillment draft works offline
+- ✓ RBAC role-specific UI renders correctly
+
+**Follow-up:**
+- Add template cards to Dashboard "My Assignments" widget (W-38)
+- Wire TemplateFulfillmentPage to actual document upload API when available
+- Consider pagination if template library grows >100 items
+
+**Branch:** `squad/kima/template-ui-screens` (commit c34e5e1)  
+**Issue:** [#34](https://github.com/ivegamsft/work-tracker/issues/34)
+
+---
+
 ## Phase 2 Route Taxonomy & My Section UI (2026-03-16)
 
 ### Frontend Normalization of API Response Shapes (2026-03-16)

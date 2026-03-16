@@ -70,6 +70,27 @@
 - Updated active web route references in `apps/web/src/components/Layout.tsx`, `apps/web/src/pages/DashboardPage.tsx`, `apps/web/src/pages/TeamDirectoryPage.tsx`, `apps/web/src/pages/TeamMemberDetailPage.tsx`; root `package.json` build/typecheck now include `@e-clat/web` for repo-level validation.
 - 2026-03-16: Hours now uses Prisma-backed clock-in/out, manual entry, import conflict creation, soft deletes, and audit-log lookup in `apps/api/src/modules/hours/service.ts`; documents gained paginated employee listing plus self-or-supervisor access at `GET /api/documents/employee/:employeeId`.
 - 2026-03-18: Added proof templates/assignments/fulfillments backend module with RBAC enforcement, status computation, and new Prisma models/relations; mounted `/api/templates`, `/api/assignments`, `/api/fulfillments`, and employee assignment listing routes.
+- 2026-03-19: Implemented attestation policy constraints (issue #30) with policy matrix in `apps/api/src/modules/templates/policies.ts`. Enforcement includes: proof-type-specific allowed attestation levels, separation of duties (validator cannot validate own proof), mandatory validator notes on approvals, and prohibition of self-attest-only for regulated proof types. Clearances require third-party + validated attestation; assessments and compliance require validated attestation. Policy enforcement integrated into Zod validators and service layer.
+
+## 📌 Team Update (2026-03-16T165500Z — Parallel Delivery Batch)
+
+**Bunk's Compliance Policy Enforcement (Issue #30):**
+- Attestation policy matrix live: proof-type-specific allowed levels, separation of duties, mandatory validator notes
+- Service integration: Policy enforced in Zod validators and service layer
+- Impact on Frontend: MyFulfillment should show validation blocks for regulated proof types; Kima can use validator.notes in UI hints
+- Branch: squad/bunk/compliance-query-services
+
+**Kima's Template UI Screens:**
+- 6 screens (2210+ lines) delivered with RBAC + feature gates
+- Architecture decision merged: My section pattern, reusable components, client-side filtering, localStorage drafts
+- Impact on Bunk: ProofFulfillment service integration points clarified; template endpoint consumption validated
+- Branch: squad/kima/template-ui-screens (commit c34e5e1)
+
+**Daniels' CI/CD & Infrastructure:**
+- Parallel CI lanes with change detection (#36); reduced feedback cycle for isolated module changes
+- Terraform layer 30 scaffolded for multi-service promotion (#37)
+- Impact on Bunk: API tests run in isolation; faster turnaround on backend changes
+- Branches: squad/daniels/terraform-stubs-ci-lanes
 
 ## 📌 Team Update (2026-03-16T073200Z — Freamon's Backlog Decomposition)
 

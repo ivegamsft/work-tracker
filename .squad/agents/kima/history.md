@@ -131,3 +131,24 @@ This affects all squad planning and copilot context:
 - Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
 
 Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n
+
+## 📌 Team Update (2026-03-16T165500Z — Template UI Delivery)
+
+**Kima's Template UI Screens (6 screens, 2210+ lines):**
+- Browse/search templates with RBAC + feature gates
+- Detail view, create/edit, bulk assign, fulfillment tracking
+- Decision merged: Template UI Architecture pattern (My section cards, reusable components, client-side filtering, localStorage drafts)
+- Impact on Kima: ProofList integration points established; template cards ready for dashboard widgets (W-38)
+- Branch: squad/kima/template-ui-screens (commit c34e5e1)
+
+**Bunk's Compliance Policy Enforcement (Issue #30):**
+- Attestation policy matrix: proof-type-specific allowed levels, separation of duties, mandatory validator notes
+- Self-attest prohibition for regulated proofs; clearances require third-party + validated
+- Impact on Kima: Frontend fulfillment form should display policy hints for regulated proof types
+- Branch: squad/bunk/compliance-query-services
+
+**Daniels' Parallel CI + Terraform Layer 30:**
+- 8 parallel CI lanes with change detection; reduced feedback cycle for frontend-only changes
+- Terraform 30-promotion layer scaffolded for multi-service artifact promotion
+- Impact on Kima: Faster build feedback for web-only changes
+- Branches: squad/daniels/terraform-stubs-ci-lanes

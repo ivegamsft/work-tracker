@@ -42,3 +42,16 @@
 - `.github/copilot-instructions.md` is the primary memory file for `@copilot` and now carries the authoritative repo context for modules, compliance guardrails, docs pipeline, and infrastructure expectations.
 - Preferred `@copilot` branch naming is `copilot/{issue-number}-{slug}`, but GitHub does not yet expose a dedicated repository setting to force that pattern.
 - Key architecture and governance files for this update: `.github/copilot-instructions.md`, `.github/agents/squad.agent.md`, `docs/README.md`, `apps/api/src/modules/templates/`, `data/prisma/schema.prisma`, `.github/workflows/ci.yml`.
+
+## 📌 Team Update (2026-03-16T165500Z — Parallel Delivery Batch)
+
+**Daniels' CI/CD & Infrastructure:**
+- Parallel CI lanes with change detection (#36): 8 lanes with granular routing by subsystem; reduced feedback cycle for frontend-only changes (skip API/docker builds)
+- Terraform layer 30 scaffolded (#37): Promotion policies (canary, rolling, blue-green) templated; container registry integration points defined; ready for modular service deployments
+- Impact on Squad: Faster pipeline feedback; foundation laid for independent service rollouts; architecture supports team scaling
+- Branches: squad/daniels/terraform-stubs-ci-lanes
+
+**Kima's Template UI + Bunk's Compliance:**
+- 6 template UI screens delivered (2210+ lines) with RBAC + feature gates; decision merged to squad/decisions.md
+- Attestation policy matrix enforced (issue #30): proof-type-specific levels, separation of duties, mandatory validator notes
+- Cross-impact: Kima's fulfillment form should show validation blocks for regulated types; Bunk's policy gates template validation
