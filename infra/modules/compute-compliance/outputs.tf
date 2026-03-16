@@ -1,14 +1,14 @@
 output "service_name" {
-  description = "Logical service name for the compliance service group."
-  value       = local.service_key
+  description = "Compliance service deployment target name."
+  value       = data.azurerm_container_app.shared.name
 }
 
 output "health_endpoint" {
-  description = "Health-check path for the compliance service group."
-  value       = "/api/qualifications/health"
+  description = "Compliance service health check endpoint URL."
+  value       = "https://${data.azurerm_container_app.shared.ingress[0].fqdn}/api/qualifications/health"
 }
 
 output "deploy_target" {
-  description = "Container App name used for deployments."
-  value       = data.azurerm_container_app.shared.name
+  description = "Container App resource ID for compliance service."
+  value       = data.azurerm_container_app.shared.id
 }

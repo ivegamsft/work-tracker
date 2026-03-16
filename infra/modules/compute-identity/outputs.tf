@@ -1,19 +1,30 @@
 output "service_name" {
-  description = "Logical service name for the identity service group."
-  value       = local.service_key
-}
-
-output "health_endpoint" {
-  description = "Health-check path for the identity service group."
-  value       = "/api/auth/health"
-}
-
-output "deploy_target" {
-  description = "Container App name used for deployments."
+  description = "Identity service deployment target name."
   value       = data.azurerm_container_app.shared.name
 }
 
+output "health_endpoint" {
+  description = "Identity service health check endpoint URL."
+  value       = "https://${data.azurerm_container_app.shared.ingress[0].fqdn}/api/auth/health"
+}
+
+output "deploy_target" {
+  description = "Container App resource ID for identity service."
+  value       = data.azurerm_container_app.shared.id
+}
+
 # Future outputs when independently deployed:
+# output "service_name" {
+#   description = "Identity service deployment target name."
+#   value       = azurerm_container_app.identity.name
+# }
+#
+# output "health_endpoint" {
+#   description = "Identity service health check endpoint URL."
+#   value       = "https://${azurerm_container_app.identity.ingress[0].fqdn}/health"
+# }
+#
 # output "deploy_target" {
-#   value = azurerm_container_app.identity.name
+#   description = "Container App resource ID for identity service."
+#   value       = azurerm_container_app.identity.id
 # }

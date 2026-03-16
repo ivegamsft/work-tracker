@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeAttestationLevels, validateAttestationPolicy } from "./policies";
 
 const attestationLevelSchema = z.enum(["self_attest", "upload", "third_party", "validated"]);
 const proofTypeSchema = z.enum(["hours", "certification", "training", "clearance", "assessment", "compliance"]);
@@ -20,6 +21,22 @@ const baseRequirementSchema = z.object({
   validityDays: z.coerce.number().int().positive().optional(),
   renewalWarningDays: z.coerce.number().int().positive().optional(),
   isRequired: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+  // Normalize attestation levels to unique, ordered set
+  if (value.attestationLevels) {
+    const normalized = normalizeAttestationLevels(value.attestationLevels as any);
+    
+    // Validate attestation policy constraints
+    const errors = validateAttestationPolicy(value.proofType as any, normalized as any);
+    
+    if (errors.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["attestationLevels"],
+        message: errors.join("; "),
+      });
+    }
+  }
 });
 
 export const createTemplateSchema = z.object({
@@ -99,12 +116,45 @@ export const validateFulfillmentSchema = z.object({
       message: "Rejection reason is required when approval is false.",
     });
   }
+  
+  // Validator notes/reason codes required for approvals
+  if (value.approved && !value.notes) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["notes"],
+      message: "Validator notes are required when approving a fulfillment.",
+    });
+  }
 });
 
 export const thirdPartyVerifySchema = z.object({
   source: z.string().min(1).max(200),
   referenceId: z.string().max(200).optional(),
   data: z.unknown().optional(),
+});
+
+export const fulfillmentReviewFiltersSchema = z.object({
+  status: z.string().optional(),
+  proofType: z.string().optional(),
+  employeeId: z.string().uuid().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});
+
+export const reviewDecisionSchema = z.object({
+  decision: z.enum(["approve", "reject", "request_changes"]),
+  notes: z.string().max(2000),
+  reason: z.string().max(2000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.decision === "reject" && !value.reason) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reason"],
+      message: "Rejection reason is required when decision is reject.",
+    });
+  }
 });
 
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
@@ -117,3 +167,5 @@ export type SelfAttestInput = z.infer<typeof selfAttestSchema>;
 export type AttachDocumentInput = z.infer<typeof attachDocumentSchema>;
 export type ValidateFulfillmentInput = z.infer<typeof validateFulfillmentSchema>;
 export type ThirdPartyVerifyInput = z.infer<typeof thirdPartyVerifySchema>;
+export type FulfillmentReviewFiltersInput = z.infer<typeof fulfillmentReviewFiltersSchema>;
+export type ReviewDecisionInput = z.infer<typeof reviewDecisionSchema>;

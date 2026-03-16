@@ -7,10 +7,13 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TeamDirectoryPage from './pages/TeamDirectoryPage';
 import TeamMemberDetailPage from './pages/TeamMemberDetailPage';
-import MyTemplatesPage, {
-  MyTemplateFulfillmentPage,
-  TemplatesFeatureUnavailablePage,
-} from './pages/MyTemplatesPage';
+import MyTemplatesPage from './pages/MyTemplatesPage';
+import TemplateFulfillmentPage from './pages/TemplateFulfillmentPage';
+import TemplateLibraryPage from './pages/TemplateLibraryPage';
+import TemplateDetailPage from './pages/TemplateDetailPage';
+import TemplateEditorPage from './pages/TemplateEditorPage';
+import TemplateAssignPage from './pages/TemplateAssignPage';
+import TemplatesFeatureUnavailablePage from './pages/TemplatesFeatureUnavailablePage';
 import {
   MyDocumentsPage,
   MyHoursPage,
@@ -113,7 +116,47 @@ function App() {
           element={
             <ProtectedRoute>
               <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
-                <MyTemplateFulfillmentPage />
+                <TemplateFulfillmentPage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/templates"
+          element={
+            <ProtectedRoute>
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <TemplateLibraryPage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/templates/:id/edit"
+          element={
+            <ProtectedRoute minRole="manager">
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <TemplateEditorPage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/templates/:id/assign"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <TemplateAssignPage />
+              </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/templates/:id"
+          element={
+            <ProtectedRoute>
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <TemplateDetailPage />
               </FeatureGate>
             </ProtectedRoute>
           }

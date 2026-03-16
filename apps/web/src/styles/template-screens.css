@@ -1,0 +1,165 @@
+.template-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.template-screen__feature-fallback {
+  max-width: 52rem;
+}
+
+.template-screen__results-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.template-screen__results-count {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.template-screen__card-description {
+  color: var(--color-text-secondary);
+}
+
+.template-screen__card-meta,
+.template-screen__requirement-meta,
+.template-screen__assignment-summary,
+.template-screen__selection-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.template-screen__card-footer,
+.template-screen__requirement-actions,
+.template-screen__toolbar-actions,
+.template-screen__employee-actions,
+.template-screen__save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.template-screen__requirement {
+  gap: 1rem;
+}
+
+.template-screen__requirement-body,
+.template-screen__requirement-uploads,
+.template-screen__evidence-list,
+.template-screen__error-list,
+.template-screen__checklist,
+.template-screen__employee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.template-screen__requirement-meta {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-gray-50);
+}
+
+.template-screen__evidence-item,
+.template-screen__employee-row,
+.template-screen__editor-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+}
+
+.template-screen__evidence-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.template-screen__evidence-empty {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-gray-50);
+  color: var(--color-text-secondary);
+}
+
+.template-screen__upload-row,
+.template-screen__date-row,
+.template-screen__editor-grid,
+.template-screen__employee-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.template-screen__employee-row {
+  align-items: center;
+}
+
+.template-screen__employee-meta,
+.template-screen__editor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.template-screen__selection-summary {
+  align-items: start;
+}
+
+.template-screen__editor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.template-screen__editor-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--color-gray-100);
+  font-weight: 700;
+}
+
+.template-screen__checklist {
+  margin-top: 0.5rem;
+}
+
+.template-screen__checklist label,
+.template-screen__employee-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.template-screen__error-list {
+  padding-left: 1.25rem;
+  color: var(--color-danger);
+}
+
+.template-screen__sticky-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.template-screen__status-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .template-screen__evidence-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

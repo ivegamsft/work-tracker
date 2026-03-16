@@ -1,0 +1,229 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      identity-platform: ${{ steps.map.outputs.identity_platform }}
+      workforce-core: ${{ steps.map.outputs.workforce_core }}
+      compliance-service: ${{ steps.map.outputs.compliance_service }}
+      records-service: ${{ steps.map.outputs.records_service }}
+      reference-data: ${{ steps.map.outputs.reference_data }}
+      notifications-service: ${{ steps.map.outputs.notifications_service }}
+      web-shell: ${{ steps.map.outputs.web_shell }}
+      admin-shell: ${{ steps.map.outputs.admin_shell }}
+      shared-contracts: ${{ steps.map.outputs.shared_contracts }}
+      infra: ${{ steps.map.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            identity_platform:
+              - 'apps/api/src/modules/auth/**'
+            workforce_core:
+              - 'apps/api/src/modules/employees/**'
+            compliance_service:
+              - 'apps/api/src/modules/qualifications/**'
+              - 'apps/api/src/modules/medical/**'
+              - 'apps/api/src/modules/templates/**'
+            records_service:
+              - 'apps/api/src/modules/documents/**'
+              - 'apps/api/src/modules/hours/**'
+            reference_data:
+              - 'apps/api/src/modules/standards/**'
+              - 'apps/api/src/modules/labels/**'
+            notifications_service:
+              - 'apps/api/src/modules/notifications/**'
+            web_shell:
+              - 'apps/web/**'
+            admin_shell:
+              - 'apps/admin/**'
+            shared_contracts:
+              - 'packages/shared/**'
+            infra:
+              - 'infra/**'
+            prisma_data:
+              - 'data/prisma/**'
+      - id: map
+        shell: bash
+        env:
+          IDENTITY_CHANGED: ${{ steps.filter.outputs.identity_platform }}
+          WORKFORCE_CHANGED: ${{ steps.filter.outputs.workforce_core }}
+          COMPLIANCE_CHANGED: ${{ steps.filter.outputs.compliance_service }}
+          RECORDS_CHANGED: ${{ steps.filter.outputs.records_service }}
+          REFERENCE_CHANGED: ${{ steps.filter.outputs.reference_data }}
+          NOTIFICATIONS_CHANGED: ${{ steps.filter.outputs.notifications_service }}
+          WEB_CHANGED: ${{ steps.filter.outputs.web_shell }}
+          ADMIN_CHANGED: ${{ steps.filter.outputs.admin_shell }}
+          SHARED_CHANGED: ${{ steps.filter.outputs.shared_contracts }}
+          INFRA_CHANGED: ${{ steps.filter.outputs.infra }}
+          PRISMA_CHANGED: ${{ steps.filter.outputs.prisma_data }}
+        run: |
+          identity_platform=false
+          workforce_core=false
+          compliance_service=false
+          records_service=false
+          reference_data=false
+          notifications_service=false
+          web_shell=false
+          admin_shell=false
+
+          if [[ "$IDENTITY_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            identity_platform=true
+          fi
+
+          if [[ "$WORKFORCE_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            workforce_core=true
+          fi
+
+          if [[ "$COMPLIANCE_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            compliance_service=true
+          fi
+
+          if [[ "$RECORDS_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            records_service=true
+          fi
+
+          if [[ "$REFERENCE_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            reference_data=true
+          fi
+
+          if [[ "$NOTIFICATIONS_CHANGED" == "true" || "$SHARED_CHANGED" == "true" || "$PRISMA_CHANGED" == "true" ]]; then
+            notifications_service=true
+          fi
+
+          if [[ "$WEB_CHANGED" == "true" || "$SHARED_CHANGED" == "true" ]]; then
+            web_shell=true
+          fi
+
+          if [[ "$ADMIN_CHANGED" == "true" || "$SHARED_CHANGED" == "true" ]]; then
+            admin_shell=true
+          fi
+
+          {
+            echo "identity_platform=$identity_platform"
+            echo "workforce_core=$workforce_core"
+            echo "compliance_service=$compliance_service"
+            echo "records_service=$records_service"
+            echo "reference_data=$reference_data"
+            echo "notifications_service=$notifications_service"
+            echo "web_shell=$web_shell"
+            echo "admin_shell=$admin_shell"
+            echo "shared_contracts=$SHARED_CHANGED"
+            echo "infra=$INFRA_CHANGED"
+          } >> "$GITHUB_OUTPUT"
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build shared package
+        run: npm run build -w @e-clat/shared
+      - name: Typecheck API
+        run: npm run typecheck -w @e-clat/api
+      - name: Typecheck Web
+        run: npm run typecheck -w @e-clat/web
+
+  test-api:
+    name: API Tests
+    runs-on: ubuntu-latest
+    needs: typecheck
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: eclat_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eclat_test
+      JWT_SECRET: ci-test-only
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build shared package
+        run: npm run build -w @e-clat/shared
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: data
+      - name: Run migrations
+        run: npx prisma migrate deploy
+        working-directory: data
+      - name: Seed test data
+        run: npx prisma db seed
+        working-directory: data
+      - name: Run API tests
+        run: npx vitest run
+
+  test-web:
+    name: Web Tests
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build shared package
+        run: npm run build -w @e-clat/shared
+      - name: Run web tests
+        run: npm run test -w @e-clat/web
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test-api, test-web]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build shared
+        run: npm run build -w @e-clat/shared
+      - name: Build API
+        run: npm run build -w @e-clat/api
+      - name: Build Web
+        run: npm run build -w @e-clat/web
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [test-api, test-web]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build API container
+        run: docker build --target runtime -t e-clat-api:ci-${{ github.sha }} -f apps/api/Dockerfile .
