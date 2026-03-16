@@ -1,13 +1,18 @@
-import { DefaultAzureCredential } from "@azure/identity";
-import { SecretClient } from "@azure/keyvault-secrets";
+import type { DefaultAzureCredential } from "@azure/identity";
+import type { SecretClient } from "@azure/keyvault-secrets";
 
 const secretCache = new Map<string, string>();
 const clientCache = new Map<string, SecretClient>();
 let credential: DefaultAzureCredential | undefined;
 
-function getSecretClient(keyVaultUri: string) {
+async function getSecretClient(keyVaultUri: string) {
   let client = clientCache.get(keyVaultUri);
   if (!client) {
+    const [{ DefaultAzureCredential }, { SecretClient }] = await Promise.all([
+      import("@azure/identity"),
+      import("@azure/keyvault-secrets"),
+    ]);
+
     credential ??= new DefaultAzureCredential();
     client = new SecretClient(keyVaultUri, credential);
     clientCache.set(keyVaultUri, client);
@@ -28,7 +33,7 @@ export async function getKeyVaultSecret(secretName: string): Promise<string | un
     return cachedValue;
   }
 
-  const secret = await getSecretClient(keyVaultUri).getSecret(secretName);
+  const secret = await (await getSecretClient(keyVaultUri)).getSecret(secretName);
   if (!secret.value) {
     throw new Error(`Key Vault secret "${secretName}" has no value.`);
   }

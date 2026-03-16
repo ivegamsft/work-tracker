@@ -84,6 +84,8 @@ type QualificationDetailRecord = Prisma.QualificationGetPayload<{ select: typeof
 type QualificationWithStandardRecord = Prisma.QualificationGetPayload<{ select: typeof qualificationWithStandardSelect }>;
 type PublicEmployee = Prisma.EmployeeGetPayload<{ select: typeof employeePublicSelect }>;
 type StandardSummary = Prisma.ComplianceStandardGetPayload<{ select: typeof standardSummarySelect }>;
+type QualificationDocumentLookup = { id: string; employeeId: string };
+type StandardRequirementLookup = { id: string; category: string; description: string };
 
 export interface QualificationWithStandard extends Qualification {
   standard: StandardSummary;
@@ -222,14 +224,14 @@ async function validateQualificationDocuments(employeeId: string, documentIds: s
   });
 
   if (documents.length !== documentIds.length) {
-    const foundDocumentIds = new Set(documents.map((document) => document.id));
+    const foundDocumentIds = new Set(documents.map((document: QualificationDocumentLookup) => document.id));
     const missingDocumentIds = documentIds.filter((documentId) => !foundDocumentIds.has(documentId));
     throw new ValidationError("One or more qualification documents were not found.", { missingDocumentIds });
   }
 
   const mismatchedDocumentIds = documents
-    .filter((document) => document.employeeId !== employeeId)
-    .map((document) => document.id);
+    .filter((document: QualificationDocumentLookup) => document.employeeId !== employeeId)
+    .map((document: QualificationDocumentLookup) => document.id);
 
   if (mismatchedDocumentIds.length > 0) {
     throw new ValidationError("Qualification documents must belong to the same employee.", { mismatchedDocumentIds });
@@ -246,7 +248,7 @@ function mapQualification(record: QualificationRecord): Qualification {
     issueDate: record.issueDate,
     expirationDate: record.expirationDate,
     status: fromPrismaQualificationStatus(record.status),
-    documentIds: record.documents.map((document) => document.documentId),
+    documentIds: record.documents.map((document: QualificationRecord["documents"][number]) => document.documentId),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
@@ -468,7 +470,7 @@ export const qualificationsService: QualificationsService = {
     });
 
     const qualifyingQualification = qualifications[0];
-    const requirements = standard.requirements.map((requirement) => ({
+    const requirements = standard.requirements.map((requirement: StandardRequirementLookup) => ({
       requirementId: requirement.id,
       name: requirement.category,
       met: Boolean(qualifyingQualification),
@@ -476,7 +478,7 @@ export const qualificationsService: QualificationsService = {
     }));
 
     return {
-      compliant: requirements.every((requirement) => requirement.met),
+      compliant: requirements.every((requirement: { met: boolean }) => requirement.met),
       employeeId,
       standardId: standard.id,
       requirements,

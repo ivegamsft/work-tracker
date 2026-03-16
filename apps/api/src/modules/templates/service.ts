@@ -673,16 +673,18 @@ function computeFulfillmentStatus(
     [PrismaAttestationLevel.VALIDATED]: Boolean(fulfillment.validatedAt),
   };
 
-  const requiredLevels = requirement.attestationLevels;
+  const requiredLevels = requirement.attestationLevels as PrismaAttestationLevel[];
   const hasValidated = requiredLevels.includes(PrismaAttestationLevel.VALIDATED);
-  const nonValidationLevels = requiredLevels.filter((level) => level !== PrismaAttestationLevel.VALIDATED);
-  const allSatisfied = requiredLevels.every((level) => satisfied[level]);
+  const nonValidationLevels = requiredLevels.filter(
+    (level: PrismaAttestationLevel) => level !== PrismaAttestationLevel.VALIDATED,
+  );
+  const allSatisfied = requiredLevels.every((level: PrismaAttestationLevel) => satisfied[level]);
 
   if (allSatisfied) {
     return PrismaFulfillmentStatus.FULFILLED;
   }
 
-  if (hasValidated && nonValidationLevels.every((level) => satisfied[level])) {
+  if (hasValidated && nonValidationLevels.every((level: PrismaAttestationLevel) => satisfied[level])) {
     return PrismaFulfillmentStatus.PENDING_REVIEW;
   }
 
@@ -778,9 +780,13 @@ async function updateAssignmentCompletion(assignmentId: string) {
     }),
   ]);
 
-  const requiredFulfillments = fulfillments.filter((fulfillment) => fulfillment.requirement.isRequired);
+  const requiredFulfillments = fulfillments.filter(
+    (fulfillment: (typeof fulfillments)[number]) => fulfillment.requirement.isRequired,
+  );
   const allComplete = requiredFulfillments.length > 0
-    ? requiredFulfillments.every((fulfillment) => fulfillment.status === PrismaFulfillmentStatus.FULFILLED)
+    ? requiredFulfillments.every(
+        (fulfillment: (typeof requiredFulfillments)[number]) => fulfillment.status === PrismaFulfillmentStatus.FULFILLED,
+      )
     : true;
 
   await prisma.templateAssignment.update({
@@ -1028,7 +1034,7 @@ export const templatesService: TemplatesService = {
         updatedBy: actor.id,
         standardId: template.standardId,
         requirements: {
-          create: template.requirements.map((requirement) => ({
+          create: template.requirements.map((requirement: (typeof template.requirements)[number]) => ({
             name: requirement.name,
             description: requirement.description,
             attestationLevels: requirement.attestationLevels,
@@ -1192,7 +1198,7 @@ export const templatesService: TemplatesService = {
     });
 
     const requirementIds = input.requirementIds;
-    const requirementSet = new Set(requirements.map((req) => req.id));
+    const requirementSet = new Set(requirements.map((req: (typeof requirements)[number]) => req.id));
 
     if (requirementIds.length !== requirements.length || requirementIds.some((id) => !requirementSet.has(id))) {
       throw new ValidationError("Requirement list must include every requirement in the template.");
@@ -1275,7 +1281,9 @@ export const templatesService: TemplatesService = {
       where: { templateId, employeeId: { in: employees.map((employee) => employee.id) } },
       select: { employeeId: true },
     });
-    const existingEmployeeIds = new Set(existingAssignments.map((assignment) => assignment.employeeId));
+    const existingEmployeeIds = new Set(
+      existingAssignments.map((assignment: (typeof existingAssignments)[number]) => assignment.employeeId),
+    );
 
     const assignments: TemplateAssignmentWithEmployee[] = [];
     for (const employee of employees) {
@@ -1293,7 +1301,7 @@ export const templatesService: TemplatesService = {
           assignedBy: actor.id,
           dueDate: input.dueDate,
           fulfillments: {
-            create: template.requirements.map((requirement) => ({
+            create: template.requirements.map((requirement: (typeof template.requirements)[number]) => ({
               requirementId: requirement.id,
               employeeId: employee.id,
               status: computeInitialFulfillmentStatus(requirement),

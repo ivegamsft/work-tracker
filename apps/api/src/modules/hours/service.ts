@@ -46,7 +46,7 @@ export interface HoursService {
   getAuditTrail(recordId: string): Promise<AuditLog[]>;
 }
 
-type DbClient = typeof prisma | Prisma.TransactionClient;
+type DbClient = Pick<typeof prisma, "employee" | "label" | "hourConflict" | "hourRecord">;
 type HourRecordRow = Prisma.HourRecordGetPayload<{ select: typeof hourRecordSelect }>;
 type HourConflictRow = Prisma.HourConflictGetPayload<{ select: typeof hourConflictSelect }>;
 type PayrollImportRecord = PayrollImportInput["records"][number];
@@ -172,7 +172,7 @@ function mapHourRecord(record: HourRecordRow): HourRecord {
 function mapHourConflict(record: HourConflictRow): HourConflict {
   return {
     id: record.id,
-    recordIds: record.records.map((item) => item.recordId),
+    recordIds: record.records.map((item: HourConflictRow["records"][number]) => item.recordId),
     conflictType: fromPrismaConflictType(record.conflictType),
     status: fromPrismaConflictStatus(record.status),
     resolutionMethod: fromPrismaResolutionMethod(record.resolutionMethod),
@@ -226,7 +226,7 @@ async function ensureLabelExists(db: DbClient, labelId: string) {
 }
 
 async function createImportConflict(
-  db: Prisma.TransactionClient,
+  db: Pick<typeof prisma, "hourConflict">,
   existingRecordId: string,
   importedRecordId: string,
 ) {
@@ -268,16 +268,18 @@ async function importHourRecords<T extends {
   let conflicts = 0;
 
   await prisma.$transaction(async (tx) => {
+    const db = tx as unknown as typeof prisma;
+
     for (const record of records) {
-      await ensureEmployeeExists(tx, record.employeeId);
+      await ensureEmployeeExists(db, record.employeeId);
 
       const labelId = getLabelId?.(record);
       if (labelId) {
-        await ensureLabelExists(tx, labelId);
+        await ensureLabelExists(db, labelId);
       }
 
       const normalizedDate = normalizeDateOnly(record.date);
-      const existing = await tx.hourRecord.findFirst({
+      const existing = await db.hourRecord.findFirst({
         where: {
           employeeId: record.employeeId,
           date: normalizedDate,
@@ -291,7 +293,7 @@ async function importHourRecords<T extends {
         continue;
       }
 
-      const created = await tx.hourRecord.create({
+      const created = await db.hourRecord.create({
         data: {
           employeeId: record.employeeId,
           source,
@@ -307,7 +309,7 @@ async function importHourRecords<T extends {
       imported += 1;
 
       if (existing) {
-        await createImportConflict(tx, existing.id, created.id);
+        await createImportConflict(db, existing.id, created.id);
         conflicts += 1;
       }
     }
@@ -357,7 +359,8 @@ export const hoursService: HoursService = {
 
     const timestamp = input.timestamp ?? new Date();
     const record = await prisma.$transaction(async (tx) => {
-      const openRecord = await tx.hourRecord.findFirst({
+      const db = tx as unknown as typeof prisma;
+      const openRecord = await db.hourRecord.findFirst({
         where: {
           employeeId: input.employeeId,
           source: PrismaHourSource.CLOCK_IN_OUT,
@@ -381,7 +384,7 @@ export const hoursService: HoursService = {
         throw new ValidationError("Calculated hours must be greater than 0 and no more than 24.");
       }
 
-      return tx.hourRecord.update({
+      return db.hourRecord.update({
         where: { id: openRecord.id },
         data: { hours: hoursWorked },
         select: hourRecordSelect,

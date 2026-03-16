@@ -160,8 +160,11 @@ async function ensureStandardExists(id: string) {
 }
 
 function handleStandardConflict(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    const target = Array.isArray(error.meta?.target) ? error.meta.target.join(", ") : String(error.meta?.target ?? "record");
+  const prismaError = error as Prisma.PrismaClientKnownRequestError | undefined;
+  if (prismaError?.code === "P2002") {
+    const target = Array.isArray(prismaError.meta?.target)
+      ? prismaError.meta.target.join(", ")
+      : String(prismaError.meta?.target ?? "record");
     throw new ConflictError(`Compliance standard ${target} already exists`);
   }
 

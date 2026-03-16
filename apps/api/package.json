@@ -13,7 +13,7 @@
     "test:coverage": "vitest run --coverage --config ../../vitest.config.ts",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",
-    "typecheck": "node ../../node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit"
+    "typecheck": "node --stack_size=65500 ../../node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@azure/identity": "^4.13.0",
