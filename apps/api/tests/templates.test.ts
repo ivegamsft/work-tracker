@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { type Express, Router } from "express";
+import express, { type Express, Router } from "express";
 import { AppError, NotFoundError, Roles, ValidationError } from "@e-clat/shared";
 import request from "supertest";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { authenticate, requireMinRole, type AuthenticatedRequest } from "../src/middleware";
+import { authenticate, errorHandler, requireMinRole, type AuthenticatedRequest } from "../src/middleware";
 import { createTestApp, generateTestToken, seededTestUsers } from "./helpers";
 
 type TemplateStatus = "draft" | "published" | "archived";
@@ -96,6 +96,14 @@ function buildTemplatePayload(overrides: Partial<{
     requirements: [],
     ...overrides,
   };
+}
+
+function createTemplatesTestApp(registerRoutes: (app: Express) => void) {
+  const app = express();
+  app.use(express.json({ limit: "10mb" }));
+  registerRoutes(app);
+  app.use(errorHandler);
+  return app;
 }
 
 function createTemplatesHarness() {
@@ -648,13 +656,15 @@ function createTemplatesHarness() {
 describe("Templates API", () => {
   const harness = createTemplatesHarness();
   let app: Express;
+  let apiApp: Express;
   let employeeToken: string;
   let supervisorToken: string;
   let managerToken: string;
   let adminToken: string;
 
   beforeAll(() => {
-    app = createTestApp({ registerRoutes: harness.registerRoutes });
+    app = createTemplatesTestApp(harness.registerRoutes);
+    apiApp = createTestApp();
     employeeToken = generateTestToken(Roles.EMPLOYEE);
     supervisorToken = generateTestToken(Roles.SUPERVISOR);
     managerToken = generateTestToken(Roles.MANAGER);
@@ -747,6 +757,26 @@ describe("Templates API", () => {
           name: "Updated Draft Template",
         }));
       }
+    });
+
+    it("returns 400 with validation details when creating a template with an invalid payload", async () => {
+      const response = await request(apiApp)
+        .post("/api/templates")
+        .set("Authorization", `Bearer ${supervisorToken}`)
+        .send({ description: "Missing required template name" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toEqual(expect.objectContaining({
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: expect.arrayContaining([
+          expect.objectContaining({
+            code: "invalid_type",
+            path: ["name"],
+            message: expect.any(String),
+          }),
+        ]),
+      }));
     });
 
     it("returns 400 when updating a published template", async () => {
@@ -1087,6 +1117,28 @@ describe("Templates API", () => {
           rejectionReason: "Missing evidence",
         }));
       }
+    });
+
+    it("returns 400 with validation details when rejection reason is missing", async () => {
+      const { fulfillment } = harness.createFulfillmentFixture({ status: "pending_review" });
+
+      const response = await request(apiApp)
+        .post(`/api/fulfillments/${fulfillment.id}/validate`)
+        .set("Authorization", `Bearer ${managerToken}`)
+        .send({ approved: false });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toEqual(expect.objectContaining({
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: expect.arrayContaining([
+          expect.objectContaining({
+            code: "custom",
+            path: ["reason"],
+            message: "Rejection reason is required when approval is false.",
+          }),
+        ]),
+      }));
     });
 
     it("records third-party verification when the caller is an admin", async () => {
