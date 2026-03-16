@@ -194,13 +194,18 @@ export interface NotificationPreferences {
 
 export interface HoursRecord {
   id: string;
+  employeeId?: string;
   date: string;
+  hours?: number | null;
+  totalHours?: number | null;
   clockIn?: string | null;
   clockOut?: string | null;
-  totalHours?: number | null;
-  hours?: number | null;
+  qualificationCategory?: string;
   description?: string;
   source?: string;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  createdAt?: string;
 }
 
 export type TemplateStatus = 'draft' | 'published' | 'archived';
