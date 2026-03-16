@@ -31,6 +31,9 @@
 - **Audit logging is now middleware-driven** — `apps/api/src/middleware/audit.ts` hooks mutating `/api/*` requests, logs after `finish`, and keeps the logger behind an `AuditLogger` abstraction so Prisma persistence can be swapped in later without route changes.
 - **Audit payloads should redact sensitive write fields** — request bodies can safely populate `changedFields` when password/token/secret-style keys are masked before logging.
 - **`createTestApp()` now accepts app-construction options** — audit tests can inject a fake `AuditLogger` and temporary routes through `apps/api/tests/helpers.ts`, keeping middleware coverage in-process and deterministic.
+- **Full validation cycle is green on the current stack (2026-03-16)** — Root `npm test` passed 13 files / 179 tests, including `tests/e2e/smoke.test.ts` (34) and `tests/e2e/proof-list.test.tsx` (5). `npx tsc --noEmit` passed in both `apps/api` and `apps/web`, `docker compose build --no-cache` + `docker compose up -d` succeeded, and live smoke checks returned HTTP 200 for `GET /health` and `GET http://localhost:5173`.
+- **API smoke probes must target `/health`, not `/api/health` (2026-03-16)** — The running stack returns 404 for `/api/health` because the Express health route is mounted at `/health`; Docker readiness validation currently depends on `docker compose ps` plus live HTTP probes because the compose file does not define container health checks.
+- **No separate Playwright/Cypress runner is configured (2026-03-16)** — Repository scan found no Playwright or Cypress config files, so end-to-end regression coverage currently comes through the root Vitest suite rather than a dedicated browser-test runner.
 
 ## Phase 2 Auth & Frontend Sync (2026-03-15T23:34:38Z)
 
@@ -94,3 +97,15 @@ Local Docker stack fully operational: API :3000, PostgreSQL :5432, Azurite :1000
 - **Frontend Admin PRD** — admin app scaffolds and workflows
 
 See `.squad/orchestration-log/2026-03-13T17-10-freamon.md` for details. Read PRDs before planning your QA and test strategy.
+
+## Validation Cycle Complete (2026-03-16T01:59:24Z)
+
+✅ **All Green — 179/179 Tests Pass**
+
+- Unit tests: 179 passed (Vitest suite with integration, smoke, component tests)
+- TypeScript: Clean in apps/api and apps/web
+- Docker: All containers healthy and stable
+- Smoke tests: API /health → 200, Web → 200
+- Status: Stack ready for feature work
+
+See `.squad/orchestration-log/2026-03-16T01-59-24Z-sydnor-agent-61.md` for full details.
