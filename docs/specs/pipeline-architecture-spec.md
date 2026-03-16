@@ -43,8 +43,7 @@ Blocking gaps:
 - no subsystem selection input,
 - no path-aware deployment logic,
 - no environment promotion chain,
-- only one compute target exists,
-- workflow output name is misaligned with Terraform outputs (`api_app_name` vs `api_container_app_name`).
+- only one compute target exists.
 
 ## 3. Pipeline Design Principles
 
