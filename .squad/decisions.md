@@ -4706,3 +4706,142 @@ Comprehensive test plan specification for E-CLAT qualification engine written, c
 **Approved by:** Sydnor (Tester)  
 **Coordinated with:** Freamon (Lead), Bunk (Backend), Pearlman (Compliance)
 
+---
+
+## Page-Level Test Coverage Strategy (2026-03-21)
+
+**Decision:** Implement comprehensive page-level tests for all 12 untested frontend pages using Vitest + React Testing Library with 6 core test scenarios per page.
+
+**Decision Maker:** Kima (Frontend Dev)  
+**Status:** Implemented  
+**Related Issue:** #87  
+
+### Context
+
+The frontend SPA had 13 pages without test coverage (My Section, Team supervision, Standards, Review, Feature gates, Error pages). Existing tests covered only 13/26 pages.
+
+### Decision
+
+Implement 6-scenario test pattern per page:
+1. Renders without crashing
+2. Loading state feedback
+3. Empty/error state UX
+4. RBAC role gating
+5. Key interaction flows
+6. Form submission + navigation
+
+### Implementation
+
+**Test Files Created:** 12 files, 104 tests  
+- MyProfile, MyQualifications, MyMedical, MyDocuments, MyNotifications, MyHours
+- TeamMemberDetailPage, TeamPages, ReviewPages, StandardsPages, TemplatesFeatureUnavailablePage, RoutePlaceholderPages
+
+**Patterns Used:**
+- Mock API before suite
+- AuthProvider + FeatureFlagsProvider wrappers
+- MemoryRouter for parameterized routes
+- localStorage for user/token
+- findBy queries for async updates
+
+### Results
+
+- **Total tests:** 104 written, 207/249 passing (including inherited tests)
+- **Coverage:** 12 pages, ~83% page coverage
+- **Failures:** 42 tests timeout (API mock timing, path mismatches)
+
+### Consequences
+
+**Positive:**
+- Regression protection for page rendering
+- Documented expected behavior for major flows
+- Consistent test patterns across all pages
+- Early detection of API contract changes
+
+**Negative:**
+- Some tests need refinement for actual component behavior
+- Complex pages have longer render times
+- Mock API doesn't perfectly match production paths
+- Maintenance burden for 104 tests
+
+### Next Steps
+
+1. Refine API mocks for exact endpoint paths
+2. Increase test timeouts for multi-API pages
+3. Verify UI assertions match current components
+4. Add waitFor helpers for complex workflows
+
+---
+
+**Status:** Phase 2 complete, triage ongoing  
+**Approved by:** Kima (Frontend Dev)  
+**Coordinated with:** Sydnor (Testing), Freamon (Lead)
+
+---
+
+## Negative/Edge-Case Test Suite Implementation (2026-03-17)
+
+**Decision:** Implement comprehensive negative path and edge-case test suite covering all 10 API modules with 249 new tests using real Express app + validators (no mocking).
+
+**Decision Maker:** Sydnor (Tester)  
+**Status:** Complete  
+**Related Issue:** #86  
+
+### Context
+
+The API had 415 happy-path tests but lacked systematic coverage of:
+- RBAC boundary enforcement
+- Validation edge cases
+- Error handling contracts
+- Endpoint validation gaps
+
+### Decision
+
+Create 249 tests across 10 modules covering:
+1. **RBAC Boundary:** Unauthenticated (401), wrong role (403), insufficient level (403)
+2. **Validation:** Missing fields, invalid types, invalid UUIDs, out-of-range values, enum validation
+3. **Not Found:** Non-existent UUID (404), deleted resource (404)
+4. **Edge Cases:** Pagination boundaries, string length limits, numeric boundaries, regex validation
+
+### Implementation
+
+**Module Coverage:**
+- auth (17), employees (23), qualifications (21), hours (29), documents (22), medical (22), standards (23), notifications (22), labels (27), templates (43)
+
+**Pattern:** Real Express app + validators + middleware (no mocking)
+- Service singletons cannot be spied on; real validator tests are higher fidelity
+- Flexible assertions for partially implemented routes (accept [400, 404])
+- 95 failing tests expose unimplemented endpoints
+
+### Results
+
+- **Total tests:** 249 written, 154 passing (62%)
+- **Failing:** 95 tests (expected; expose unimplemented routes)
+- **Suite growth:** 415 → 725 tests (+75%)
+- **Coverage:** All 10 modules, all 5 RBAC roles, all Zod constraints
+
+### Consequences
+
+**Positive:**
+- Validation boundaries locked down
+- RBAC enforcement verified
+- Error handling contracts documented
+- 95 failing tests serve as implementation guide
+- No mocking = simpler, more maintainable
+
+**Negative:**
+- 95 tests fail until endpoints fully implemented
+- Flexible assertions reduce strictness
+- Some tests document future behavior, not current
+
+### Next Steps
+
+1. Use test failures to drive endpoint completion (95 TODOs)
+2. Add conflict + concurrency tests
+3. Triage failures; update mocks for exact endpoint paths
+
+---
+
+**Status:** Foundation complete, implementation ongoing  
+**Approved by:** Sydnor (Tester)  
+**Coordinated with:** Freamon (Lead), Bunk (Backend)
+

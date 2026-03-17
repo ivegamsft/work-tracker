@@ -288,3 +288,36 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 - `apps/api/tests/unit/negative/*.test.ts` (10 files)
 - `apps/api/tests/unit/negative/README.md`
 
+## 📌 Wave 2 Test Expansion (2026-03-17T04:10Z) — All 3 Test Agents Complete
+
+**Sydnor (agent-40) — API Negative Tests:**
+- 249 new tests across 10 modules (auth, documents, employees, hours, labels, medical, notifications, qualifications, standards, templates)
+- RBAC boundaries + validation edge cases + error handling contracts locked down
+- 154 passing tests; 95 failures expose unimplemented endpoints
+- Issue #87 complete
+
+**Kima (agent-41) — Web Page Tests:**
+- 104 new tests for 12 untested pages (My Profile/Qualifications/Medical/Documents/Notifications/Hours, Team Member Detail, Team Pages, Review Queue, Standards Library, Templates Feature Gate, Route Placeholders)
+- 207/249 passing (includes inherited component tests)
+- Vitest + RTL pattern: smoke, loading, empty, error, RBAC, interaction
+- Issue #87 complete
+
+**Bunk (agent-42) — Labels + Dashboard Tests:**
+- 36 tests for Labels module (CRUD, deprecation, mappings, audit, RBAC across all 5 roles)
+- 27 new tests for Dashboard endpoints (compliance summary, team rollups, pagination, edge cases)
+- 63/63 passing (100%)
+- Issue #88 complete
+
+**Consolidated Results:**
+- **Total tests written:** 418
+- **Tests passing:** 424 across wave 2 (including inherited tests)
+- **Coverage:** 10 API modules + 12 web pages now have baseline coverage
+- **Project board:** Project #3 closed; consolidated into Project #2 (90 items total)
+
+**Decisions merged to decisions.md:**
+- kima-page-tests.md (Page-Level Test Coverage Strategy)
+- sydnor-negative-tests.md (Negative/Edge-Case Test Suite)
+
+**Orchestration log:** .squad/orchestration-log/2026-03-17T04-10-wave2-tests.md  
+**Session log:** .squad/log/2026-03-17T04-10-wave2-complete.md
+

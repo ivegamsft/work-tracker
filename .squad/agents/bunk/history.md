@@ -222,3 +222,45 @@ Phased rollout strategy synchronized across all 7 specs:
 
 Decision file: N/A (straightforward test addition, no architectural decisions)
 
+## 📌 Wave 2 Test Expansion (2026-03-17T04:10Z) — Labels + Dashboard Tests Complete
+
+**Bunk (agent-42) — Comprehensive Test Suites (Issue #88):**
+
+**Labels Module Tests (36 total):**
+- POST /api/labels/admin — Create label (admin-only, validation, error cases)
+- PUT /api/labels/admin/:id — Update label (admin-only, validation)
+- POST /api/labels/admin/:id/deprecate — Deprecate with migration path
+- GET /api/labels/versions — List taxonomy versions (all authenticated roles)
+- POST /api/labels/mappings — Create mapping (admin-only, UUID validation)
+- GET /api/labels/resolve — Resolve label to category (query param validation)
+- GET /api/labels/audit/:id — Audit trail (supervisor+ RBAC)
+- Edge cases: circular references, duplicates, non-existent updates, empty payloads
+
+**Dashboard Endpoint Tests (29 total, 27 new):**
+- GET /api/dashboard/compliance-summary — Employee self-view + supervisor cross-view
+- GET /api/dashboard/team-summary — Supervisor+ team rollups with pagination
+- Edge cases: zero data, all expired, 100% compliance, at-risk thresholds, large teams
+- Error handling: service failures, invalid UUIDs, bad pagination params
+- RBAC: employee, supervisor, manager, compliance officer, admin access patterns
+
+**Test Patterns Used:**
+- Mock-based unit testing with Vitest (vi.spyOn, vi.mock)
+- Supertest for HTTP assertions
+- Helper builders for test data (buildLabel, buildComplianceSummary, etc.)
+- Parallel test execution (no shared state, clean mocks)
+- RBAC validation across all 5 roles
+
+**Results:**
+- 63/63 tests passing (100%)
+- Coverage: All endpoints + RBAC + validation + edge cases
+- Zero-state handling (new employees, empty teams)
+- Boundary conditions (100% compliance, all expired, large datasets)
+- Error paths (service failures, malformed input)
+
+**Notes:**
+- Labels service uses stub implementations (501) — tests validate router/middleware/validation
+- Dashboard service has real implementation — tests use mocks to control data scenarios
+- Pre-existing failures unrelated to this work
+
+**Next:** Labels service implementation can follow test contracts; dashboard tests establish baseline for team rollup features
+

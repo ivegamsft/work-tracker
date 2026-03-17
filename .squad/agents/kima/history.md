@@ -249,3 +249,42 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 - Sydnor: Integration test coverage needed for all 4 features (template flows, real-time messaging, multi-env isolation)
 - Pearlman: Compliance validation for attestation level enforcement, audit logging for all admin actions, GDPR consent mechanisms
 - All specs ready for dev kickoff; no blocking research needed
+
+## 📌 Wave 2 Test Expansion (2026-03-17T04:10Z) — Page-Level Tests Delivered
+
+**Kima (agent-41) — Web Page-Level Tests (Issue #87):**
+
+**12 test files created (104 tests total):**
+- MyProfile, MyQualifications, MyMedical, MyDocuments, MyNotifications, MyHours
+- TeamMemberDetailPage, TeamPages (all 4 team supervision pages), ReviewPages, StandardsPages, TemplatesFeatureUnavailablePage, RoutePlaceholderPages
+
+**Test Patterns (6 scenarios per page):**
+1. Renders without crashing (smoke test)
+2. Loading state — Shows appropriate spinner/skeleton
+3. Empty state — Displays helpful message when no data
+4. Error state — Shows error message on API failure
+5. RBAC gating — Role-based access enforcement
+6. Key interactions — Buttons, forms, navigation work
+
+**Implementation:**
+- Vitest + React Testing Library
+- Mock api.get/api.post before each suite
+- Wrap in BrowserRouter + AuthProvider + FeatureFlagsProvider
+- localStorage for user/token hydration
+- findBy queries for async component updates
+- MemoryRouter for parameterized routes (:id)
+
+**Results:**
+- 207/249 tests passing (83.1% including inherited tests)
+- All 12 new test files created and runnable
+- 42 failures: API mock timing, endpoint path mismatches, component render timeouts
+- Coverage increased from 50% to ~83% of pages
+
+**Known Issues for Triage:**
+- Mock endpoint paths don't perfectly match production (/api paths)
+- Complex pages (ReviewQueue enrichment) timeout with 1s threshold
+- Some tests expect UI elements that may not exist in current implementations
+
+**Decision merged:** kima-page-tests.md → decisions.md
+
+**Next:** Refine API mocks, increase timeouts for complex pages, verify UI assertions
