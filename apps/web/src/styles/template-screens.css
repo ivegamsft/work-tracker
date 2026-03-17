@@ -157,6 +157,29 @@
   align-items: center;
 }
 
+/* Progress bar for team template view */
+.template-screen__progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.template-screen__progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-gray-100);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.template-screen__progress-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
 @media (max-width: 768px) {
   .template-screen__evidence-item {
     flex-direction: column;

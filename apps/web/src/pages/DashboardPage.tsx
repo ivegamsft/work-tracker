@@ -63,8 +63,8 @@ const QUICK_ACTIONS: Record<AppRole, QuickActionDefinition[]> = {
     },
     {
       title: 'Team Templates',
-      description: 'Browse standards and requirement templates to support your team workflow.',
-      to: '/standards',
+      description: 'Monitor team assignment progress and compliance status across your reports.',
+      to: '/team/templates',
       flag: 'compliance.templates',
       disabledDescription: 'Template assignment workflows are still being staged for supervisors.',
     },

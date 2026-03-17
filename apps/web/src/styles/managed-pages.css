@@ -115,6 +115,36 @@
   gap: 0.25rem;
 }
 
+.managed-page__table-wrapper {
+  overflow-x: auto;
+}
+
+.managed-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.managed-page__table th,
+.managed-page__table td {
+  padding: 0.75rem 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.managed-page__table th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+  background: var(--color-gray-50);
+}
+
+.managed-page__table tbody tr:hover {
+  background: var(--color-gray-50);
+}
+
 .managed-page__table-link {
   color: var(--color-primary);
   text-decoration: none;
