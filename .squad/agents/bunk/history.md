@@ -322,4 +322,55 @@ Decision file: N/A (straightforward test addition, no architectural decisions)
 - Cache and auth health checks are stubs (always OK) — will be implemented when Redis and Entra are integrated
 - Path normalization in metrics collapses UUIDs and numeric IDs to avoid high-cardinality labels
 
+## 📌 Identity Foundation (2026-03-17 — Issues #134, #135)
+
+**Mission:** Implement multi-IdP identity provider registry and token validation abstraction per Decision #2 (Multi-IdP, NOT Entra-only).
+
+**Files Created:**
+
+1. **Prisma schema** — `IdentityProvider` model added to `data/prisma/schema.prisma`:
+   - Fields: id, name, type (OIDC/SAML/LOCAL/CUSTOM enum), issuer, jwksUri, clientId, clientSecret, scopes, claimsMapping (JSON), enabled, deletedAt (soft-delete), jwksCachedAt, lastTestAt, lastTestStatus, timestamps
+   - Unique constraint: `[issuer, type]`; index on `enabled`
+
+2. **Identity module** — `apps/api/src/modules/identity/`:
+   - `validators.ts` — Zod schemas for create/update/validate (type enum, URL validation, UUID params)
+   - `service.ts` — Provider CRUD with Prisma (create, list active, get by ID, update, soft-delete), DTO mapping (Prisma uppercase ↔ API lowercase), conflict/not-found error handling
+   - `router.ts` — 6 endpoints mounted at `/api/v1/auth`:
+     - `POST /providers` — create (ADMIN only)
+     - `GET /providers` — list active (COMPLIANCE_OFFICER+)
+     - `GET /providers/:id` — get single (COMPLIANCE_OFFICER+)
+     - `PUT /providers/:id` — update (ADMIN only)
+     - `DELETE /providers/:id` — soft-delete (ADMIN only)
+     - `POST /validate` — token validation (unauthenticated, dispatches to provider)
+   - `index.ts` — barrel export
+
+3. **Token validation abstraction** — `apps/api/src/common/auth/`:
+   - `tokenValidator.ts` — Strategy pattern: `TokenValidationStrategy` interface with `oidcStrategy` (JWKS-based RSA verification with kid lookup, cache invalidation + retry) and `localStrategy` (HMAC/secret-based). Main `tokenValidator` resolves provider by ID or by issuer claim in token, dispatches to correct strategy. Supports registering custom strategies via `registerStrategy()`.
+   - `jwksCache.ts` — TTL-based JWKS key cache (1hr default). Fetches from provider JWKS URI, caches keys in-memory, returns stale cache on fetch failure (graceful degradation), supports invalidation per-URI and global clear.
+   - `claimsNormalizer.ts` — Maps provider-specific claims to normalized internal format (`NormalizedClaims`: sub, email, given_name, family_name, roles, groups). Includes well-known mappings for Entra, Okta, Auth0. Handles UPN and preferred_username fallbacks for email.
+   - `index.ts` — barrel export
+
+4. **Route registration** — Identity router mounted at `/api/v1/auth` in `apps/api/src/index.ts`
+
+5. **Tests** — `apps/api/tests/unit/identity.test.ts` — 42 tests:
+   - Provider CRUD (22 tests): auth, RBAC, create/list/get/update/delete, validation, conflicts, 404s
+   - Claims normalizer (8 tests): Entra/Okta/Auth0 mappings, fallbacks, edge cases
+   - JWKS cache (5 tests): TTL, kid lookup, invalidation, clear
+   - Strategy registry (4 tests): default strategies, custom registration
+   - Token validation endpoint (3 tests): validation, provider dispatch, error handling
+
+**RBAC Matrix:**
+- `POST/PUT/DELETE /providers` → ADMIN only (exact role)
+- `GET /providers` → COMPLIANCE_OFFICER+ (min role)
+- `POST /validate` → no auth required (validates external tokens)
+
+**Design Decisions:**
+- Soft-delete via `deletedAt` + `enabled: false` (audit-safe)
+- Strategy pattern allows future SAML/custom without modifying core
+- JWKS cache falls back to stale keys on network failure
+- Claims normalization is config-driven per provider (claimsMapping JSON field)
+- Token validation dispatches by `iss` claim when `provider_id` not specified
+
+**Test Results:** 42/42 identity tests passing. No regressions — 785 passing total, pre-existing failures unchanged.
+
 

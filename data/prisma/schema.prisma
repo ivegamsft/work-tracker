@@ -7,6 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Identity ───────────────────────────────────────────
+
+enum IdentityProviderType {
+  OIDC
+  SAML
+  LOCAL
+  CUSTOM
+}
+
+model IdentityProvider {
+  id            String               @id @default(uuid())
+  name          String
+  type          IdentityProviderType
+  issuer        String
+  jwksUri       String?
+  clientId      String?
+  clientSecret  String?
+  scopes        String[]             @default(["openid", "profile", "email"])
+  claimsMapping Json                 @default("{}")
+  enabled       Boolean              @default(true)
+  deletedAt     DateTime?
+
+  jwksCachedAt   DateTime?
+  lastTestAt     DateTime?
+  lastTestStatus String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([issuer, type])
+  @@index([enabled])
+  @@map("identity_providers")
+}
+
 // ─── Core ───────────────────────────────────────────────
 
 model Employee {
