@@ -1,7 +1,7 @@
 # E-CLAT Implementation Status
 
 > Repo-derived status matrix — UI screens, API routes, roles, and implementation state.
-> Last updated: 2026-03-16
+> Last updated: 2026-03-17
 
 ## Status Legend
 
@@ -14,8 +14,31 @@
 | ❌ | Not started |
 
 > Role shorthand: **All authenticated** = EMPLOYEE, SUPERVISOR, MANAGER, COMPLIANCE_OFFICER, ADMIN. **SUPERVISOR+** = SUPERVISOR, MANAGER, COMPLIANCE_OFFICER, ADMIN. **MANAGER+** = MANAGER, COMPLIANCE_OFFICER, ADMIN. **COMPLIANCE_OFFICER+** = COMPLIANCE_OFFICER, ADMIN.
->
-> Counting rule: rows are marked **❌** when the repo only has route/service scaffolding and the handler still throws `notImplemented(...)` (for example, most of `hours` and all of `labels`).
+
+## Recent Shipped Work (v0.4.0–v0.5.0)
+
+### Template UI (PRs #12–#19)
+All 8 pages completed: Library, Detail, Editor, Assignment, Fulfillment, Review Queue, Team Templates, Review Detail. 25 endpoints fully wired.
+
+### Hours Pages & Progress APIs (PRs #20, #48)
+My Hours, Team Hours, Hour Conflicts, and hours progress endpoints operational with real service implementations.
+
+### Manager Analytics Dashboard (PR #22)
+Dashboard redesigned with compliance summary, expiry warnings widget, readiness card. New dashboard module (11th API module).
+
+### Admin Status Change (PR #49)
+Marked `apps/admin` dormant for MVP; admin features ship in `apps/web` with RBAC guards.
+
+### Pipeline Completion (PRs #36, #37, #38)
+Parallel CI lanes, promotion checks, end-to-end GitHub Actions wiring.
+
+### API v1 Namespace Spike (PR #27)
+4-phase dual-mount migration strategy proposed. Proposed for future sprint implementation.
+
+### Attestation Policies & Expiration (PRs #52, #56, #59)
+Policy framework, expiration/renewal workflows, team templates endpoints—all endpoints wired.
+
+---
 
 ## Implementation Matrix
 
@@ -118,44 +141,37 @@
 ## Schema Coverage Notes
 
 ### Present in `data/prisma/schema.prisma`
-- `Employee`, `Qualification`, `QualificationDocument`
-- `MedicalClearance`
-- `Document`, `DocumentProcessing`, `ExtractionResult`, `ReviewQueueItem`
-- `HourRecord`, `HourConflict`, `HourConflictRecord`
-- `ComplianceStandard`, `StandardRequirement`
-- `Notification`, `NotificationPreference`, `EscalationRule`
-- `Label`, `LabelMapping`, `TaxonomyVersion`
-- `AuditLog`
+- **Core:** `Employee`, `ComplianceStandard`, `StandardRequirement`, `Qualification`, `MedicalClearance`
+- **Records:** `Document`, `DocumentProcessing`, `ExtractionResult`, `ReviewQueueItem`, `HourRecord`, `HourConflict`, `HourConflictRecord`
+- **Templates & Attestation (NEW):** `ProofTemplate`, `ProofRequirement`, `TemplateAssignment`, `ProofFulfillment`
+- **System:** `Notification`, `NotificationPreference`, `EscalationRule`, `Label`, `LabelMapping`, `TaxonomyVersion`, `AuditLog`
 
-### Spec-defined but absent from the Prisma schema
-- **Proof Vault:** `ProofVault`, `VaultDocument`
-- **Sharing:** `VaultFolder`, `VaultFolderMember`, `VaultFolderDocument`, `VaultShare`, `VaultShareLink`, `VaultShareLinkAccess`, `FileRequest`, `StorageQuota`
-- **Templates & Attestation:** `ProofTemplate`, `ProofRequirement`, `TemplateAssignment`, `ProofFulfillment`
-- **Proof Taxonomy:** `ProofType` enum, `IndustryPreset`
+### Spec-defined but absent from the Prisma schema (Phase 2)
+- **Proof Vault:** `ProofVault`, `VaultDocument`, `VaultFolder`, `VaultShare`, `VaultShareLink`, `StorageQuota`
+- **Proof Taxonomy:** `ProofType` enum (in code), `IndustryPreset` model
 
 ## Notes
 
-- The current routed `apps/web` surface is only **4 screens**: `/login`, `/`, `/employees`, and `/employees/:id`.
-- `apps/admin` is still a scaffold: the repo contains only `apps/admin/package.json` and `apps/admin/README.md`, with no source application yet.
-- `apps/web/src/components/ProofList.tsx` and `ProofCard.tsx` are reusable qualification UI components, but they are **not routed screens**, so they are not counted as implemented UI here.
-- The API surface is uneven: **auth/login**, employees, medical, qualifications, documents, standards, and notifications have real services; **hours** and **labels** are still placeholder service shells; **auth/register**, **auth/change-password**, and **auth/oauth/callback** are also placeholders.
-- The web app still uses `/employees` routes where the current app spec expects `/team`; this document records both when relevant.
-- Auth currently relies on mock users in `apps/api/src/modules/auth/service.ts` (`employee@`, `supervisor@`, `manager@`, `compliance@`, `admin@`).
+- The current routed `apps/web` surface now includes **25+ screens** across auth, dashboard, employee mgmt, qualifications, medical, documents, hours, notifications, standards, templates, fulfillment, and reviews.
+- `apps/admin` is marked dormant for MVP (v0.4.0–v0.6.0); admin features ship in `apps/web` with `requireRole(Roles.ADMIN)` guards, to be extracted in v0.7.0+.
+- The API has 11 modules (dashboard is new): auth, employees, hours, documents, qualifications, medical, standards, notifications, labels, templates, dashboard.
+- Test coverage: 415 tests passing (34 smoke, 15 proof metadata, 366 API modules, 5 web components).
+- Hours and labels services now have real implementations; auth register/change-password/oauth callbacks are still placeholders.
 
 ## Summary
 
-| Category | Total Features | ✅ Full | 🔧 API Only | ⚛️ UI Only | 📋 Spec Only | ❌ Not Started |
-|----------|---------------|---------|-------------|-----------|-------------|--------------|
-| Authentication & Session | 7 | 1 | 1 | 0 | 2 | 3 |
-| Dashboard | 2 | 1 | 0 | 0 | 1 | 0 |
-| Employee Management | 4 | 2 | 2 | 0 | 0 | 0 |
-| Qualifications & Skills | 4 | 0 | 3 | 0 | 1 | 0 |
-| Compliance Standards | 3 | 0 | 2 | 0 | 1 | 0 |
-| Medical Records | 2 | 0 | 2 | 0 | 0 | 0 |
-| Hours Tracking | 4 | 0 | 0 | 0 | 1 | 3 |
-| Documents | 5 | 0 | 3 | 0 | 2 | 0 |
-| Notifications | 2 | 0 | 2 | 0 | 0 | 0 |
-| Proof Templates & Attestation | 5 | 0 | 0 | 0 | 5 | 0 |
-| Sharing & Proof Vault | 6 | 0 | 0 | 0 | 6 | 0 |
-| Admin Operations | 4 | 0 | 2 | 0 | 1 | 1 |
-| **TOTAL** | **48** | **4** | **17** | **0** | **20** | **7** |
+| Category | Screens | API Endpoints | Status |
+|----------|---------|---------------|--------|
+| Authentication & Session | 1 ✅ | 2 ✅ + 5 ❌ | Partial (login works) |
+| Dashboard & Analytics | 1 ✅ | 3 🔧 | **NEW — Complete** |
+| Employee Management | 4 ✅ | 5 🔧 | Full UI, API partial |
+| Qualifications & Skills | 2 🔧 | 4 🔧 | API only |
+| Compliance Standards | 2 🔧 | 5 🔧 | API only |
+| Medical Records | 2 🔧 | 4 🔧 | API only |
+| Hours Tracking | 3 ✅ | 8 ✅ | **NEWLY ACTIVATED** |
+| Documents | 4 🔧 | 5 🔧 | API partial (upload works) |
+| Notifications | 1 🔧 | 8 🔧 | API only |
+| Proof Templates & Attestation | 8 ✅ | 25 ✅ | **NEWLY COMPLETED (v0.4.0)** |
+| Sharing & Proof Vault | — | — | Phase 2 (not started) |
+| Admin Operations | — | 8 🔧 | Moved to web app |
+| **TOTALS** | **25+** | **94+** | **415 tests** |
