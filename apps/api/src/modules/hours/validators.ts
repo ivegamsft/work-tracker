@@ -71,6 +71,20 @@ export const hoursQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
 
+export const progressQuerySchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  proofType: z.string().optional(),
+});
+
+export const teamProgressQuerySchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  proofType: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
 export type ClockInInput = z.infer<typeof clockInSchema>;
 export type ClockOutInput = z.infer<typeof clockOutSchema>;
 export type ManualEntryInput = z.infer<typeof manualEntrySchema>;
@@ -78,3 +92,5 @@ export type PayrollImportInput = z.infer<typeof payrollImportSchema>;
 export type SchedulingImportInput = z.infer<typeof schedulingImportSchema>;
 export type ResolveConflictInput = z.infer<typeof resolveConflictSchema>;
 export type EditHourInput = z.infer<typeof editHourSchema>;
+export type ProgressQueryInput = z.infer<typeof progressQuerySchema>;
+export type TeamProgressQueryInput = z.infer<typeof teamProgressQuerySchema>;

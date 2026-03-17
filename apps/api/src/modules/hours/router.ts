@@ -13,6 +13,8 @@ import {
   editHourSchema,
   deleteHourSchema,
   hoursQuerySchema,
+  progressQuerySchema,
+  teamProgressQuerySchema,
 } from "./validators";
 
 const router = Router();
@@ -66,6 +68,33 @@ router.post("/import/scheduling", authenticate, requireMinRole(Roles.SUPERVISOR)
 router.post("/calendar/sync", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const result = await hoursService.syncCalendar(req.user!.id);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// GET /api/hours/progress — Authenticated employee's hours progress by proof type
+router.get("/progress", authenticate, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const filters = progressQuerySchema.parse(req.query);
+    const result = await hoursService.getEmployeeProgress(req.user!.id, filters);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// GET /api/hours/team-progress — Team-wide hours progress (Supervisor+)
+router.get("/team-progress", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const filters = teamProgressQuerySchema.parse(req.query);
+    const result = await hoursService.getTeamProgress(filters);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// GET /api/hours/progress/:employeeId — Manager view of employee hours progress (Supervisor+)
+router.get("/progress/:employeeId", authenticate, requireMinRole(Roles.SUPERVISOR), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const filters = progressQuerySchema.parse(req.query);
+    const result = await hoursService.getEmployeeProgress(param(req, "employeeId"), filters);
     res.json(result);
   } catch (err) { next(err); }
 });
