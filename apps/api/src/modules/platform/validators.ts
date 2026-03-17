@@ -9,7 +9,7 @@ export const healthResponseSchema = z.object({
 export const readinessResponseSchema = z.object({
   status: z.enum(["READY", "NOT_READY"]),
   timestamp: z.string().datetime(),
-  checks: z.record(z.enum(["OK", "FAILED"])),
+  checks: z.record(z.string(), z.enum(["OK", "FAILED"])),
 });
 
 export const dependencyStatusSchema = z.object({
@@ -23,7 +23,7 @@ export const detailedHealthResponseSchema = z.object({
   version: z.string(),
   environment: z.string(),
   uptime_seconds: z.number().int().nonnegative(),
-  dependencies: z.record(dependencyStatusSchema),
+  dependencies: z.record(z.string(), dependencyStatusSchema),
 });
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
