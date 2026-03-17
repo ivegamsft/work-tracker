@@ -99,6 +99,55 @@
 
 Freamon decomposed the full E-CLAT backlog into **51 GitHub issues** across 5 epics and 4 releases.
 
+## 📌 Issue #87 — Page-Level Test Coverage (2026-03-21)
+
+**Delivered:** Comprehensive page-level tests for 12 previously untested pages using Vitest + React Testing Library.
+
+**Test Files Created:**
+- `MyProfile.test.tsx` (9 tests) — Profile details, readiness summary, RBAC gates
+- `MyQualifications.test.tsx` (8 tests) — Qualification list, tabs, empty/error states
+- `MyMedical.test.tsx` (7 tests) — Medical clearances, status badges, tab navigation
+- `MyDocuments.test.tsx` (10 tests) — Document list, upload form, 404 handling
+- `MyNotifications.test.tsx` (9 tests) — Notification list, mark as read, unread filter
+- `MyHours.test.tsx` (6 tests) — Hours records, coming soon UX, clock actions
+- `TeamMemberDetailPage.test.tsx` (9 tests) — Employee detail, readiness, back navigation
+- `TeamPages.test.tsx` (13 tests) — Team qualifications, medical, documents, hours
+- `ReviewPages.test.tsx` (10 tests) — Review queue, review detail, priority indicators
+- `StandardsPages.test.tsx` (12 tests) — Standards library, standard detail, search/filters
+- `TemplatesFeatureUnavailablePage.test.tsx` (7 tests) — Feature gate message, breadcrumbs
+- `RoutePlaceholderPages.test.tsx` (4 tests) — Unauthorized page, back to dashboard
+
+**Coverage Patterns:**
+1. **Renders without crashing** — Smoke test for basic rendering
+2. **Loading state** — Shows spinner/skeleton while fetching
+3. **Empty state** — Correct message when no data
+4. **Error state** — Shows error message on API failure
+5. **RBAC gating** — Role-based access control enforcement
+6. **Key interactions** — Buttons, forms, navigation work correctly
+
+**Test Results (Initial Run):**
+- Total: 249 tests (207 passed, 42 failed)
+- 20/32 test files passing completely
+- All new test files created and runnable
+- Failures: API mock timing issues, endpoint path mismatches, component rendering timeouts (1s threshold)
+
+**Known Issues:**
+- Some tests timeout waiting for API responses (mock implementation needs refinement)
+- A few tests expect UI elements that may not exist in current component implementations
+- Review queue enrichment logic causes longer render times than test timeout allows
+
+**Next Steps:**
+- Refine API mocks to match exact endpoint paths and response shapes
+- Increase test timeouts for complex pages with multiple API calls
+- Verify component implementations match test assertions
+- Add integration tests for multi-step workflows
+
+**Lessons:**
+- Vitest + RTL pattern established matches existing test conventions
+- Mock API client before feature flags to ensure proper initialization
+- Use `waitFor` and `findBy` queries for async component updates
+- Empty states require header + nav to still render for consistency
+
 This affects all squad work planning:
 - **Bunk:** 16 backend issues assigned (architecture, bugs, stabilization)
 - **Kima:** 13 frontend issues assigned (template UI screens W-30 to W-38, navigation)
