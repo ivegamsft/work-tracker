@@ -17,6 +17,7 @@ import TeamTemplatesPage from './pages/TeamTemplatesPage';
 import TemplatesFeatureUnavailablePage from './pages/TemplatesFeatureUnavailablePage';
 import FulfillmentReviewQueuePage from './pages/FulfillmentReviewQueuePage';
 import FulfillmentReviewDetailPage from './pages/FulfillmentReviewDetailPage';
+import ManagerDashboardPage from './pages/ManagerDashboardPage';
 import {
   MyDocumentsPage,
   MyHoursPage,
@@ -271,6 +272,14 @@ function App() {
               <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
                 <FulfillmentReviewDetailPage />
               </FeatureGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/manager"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <ManagerDashboardPage />
             </ProtectedRoute>
           }
         />

@@ -15,6 +15,7 @@ export default function Layout({ children }: LayoutProps) {
   const canReviewDocuments = hasMinimumRole(user?.role, 'manager');
 
   const navItems = [
+    canAccessTeam ? { path: '/dashboard/manager', label: 'Analytics' } : null,
     canAccessTeam ? { path: '/team', label: 'Team' } : null,
     canAccessTeam ? { path: '/team/templates', label: 'Team Templates', flag: 'compliance.templates' } : null,
     canReviewDocuments ? { path: '/reviews', label: 'Document Review' } : null,
