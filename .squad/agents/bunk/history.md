@@ -283,3 +283,43 @@ Decision file: N/A (straightforward test addition, no architectural decisions)
 
 **Next:** Labels service implementation can follow test contracts; dashboard tests establish baseline for team rollup features
 
+## 📌 Observability Foundation (2026-03-17 — Issues #121, #126, #127, #128)
+
+**Mission:** Implement Phase 3 observability foundation — OTel SDK, correlation IDs, structured logging, health endpoints, metrics.
+
+**Files Created:**
+- `apps/api/src/config/telemetry.ts` — OTel SDK initialization (NodeSDK, MeterProvider, resource attributes, console exporters for dev, silent for test)
+- `apps/api/src/middleware/correlationId.ts` — Generates/propagates UUID correlation IDs, synthesises W3C traceparent headers
+- `apps/api/src/middleware/requestLogger.ts` — Structured JSON request/response logging with OTel metrics (counters, histograms, gauges)
+- `apps/api/src/modules/platform/service.ts` — Dependency health checks (database, cache, auth) with latency measurement
+- `apps/api/src/modules/platform/validators.ts` — Zod schemas for health/readiness/detailed-health responses
+
+**Files Modified:**
+- `apps/api/src/index.ts` — Integrated telemetry init, correlationId and requestLogger middleware, telemetry shutdown on SIGINT/SIGTERM
+- `apps/api/src/modules/platform/router.ts` — Added GET /health (liveness), GET /ready (readiness), GET /detailed-health (dependency checks) endpoints
+- `apps/api/src/modules/platform/index.ts` — Exported new service functions
+- `apps/api/src/middleware/index.ts` — Exported correlationId and requestLogger
+- `apps/api/src/common/utils/logger.ts` — Added OTel trace context bridge (injects traceId/spanId into every log entry)
+- `apps/api/tests/platform.test.ts` — Added 17 new tests (20 total with 3 existing)
+
+**New Endpoints:**
+- `GET /api/v1/platform/health` — Liveness probe (UP/DOWN + uptime)
+- `GET /api/v1/platform/ready` — Readiness probe (checks DB/cache/auth, returns 503 on failure)
+- `GET /api/v1/platform/detailed-health` — Full dependency status with latencies, version, environment
+
+**OTel Metrics Emitted:**
+- `http_requests_total` (counter) — by method, status, path
+- `http_request_duration_ms` (histogram) — by method, path
+- `http_active_requests` (gauge) — in-flight request count
+
+**Test Results:** 20/20 platform tests passing. Zero regressions (774 passing, 108 pre-existing failures in negative/identity/data-layer suites).
+
+**Dependencies Added:** @opentelemetry/api, @opentelemetry/sdk-node, @opentelemetry/sdk-metrics, @opentelemetry/sdk-trace-node, @opentelemetry/resources, @opentelemetry/semantic-conventions
+
+**Notes:**
+- `@opentelemetry/resources` v2.x dropped `Resource` class constructor; use `resourceFromAttributes()` instead
+- `ATTR_DEPLOYMENT_ENVIRONMENT_NAME` doesn't exist in current semantic-conventions; use `SEMRESATTRS_DEPLOYMENT_ENVIRONMENT`
+- Cache and auth health checks are stubs (always OK) — will be implemented when Redis and Entra are integrated
+- Path normalization in metrics collapses UUIDs and numeric IDs to avoid high-cardinality labels
+
+

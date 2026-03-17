@@ -3,7 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import { env, loadEnv } from "./config/env";
 import { disconnectDatabase, prisma } from "./config/database";
-import { createAuditMiddleware, errorHandler } from "./middleware";
+import { initTelemetry, shutdownTelemetry } from "./config/telemetry";
+import { correlationId, requestLogger, createAuditMiddleware, errorHandler } from "./middleware";
 import { logger } from "./common/utils";
 import { authRouter } from "./modules/auth";
 import { employeesRouter } from "./modules/employees";
@@ -17,6 +18,7 @@ import { notificationsRouter } from "./modules/notifications";
 import { assignmentsRouter, employeeAssignmentsRouter, fulfillmentsRouter, templatesRouter } from "./modules/templates";
 import { platformRouter } from "./modules/platform";
 import { dashboardRouter } from "./modules/dashboard";
+import { identityRouter } from "./modules/identity";
 import { PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
@@ -32,6 +34,8 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: "10mb" }));
+  app.use(correlationId);
+  app.use(requestLogger);
   app.use("/api/:entityType", createAuditMiddleware({ auditLogger }));
 
   // Health check
@@ -55,6 +59,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/api/assignments", assignmentsRouter);
   app.use("/api/fulfillments", fulfillmentsRouter);
   app.use("/api/dashboard", dashboardRouter);
+  app.use("/api/v1/auth", identityRouter);
   options.registerRoutes?.(app);
 
   // Error handling
@@ -67,6 +72,7 @@ const app = createApp();
 
 async function startServer() {
   await loadEnv();
+  initTelemetry();
   await prisma.$connect();
 
   const server = app.listen(env.PORT, () => {
@@ -79,11 +85,11 @@ async function startServer() {
     server.close((error) => {
       if (error) {
         logger.error("Failed to close HTTP server", { error: error.message, stack: error.stack });
-        void disconnectDatabase(signal).finally(() => process.exit(1));
+        void Promise.all([shutdownTelemetry(), disconnectDatabase(signal)]).finally(() => process.exit(1));
         return;
       }
 
-      void disconnectDatabase(signal).finally(() => process.exit(0));
+      void Promise.all([shutdownTelemetry(), disconnectDatabase(signal)]).finally(() => process.exit(0));
     });
   };
 
