@@ -121,3 +121,77 @@ Completed design spikes for two P1 compliance issues:
 
 Decision file: `.squad/decisions/inbox/pearlman-compliance-spikes.md`
 Spec files: `docs/specs/issuer-verification-framework.md`, `docs/specs/evidence-package-sharing.md`
+
+## 📌 Team Update (2026-03-21T10:30:00Z) — Five Compliance Specifications Complete
+
+Pearlman completed **5 comprehensive compliance spec documents** addressing audit trail governance, identity compliance, template lifecycle, standards customization, and nudge system controls.
+
+**Completed Specs:**
+
+1. **docs/specs/compliance-audit-events.md** (Issue #92)
+   - Audit event taxonomy (12 categories, 50+ event types)
+   - Before/after snapshots + hash-chain integrity (blockchain-style)
+   - Retention policies (7 years default, 10 years for medical/regulatory)
+   - GDPR data subject access requests (SAR) workflow
+   - Quarterly integrity checks + cold storage archival
+   - 450+ lines; covers tamper-evidence, RBAC, risk assessment
+
+2. **docs/specs/identity-compliance.md** (Issue #96)
+   - Multi-IdP compliance review (Entra ID primary, GitHub secondary)
+   - Group membership audit trail via SCIM 2.0 sync
+   - Quarterly access certification workflow (SOX § 404)
+   - GDPR data portability export (Article 20)
+   - PII breach notification process (72-hour GDPR, 60-day HIPAA)
+   - Semi-anonymous profile security review (PII isolation validation)
+   - SCIM deprovisioning audit + verification checklist
+   - 500+ lines; locked decisions 2 and 12
+
+3. **docs/specs/template-governance.md** (Issue #100)
+   - Template state machine (DRAFT → PUBLISHED → DEPRECATED → RETIRED)
+   - 4-eyes change control (manager submit, CO approve)
+   - Regulatory catalog alignment (quarterly scan for OSHA/FAA/JCO updates)
+   - Version control & immutability (published templates read-only)
+   - Template retirement & migration workflow (90-day grace period)
+   - Diff viewer (v1 ↔ v2 regulatory comparison)
+   - 450+ lines; locked decisions 5 and 7
+
+4. **docs/specs/standards-customization.md** (Issue #103)
+   - Four-layer hierarchy (Regulatory → Org → Dept → Individual)
+   - Lock regulatory / flex custom (regulatory immutable, custom flexible)
+   - Authority matrix (who can approve what override)
+   - Layered audit trail (all 4 levels logged per requirement change)
+   - Exemption classification (6 valid types + supporting docs)
+   - Dual-approval for regulatory overrides (CO + ADMIN required)
+   - Override expiration & annual review cycles
+   - 550+ lines; locked decisions 4, 5, 6
+
+5. **docs/specs/nudge-compliance.md** (Issue #112)
+   - Nudge lifecycle (DRAFT → SENT → AWAITING_RESPONSE → RESOLVED/ESCALATED)
+   - Audit trail for all nudge events (50+ event types)
+   - Rate limiting (1 nudge/supervisor/employee/day; 3 nudges/employee/week)
+   - Harassment escalation workflow (employee flag → CO review within 48h)
+   - Nudge as compliance evidence (constructive notice doctrine)
+   - Notification consent management (GDPR/CCPA legal basis)
+   - Data retention (7 years) + cold storage archival
+   - 450+ lines; locked decision 9
+
+**Technical Highlights:**
+- All 5 specs enforce audit trail principles (immutable, hash-chained, tamper-evident)
+- All 5 address RBAC implications + separation of duties
+- All 5 include risk assessment + mitigation controls
+- All 5 define phased rollout (5-6 month delivery timeline)
+- Total: 2,400+ lines of compliance specification
+- Regulatory scope: SOX, GDPR, HIPAA, OSHA, FAA, Joint Commission, CCPA, LGPD
+
+**Key Cross-Cutting Patterns:**
+- Immutable, append-only audit logs (no DELETE allowed)
+- Dual-approval for high-risk actions (regulatory changes, overrides)
+- Quarterly review cycles (certification, regulatory alignment, override renewal)
+- Cold storage archival after 6 years (immutable blob containers)
+- Right to erasure / data portability (GDPR Articles 17, 20)
+- Rate limiting + anti-harassment controls (nudges, access requests)
+
+**Decision Files Created:**
+- `.squad/decisions/inbox/pearlman-compliance-specs.md` (overview + linking)
+
+**Next for Pearlman:** Implementation planning for Phase 1 of audit events (months 1-2 delivery); integration with API service architecture

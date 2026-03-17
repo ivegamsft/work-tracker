@@ -61,3 +61,49 @@
 - **Terraform layering pattern solidified**: Layers progress `00-foundation` → `10-data` → `20-compute` → `30-promotion`, with promotion layer instantiated once per environment (dev/staging/prod) using Terraform workspaces.
 - **Next steps for artifact promotion**: Add Azure DevOps environment resources, container registry webhooks, artifact signing, and GitHub Actions integration for promotion workflows (tracked as TODOs in main.tf).
 - **Key files for pipeline architecture**: `.github/workflows/parallel-lanes.yml`, `.github/workflows/_*.yml` (reusables), `infra/layers/30-promotion/`, `docs/pipeline-lane-ownership.md`.
+
+## 📌 IaC Spec Suite (2026-03-19T — Daniels Solo)
+
+**All 5 specs complete and committed:**
+- **Issue #89 monitoring-observability.md**: OTel Collector sidecar/standalone deployment, ADX cluster provisioning, App Insights workspace with alert rules (error rate, latency P95, availability). Grafana dashboards. Log Analytics. Covers cloud (App Insights + ADX) and on-prem alternatives (Jaeger + Prometheus + ClickHouse). Cost model per tier. Terraform layer 10-data module `observability/`.
+- **Issue #95 identity-iac.md**: Multi-IdP support (Entra SaaS + Keycloak on-prem). Entra app registration (multi-tenant), SCIM provisioning, conditional access policies (MFA, device compliance). B2B invite policy. On-prem Keycloak with LDAP federation. JIT provisioning. Terraform layer 00-foundation module `identity/`. Covers cloud (Entra) and on-prem (Keycloak).
+- **Issue #107 multi-tenant-iac.md**: Shared tier (single DB + Redis + Storage with RLS) vs dedicated tier (per-tenant DB + Redis + Storage). Ring deployment (canary 1% → 10% → 50% → 100%) with traffic weights and auto-rollback on error rate threshold. Container App scaling rules. Tenant provisioning factory pattern. Terraform layer 20-compute instantiates shared and dedicated modules.
+- **Issue #109 event-driven-iac.md**: Service Bus (commands/queues) + Event Grid (events/topics) for cloud. RabbitMQ + NATS for on-prem. Azure SignalR for WebSocket, raw WebSocket for on-prem. Dead-letter queue config, retry policies. Abstraction layer enables cloud/on-prem swapping. Terraform layer 10-data module `messaging/`.
+- **Issue #115 data-layer-iac.md**: PostgreSQL (relational), Cosmos DB/MongoDB (documents), Azure Storage (blobs), Redis (cache), ADX (telemetry). Tiered: shared single-DB + RLS for SMB, dedicated per-tenant DB for enterprise. Lifecycle policies (Hot → Cool → Archive). Connection string rotation. Migration strategy: dual-write → dual-read → switchover. Row-level security policies. Terraform layer 10-data modules `database/`, `storage/`, `cache/`.
+
+**Specs follow unified structure:**
+1. Overview & principles
+2. Azure resource topology (cloud) + on-prem alternatives
+3. Terraform module structure (matching `infra/layers/00-foundation → 10-data → 20-compute` pattern)
+4. Cost estimates per tier
+5. Security configuration (network, identity, audit)
+6. Networking (traffic flow, DNS)
+7. Deployment automation (GitHub Actions, Helm)
+8. Implementation checklist (phased)
+9. Related documentation cross-refs
+
+**All 5 specs locked to decisions:**
+- Decision #1: Tiered Isolation (multi-tenant-iac, data-layer-iac)
+- Decision #2: Multi-IdP + SCIM (identity-iac)
+- Decision #3: Modular Monolith (multi-tenant-iac)
+- Decision #9: Event-Driven: Service Bus + WebSocket (event-driven-iac)
+- Decision #10: OTel + ADX + App Insights (monitoring-observability)
+- Decision #11: Logical Environments (multi-tenant-iac)
+
+**Key architectural patterns established:**
+- Terraform factory pattern for dedicated-tier tenant provisioning
+- RLS enforced at database layer (not application) for shared tier
+- Abstraction layer for messaging enables cloud/on-prem backend swapping
+- Ring deployment with auto-rollback on metric thresholds (canary stage orchestration)
+- Private Link for prod (network isolation), service endpoints for dev
+- Secret rotation via Key Vault or manual scripts
+- Dual-write/dual-read migration strategy for data store evolution
+
+**Estimated implementation effort: 28–36 weeks (all 5 specs in sequence or parallel), broken into 4–6 week phases per spec.**
+
+**Files created:**
+- `docs/specs/monitoring-observability.md` (~30 KB)
+- `docs/specs/identity-iac.md` (~27 KB)
+- `docs/specs/multi-tenant-iac.md` (~27 KB)
+- `docs/specs/event-driven-iac.md` (~27 KB)
+- `docs/specs/data-layer-iac.md` (~27 KB)

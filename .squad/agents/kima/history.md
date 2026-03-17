@@ -142,3 +142,61 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 - Kima: coverage audit (54-71% partial, P0: template publish/clone, thresholds)
 
 **Scribe:** 4 logs + 1 decision merge + history updates done
+
+## 📌 Team Update (2026-03-20T140000Z — Kima's 4 UX Spec Documents)
+
+**Kima (Frontend Dev) delivered 4 comprehensive UX specification documents:**
+
+**1. frontend-telemetry.md (Issue #91)**
+- OTel browser SDK integration with error boundary telemetry
+- User flow tracking (page views, feature usage), Web Vitals monitoring
+- Per-tenant telemetry tagging + GDPR consent-aware tracking
+- Feature flag context for conditional rendering + export gating
+- 4-phase rollout: MVP core (Phase 1) → Performance + Export (Phase 2) → Compliance + UI (Phase 3) → Alerting (Phase 4)
+- Success metrics: Error detection <5min, <2% load time overhead, 100% PII export compliance
+
+**2. template-management-ux.md (Issue #99)**
+- Full template UX: creation wizard (5 steps), industry catalog browser, assignment wizard
+- L1-L4 attestation level configuration per requirement, template versioning with diff view
+- Lifecycle status indicators (draft/published/archived), bulk operations (extend deadline, revoke, change level)
+- My Templates page (employee side) with status tracking (pending, in-progress, fulfilled, expiring, expired)
+- 4-phase rollout: MVP (Phase 1: library + editor draft) → Publishing + Assignment (Phase 2) → Fulfillment + Bulk (Phase 3) → Catalog + Inheritance (Phase 4)
+- Reusable components: TemplateBrowser, TemplateCard, TemplateWizard, RequirementEditor, AttestationLevelMatrix, DiffView
+
+**3. multi-tenant-ux.md (Issue #108)**
+- Admin Portal (`apps/admin`) for tenant management: dashboard, environment switcher, environment creation/cloning
+- User management: Entra directory search, B2B invites, local accounts, group management with auto-sync
+- Claim-driven auto-assignment rules editor (Group → Template triggers)
+- Settings UI: authentication, feature flag overrides, integrations
+- Cross-environment compliance dashboard (compare prod/staging/dev metrics)
+- 4-phase rollout: Admin shell + dashboard (Phase 1) → User management + invites (Phase 2) → Group + Rules (Phase 3) → Environment cloning + cross-env reporting (Phase 4)
+
+**4. realtime-ux.md (Issue #111)**
+- WebSocket client integration (@microsoft/signalr or raw WS) with auto-reconnect + exponential backoff
+- Presence indicators (online/offline/busy dots) on user avatars + team rosters
+- Notification center (persistent drawer + toast notifications) with mark-as-read, delete, grouping
+- Nudge workflow: supervisor sends nudge with optional message → employee receives notification with action button
+- Connection status indicator + graceful degradation (fallback to HTTP polling if WebSocket unavailable)
+- Feature flag context for conditional enable/disable per feature
+- 4-phase rollout: Connection + Presence (Phase 1) → Notifications (Phase 2) → Nudges (Phase 3) → Degradation + Preferences (Phase 4)
+
+**Specifications Include (all 4 docs):**
+- Detailed user stories with acceptance criteria
+- Page/component hierarchy diagrams
+- Text-based wireframe descriptions (no design tool needed)
+- State management patterns (Context hooks, Zustand, form state)
+- API integration points (RESTful + WebSocket schemas)
+- Accessibility considerations (WCAG 2.1 AA compliance)
+- Responsive design notes (mobile/tablet/desktop strategies)
+- 4-phase phased rollout with feature flag gating
+- Dependencies + tech stack
+- Testing strategy (unit, integration, E2E)
+- Rollback plans for each feature
+- Success metrics + KPIs
+- Known limitations + future work
+
+**Impact on Team:**
+- Bunk: 12 new API endpoints to build across template CRUD, assignments, fulfillment, notifications, nudges, admin dashboards
+- Sydnor: Integration test coverage needed for all 4 features (template flows, real-time messaging, multi-env isolation)
+- Pearlman: Compliance validation for attestation level enforcement, audit logging for all admin actions, GDPR consent mechanisms
+- All specs ready for dev kickoff; no blocking research needed

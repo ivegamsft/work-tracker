@@ -196,3 +196,28 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 3. Zod validation on the real router catches payload issues the test-harness pattern misses
 4. RBAC tests should cover both "role too low" (403) and "no auth" (401)
 5. `requireRole(Roles.ADMIN)` (exact match) vs `requireMinRole(Roles.MANAGER)` (range) — important distinction
+
+## 📌 Team Update (2026-03-17T09-15-00Z) — Qualification Test Plan Spec Complete ✅
+
+**What:** Comprehensive qualification engine test plan specification written for Issue #104.
+
+**Scope (97 test cases across 6 categories):**
+1. **Attestation Level Matrix (25 tests):** L1 self-attest (auto-accept), L2 supervisor approval, L3 third-party invite/verify, L4 CO seal. Level satisfaction rules (L3 satisfies L2, L4 satisfies all). Negative: L1 where L2 required.
+2. **Override Matrix (18 tests):** Expiration extension, proof override, requirement waiver, grace period. All require justification + audit. Regulatory overrides need CO+admin dual approval. Supervisor cannot override outside chain.
+3. **Exemption Scenarios (12 tests):** NOT_APPLICABLE (dept), MEDICAL (ADA), TRANSITIONAL (grace period auto-expiry), GRANDFATHERED (legacy certs), REGULATORY_WAIVER (rare, dual approval). Auto-expiry verified → non-compliant.
+4. **Standards Customization (14 tests):** Regulatory immutable (cannot relax, can tighten), custom flexible (add/remove/change). Org→Dept→Emp inheritance. Cascading requirement changes to 10K+ assignments.
+5. **RBAC Edge Cases (20 tests):** Supervisor confined to reporting chain, CO org-wide, employee own-only, manager tree scope, admin backend override (mandatory-not-overridable). Separation of duty (cannot approve own).
+6. **Data Relationships (8 tests):** Employee-group-template chain, cascading effects (requirement added→update 100 assignments), environment scoping (production ≠ staging, tenant isolation).
+
+**Specification Details:**
+- **Test IDs:** TC-ATT-*, TC-OVR-*, TC-EXM-*, TC-STD-*, TC-RBAC-*, TC-DATA-* (traceable to code)
+- **Per test case:** Description, priority (P0-P2), preconditions, steps, expected results, audit trail assertions
+- **Coverage goals:** >85% line coverage, >80% branch, all approval workflows, 5 roles × 25+ endpoints = 125+ boundary tests
+- **Execution plan:** 6 phases, 10-day timeline, gates per phase (all passing + coverage verified)
+- **Known risks:** Dual approval bottleneck → escalation SLA, cascading assignment updates → async batching, exemption timing edge cases → cron validation, RBAC boundary leakage → explicit chain mocking, data isolation → env randomization
+
+**File:** `docs/specs/qualification-test-plan.md` (Issue #104)
+
+**Next steps:** Hand off to squad test team (Sydnor lead) for implementation in Phase 4. Start with Phase 1 (Attestation) to establish patterns, then parallelize remaining phases.
+
+**Impact:** Locked down test strategy ensures qualification engine is compliant-ready. Dual approval workflows + regulatory immutability + exemption auto-expiry are now testable + auditable.

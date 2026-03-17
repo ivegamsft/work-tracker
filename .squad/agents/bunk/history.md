@@ -127,3 +127,45 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 - Deleted inbox file
 
 **Next:** PRs #55-57 ready for review; Kima findings → P0 prioritization
+
+## 📌 API Spec Bundle (2026-03-21T143000Z — Bunk Deliverable)
+
+Bunk wrote 7 authoritative API specification documents for Issues #90, #94, #98, #102, #106, #110, #114:
+
+**Specs Created:**
+
+1. **api-telemetry.md** (#90) — OTel SDK integration, structured logging, health probes, metric emission, error tracking, W3C trace context, per-tenant tagging
+2. **identity-api.md** (#94) — Multi-IdP provider CRUD, token validation, linked identities, profile resolution (semi-anonymous), SCIM provisioning, user invites
+3. **template-management-api.md** (#98) — Template authoring RBAC, publish workflow (draft→submitted→published), versioning, industry catalog + inheritance, assignment engine (individual/group/role/rule-based/auto-trigger)
+4. **qualification-api.md** (#102) — Override CRUD (exemption/waiver/extension/exception), attestation submission (L1-L4), approval workflow, external invite for L3 verification, standards→requirements→proofs query composition
+5. **multi-tenant-api.md** (#106) — Tenant CRUD, environment management (dev/staging/prod), group mapping + sync from Azure AD, claim-driven assignment rules, cross-tenant admin dashboard
+6. **event-driven-api.md** (#110) — Event bus abstraction (Service Bus/RabbitMQ), WebSocket hub (presence + notifications), nudge system, feature flags with runtime evaluation
+7. **data-layer-api.md** (#114) — Repository pattern (IRepository<T>), polyglot adapters (Prisma/Cosmos/Redis/Blob/ADX), tenant-aware connection resolver, transaction coordinator
+
+**Each Spec Includes:**
+
+- Problem statement (gap analysis)
+- Solution overview (architectural approach)
+- API endpoints (method, path, request/response schemas)
+- Zod validation schemas
+- Prisma data model additions
+- RBAC rules (role matrix per endpoint)
+- Error responses with HTTP codes
+- Security & compliance considerations (PII, SOC2, multi-tenancy, encryption)
+- 4-phase phased rollout (foundation, features, hardening, production)
+- Acceptance criteria per phase
+- Related specs cross-references
+
+**Design Consistency:**
+
+All 7 specs follow locked architectural decisions (#1 tiered isolation, #2 multi-IdP+SCIM, #4 regulatory/custom separation, #5 L1-L4 attestation, #6 audit-safe overrides, #7 catalog+inheritance, #8 group-driven claims, #9 event-driven+WebSocket, #10 OTel+ADX+App Insights, #11 logical environments, #12 semi-anonymous profiles).
+
+Phased rollout strategy synchronized across all 7 specs:
+- Phase 1 (Sprint 5): Foundations (core CRUD, models, middleware)
+- Phase 2 (Sprint 6): Feature integration (assign, publish, sync, events)
+- Phase 3 (Sprint 7): Advanced workflows (approvals, WebSocket, claim rules)
+- Phase 4 (Sprint 8+): Production readiness (dashboards, hardening, observability)
+
+**Files:** All 7 specs in `docs/specs/` (18–21 KB each, ~133 KB total)
+
+**Next:** Specs ready for team review; decision records → inbox/bunk-api-specs.md
