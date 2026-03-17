@@ -4,23 +4,18 @@ Use this index to find project-facing material under `docs/`. Team orchestration
 
 ## Canonical docs-to-code pipeline
 - `ideas/` — raw ideas and proposals
-- `req/` — requirements documents
-- `specs/` — technical specifications
-- `tests/` — test plans
-- `plans/` — implementation plans and execution steps
-- `guides/` — user guides and runbooks
-
-## Supporting material
-- `decisions/` — ADRs and durable decision records
-- `prompts/` — prompt assets and AI workflow material
-- `requirements/` — legacy requirements folder being folded into `req/`
-- `implementation-status.md` — current delivery snapshot
+- `req/` — requirements documents (PRDs, feature specs, requirements)
+- `specs/` — technical specifications (architecture, API contracts, ADRs)
+- `tests/` — test plans and testing documentation
+- `plans/` — implementation plans, execution steps, and backlog
+- `guides/` — user guides, runbooks, and operational procedures
 
 ## Reading order
 1. Start in `req/` for scope and product intent.
-2. Move to `specs/` for implementation contracts.
+2. Move to `specs/` for implementation contracts and architectural decisions.
 3. Use `tests/`, `plans/`, and `guides/` for execution support.
-4. Check `decisions/` for durable architectural calls.
-5. Use `ideas/` and `prompts/` for exploratory work.
+4. Use `ideas/` for exploratory work and emerging concepts.
 
-Use the repo-root `README.md` for workspace layout and day-one commands.
+## Notes
+- Team orchestration and decisions live under `.squad/`, not `docs/`
+- Use the repo-root `README.md` for workspace layout and day-one commands
