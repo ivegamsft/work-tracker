@@ -8,6 +8,22 @@
 - **Structure:** Monorepo — apps/api, apps/web, apps/admin, packages/shared, data (Prisma)
 - **Domain:** Workforce readiness and qualification management for regulated industries
 
+## Core Context
+
+### Compliance Architecture & Proof Taxonomy
+- **Proof model (two-axis):** Type (hours, certification, training, clearance, assessment, compliance) × Attestation Level (L1 self_attest, L2 upload, L3 third_party, L4 validated)
+- **Compound attestation:** Multiple levels required simultaneously; L3 satisfies L2, L4 satisfies all lower
+- **Template lifecycle:** draft → published → archived; published = immutable (clone to edit)
+- **Fulfillment workflow:** Template assignment creates ProofFulfillment records per requirement per employee; validates against attestation floors
+- **Override framework:** 4 types (extension, proof_override, waiver, grace_period); dual-approval for regulatory; supervisor confined to reporting chain
+- **RBAC:** EMPLOYEE < SUPERVISOR < MANAGER < COMPLIANCE_OFFICER < ADMIN; separation of duties enforced (cannot self-approve regulatory actions)
+
+### Regulatory Alignment & Design Principles
+- **Standards customization:** 4-layer hierarchy (Regulatory locked → Org → Dept → Individual exempt); regulatory requirements immutable in code
+- **Audit trail:** Immutable, append-only, hash-chained (SHA256); 7-year retention default, 10-year for medical/HIPAA; quarterly integrity checks + cold storage archival
+- **GDPR compliance:** Article 5 (integrity), 15 (SAR export), 17 (right to erasure via redaction), 20 (data portability JSON/CSV/PDF)
+- **Design guidance:** PII isolation (semi-anonymous profiles), SCIM deprovisioning audit, issuer trust tiers (T1 authoritative → T4 manual), evidence packages (not raw vault links)
+
 ## Key Domain Concepts
 
 - **Proof Taxonomy:** Two-axis model — Type (what) × Attestation Level (how)
