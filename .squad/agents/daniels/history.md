@@ -124,3 +124,58 @@
 - `docs/specs/multi-tenant-iac.md` (~27 KB)
 - `docs/specs/event-driven-iac.md` (~27 KB)
 - `docs/specs/data-layer-iac.md` (~27 KB)
+
+## 📌 Data Layer Foundation (2026-03-17 — Issues #181 + #183)
+
+**Mission:** Implement the repository pattern abstraction and tenant-aware connection resolver — the foundational data layer that all service modules will consume.
+
+**Issue #181 — Repository Pattern & Polyglot Store Abstraction:**
+- Created `packages/shared/src/repositories/` with 5 files:
+  - `IRepository.ts` — Generic `IRepository<T>` interface (create, findById, findMany, findUnique, update, delete, batch ops, count, transactions, metadata)
+  - `IAuditLogRepository.ts` — Append-only audit repo extending IRepository with `append()`, `queryByResource()`, `queryByActor()`
+  - `ICacheRepository.ts` — TTL-aware cache interface (get, set, del, delByPattern, keys, has, flush)
+  - `IDocumentRepository.ts` — Document metadata + blob operations (uploadFile, downloadFile, getSignedUrl)
+  - `RepositoryFactory.ts` — Factory pattern with adapter registration; `createRepository()`, `createAuditRepository()`, `createCacheRepository()`, `createDocumentRepository()`
+- Created `apps/api/src/common/data/` with 6 files:
+  - `PrismaRepository.ts` — Prisma-backed IRepository<T> with filter translation ($in→in, $gt→gt, $like→contains, $or→OR, $and→AND)
+  - `PrismaAdapter.ts` — IRepositoryAdapter for store type "sql"; bridges factory to PrismaRepository
+  - `PrismaAuditLogRepository.ts` — Prisma-backed append-only audit repository; update/delete throw on immutability constraint
+  - `InMemoryCacheRepository.ts` — In-memory ICacheRepository (MVP; Redis adapter planned for later sprint)
+  - `TenantResolver.ts` — Extracts tenant from JWT claim → X-Tenant-ID header → default; resolves tier via StaticTenantLookup
+  - `ConnectionManager.ts` — Manages shared + dedicated PrismaClient pools; Key Vault integration for dedicated-tier connection strings
+- Created `apps/api/src/middleware/tenantContext.ts` — Express middleware attaching `req.tenantContext`
+- Updated `packages/shared/src/index.ts` to export all repository types
+- Updated `apps/api/src/middleware/index.ts` to export `createTenantMiddleware`
+
+**Issue #183 — Tenant-Aware Connection Resolver:**
+- `TenantResolver` resolution order: JWT `tenant_id` claim → `X-Tenant-ID` header → `DEFAULT_TENANT_ID`
+- `StaticTenantLookup` for dev/test; production will use a tenant registry
+- `ConnectionManager` routes shared-tier tenants to a single PrismaClient; dedicated-tier tenants get their own PrismaClient with Key Vault-resolved connection strings
+- Duplicate connection prevention via pending-connection map
+- Environment ID extracted from `X-Environment-ID` header or `ENVIRONMENT_ID` env var (Decision #11)
+
+**Tests:** 77 unit tests in `apps/api/tests/unit/data-layer.test.ts`:
+- PrismaRepository: 25 tests (CRUD, filter translation, batch, soft/hard delete, capabilities)
+- PrismaAuditLogRepository: 12 tests (append, query, immutability enforcement)
+- InMemoryCacheRepository: 9 tests (round-trip, TTL, pattern matching, flush)
+- RepositoryFactory: 7 tests (adapter registration, creation, error cases)
+- TenantResolver: 7 tests (JWT extraction, header fallback, default tenant, environment ID)
+- StaticTenantLookup: 3 tests (lookup, registration)
+- ConnectionManager: 7 tests (shared routing, dedicated creation, caching, disconnect, Key Vault error)
+- Repository isolation: 3 tests (interface conformance)
+- Pre-existing integration test suite (20 tests) also passes
+
+**Typecheck:** Clean — zero new errors introduced (pre-existing errors in telemetry, identity, and platform modules remain unchanged)
+
+**Key decisions applied:**
+- Decision #1: Tiered Isolation — shared-tier uses row-level isolation via single PrismaClient; dedicated-tier gets per-tenant PrismaClient
+- Decision #3: Modular Monolith — repository interfaces in shared package, implementations in API; services depend on abstractions
+- Decision #11: Logical Partition Environments — environment_id extracted from header or env var
+
+**Files created/modified:**
+- `packages/shared/src/repositories/` (6 files)
+- `packages/shared/src/index.ts` (modified — added repositories export)
+- `apps/api/src/common/data/` (7 files)
+- `apps/api/src/middleware/tenantContext.ts` (new)
+- `apps/api/src/middleware/index.ts` (modified — added tenant export)
+- `apps/api/tests/unit/data-layer.test.ts` (new — 77 tests)
