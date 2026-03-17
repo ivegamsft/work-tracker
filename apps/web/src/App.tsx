@@ -13,6 +13,7 @@ import TemplateLibraryPage from './pages/TemplateLibraryPage';
 import TemplateDetailPage from './pages/TemplateDetailPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import TemplateAssignPage from './pages/TemplateAssignPage';
+import TeamTemplatesPage from './pages/TeamTemplatesPage';
 import TemplatesFeatureUnavailablePage from './pages/TemplatesFeatureUnavailablePage';
 import FulfillmentReviewQueuePage from './pages/FulfillmentReviewQueuePage';
 import FulfillmentReviewDetailPage from './pages/FulfillmentReviewDetailPage';
@@ -168,6 +169,16 @@ function App() {
           element={
             <ProtectedRoute minRole="supervisor">
               <TeamDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team/templates"
+          element={
+            <ProtectedRoute minRole="supervisor">
+              <FeatureGate flag="compliance.templates" fallback={<TemplatesFeatureUnavailablePage />}>
+                <TeamTemplatesPage />
+              </FeatureGate>
             </ProtectedRoute>
           }
         />

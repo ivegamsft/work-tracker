@@ -16,10 +16,11 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     canAccessTeam ? { path: '/team', label: 'Team' } : null,
+    canAccessTeam ? { path: '/team/templates', label: 'Team Templates', flag: 'compliance.templates' } : null,
     canReviewDocuments ? { path: '/reviews', label: 'Document Review' } : null,
     { path: '/standards', label: 'Standards' },
     { path: '/me/notifications', label: 'Notifications' },
-  ].filter((item): item is { path: string; label: string } => item !== null);
+  ].filter((item): item is { path: string; label: string; flag?: string } => item !== null);
 
   const renderNavLink = (path: string, label: string) => (
     <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
@@ -47,7 +48,15 @@ export default function Layout({ children }: LayoutProps) {
           >
             {renderNavLink('/me/templates', 'My Templates')}
           </FeatureGate>
-          {navItems.map((item) => renderNavLink(item.path, item.label))}
+          {navItems.map((item) =>
+            item.flag ? (
+              <FeatureGate key={item.path} flag={item.flag} fallback={null}>
+                {renderNavLink(item.path, item.label)}
+              </FeatureGate>
+            ) : (
+              renderNavLink(item.path, item.label)
+            ),
+          )}
         </nav>
       </aside>
 
