@@ -16,7 +16,7 @@ npm run lint                                 # Lint API
 npm run lint -- --fix                        # Auto-fix lint issues
 
 # Tests
-npm test                                     # Root suite (current documented target: 242 tests)
+npm test                                     # Root suite (current documented target: 415 tests)
 npm run test -w @e-clat/web                 # Web-only tests
 npm test -- --watch                          # Watch mode
 
@@ -32,7 +32,7 @@ Typecheck order matters: `@e-clat/shared` must typecheck before `@e-clat/api`. T
 
 | Package | Path | Purpose |
 |---------|------|---------|
-| `@e-clat/api` | `apps/api/` | Express REST API — 10 domain modules including templates |
+| `@e-clat/api` | `apps/api/` | Express REST API — 11 domain modules (auth, employees, hours, documents, qualifications, medical, standards, notifications, labels, templates, dashboard) |
 | `@e-clat/shared` | `packages/shared/` | Domain types, error classes, role constants |
 | `@e-clat/data` | `data/` | Prisma schema, migrations, seeds |
 | `@e-clat/web` | `apps/web/` | Frontend SPA |
@@ -50,7 +50,7 @@ modules/{module}/
 └── index.ts        # Optional barrel for multi-router modules
 ```
 
-The 10 modules are: `auth`, `employees`, `hours`, `documents`, `qualifications`, `medical`, `standards`, `notifications`, `labels`, `templates`.
+The 11 modules are: `auth`, `employees`, `hours`, `documents`, `qualifications`, `medical`, `standards`, `notifications`, `labels`, `templates`, `dashboard`.
 
 ### Templates Module
 
