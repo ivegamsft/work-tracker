@@ -2,7 +2,9 @@ import {
   ConflictStatus as PrismaConflictStatus,
   ConflictType as PrismaConflictType,
   HourSource as PrismaHourSource,
+  ProofType as PrismaProofType,
   ResolutionMethod as PrismaResolutionMethod,
+  TemplateStatus as PrismaTemplateStatus,
   type Prisma,
 } from "@prisma/client";
 import {
@@ -22,6 +24,8 @@ import {
   SchedulingImportInput,
   ResolveConflictInput,
   EditHourInput,
+  ProgressQueryInput,
+  TeamProgressQueryInput,
 } from "./validators";
 
 export interface PaginatedResult<T> {
@@ -29,6 +33,38 @@ export interface PaginatedResult<T> {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface HoursProgressItem {
+  requirementId: string;
+  requirementName: string;
+  templateId: string;
+  templateName: string;
+  proofType: string;
+  targetHours: number;
+  completedHours: number;
+  percentage: number;
+  thresholdUnit: string;
+  rollingWindowDays: number | null;
+  status: "on_track" | "at_risk" | "behind" | "complete";
+}
+
+export interface EmployeeHoursProgress {
+  employeeId: string;
+  progressItems: HoursProgressItem[];
+  totalTargetHours: number;
+  totalCompletedHours: number;
+  overallPercentage: number;
+}
+
+export interface TeamHoursProgressItem {
+  employeeId: string;
+  employeeName: string;
+  employeeEmail: string;
+  progressItems: HoursProgressItem[];
+  totalTargetHours: number;
+  totalCompletedHours: number;
+  overallPercentage: number;
 }
 
 export interface HoursService {
@@ -44,6 +80,8 @@ export interface HoursService {
   editHour(id: string, input: EditHourInput, editedBy: string): Promise<HourRecord>;
   deleteHour(id: string, reason: string, deletedBy: string): Promise<void>;
   getAuditTrail(recordId: string): Promise<AuditLog[]>;
+  getEmployeeProgress(employeeId: string, filters: ProgressQueryInput): Promise<EmployeeHoursProgress>;
+  getTeamProgress(filters: TeamProgressQueryInput): Promise<PaginatedResult<TeamHoursProgressItem>>;
 }
 
 type DbClient = Pick<typeof prisma, "employee" | "label" | "hourConflict" | "hourRecord">;
@@ -608,5 +646,165 @@ export const hoursService: HoursService = {
     });
 
     return auditLogs.map(mapAuditLog);
+  },
+
+  async getEmployeeProgress(employeeId, filters) {
+    await ensureEmployeeExists(prisma, employeeId);
+
+    const requirements = await prisma.proofRequirement.findMany({
+      where: {
+        proofType: filters.proofType
+          ? (filters.proofType.toUpperCase() as PrismaProofType)
+          : PrismaProofType.HOURS,
+        threshold: { not: null },
+        template: {
+          status: PrismaTemplateStatus.PUBLISHED,
+          assignments: {
+            some: { employeeId, isActive: true },
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        templateId: true,
+        proofType: true,
+        threshold: true,
+        thresholdUnit: true,
+        rollingWindowDays: true,
+        template: { select: { id: true, name: true } },
+      },
+    });
+
+    const progressItems: HoursProgressItem[] = [];
+
+    for (const req of requirements) {
+      const dateFilter: Prisma.HourRecordWhereInput = {
+        employeeId,
+        isDeleted: false,
+      };
+
+      if (req.rollingWindowDays) {
+        const windowStart = new Date();
+        windowStart.setDate(windowStart.getDate() - req.rollingWindowDays);
+        dateFilter.date = { gte: windowStart };
+      } else if (filters.from || filters.to) {
+        dateFilter.date = {
+          ...(filters.from ? { gte: filters.from } : {}),
+          ...(filters.to ? { lte: filters.to } : {}),
+        };
+      }
+
+      const result = await prisma.hourRecord.aggregate({
+        where: dateFilter,
+        _sum: { hours: true },
+      });
+
+      const completedHours = Number(result._sum.hours ?? 0);
+      const targetHours = req.threshold ?? 0;
+      const percentage = targetHours > 0
+        ? Math.min(Math.round((completedHours / targetHours) * 100), 100)
+        : 0;
+
+      let status: HoursProgressItem["status"] = "on_track";
+      if (percentage >= 100) {
+        status = "complete";
+      } else if (percentage < 25) {
+        status = "behind";
+      } else if (percentage < 75) {
+        status = "at_risk";
+      }
+
+      progressItems.push({
+        requirementId: req.id,
+        requirementName: req.name,
+        templateId: req.template.id,
+        templateName: req.template.name,
+        proofType: req.proofType?.toLowerCase() ?? "hours",
+        targetHours,
+        completedHours: Math.round(completedHours * 100) / 100,
+        percentage,
+        thresholdUnit: req.thresholdUnit ?? "hours",
+        rollingWindowDays: req.rollingWindowDays,
+        status,
+      });
+    }
+
+    const totalTargetHours = progressItems.reduce((sum, p) => sum + p.targetHours, 0);
+    const totalCompletedHours = progressItems.reduce((sum, p) => sum + p.completedHours, 0);
+    const overallPercentage = totalTargetHours > 0
+      ? Math.min(Math.round((totalCompletedHours / totalTargetHours) * 100), 100)
+      : 0;
+
+    return {
+      employeeId,
+      progressItems,
+      totalTargetHours,
+      totalCompletedHours,
+      overallPercentage,
+    };
+  },
+
+  async getTeamProgress(filters) {
+    const page = filters.page ?? 1;
+    const limit = Math.min(filters.limit ?? 50, 100);
+
+    const employees = await prisma.employee.findMany({
+      where: {
+        templateAssignments: {
+          some: {
+            isActive: true,
+            template: {
+              status: PrismaTemplateStatus.PUBLISHED,
+              requirements: {
+                some: {
+                  proofType: filters.proofType
+                    ? (filters.proofType.toUpperCase() as PrismaProofType)
+                    : PrismaProofType.HOURS,
+                  threshold: { not: null },
+                },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    });
+
+    const total = employees.length;
+    const paginatedEmployees = employees.slice((page - 1) * limit, page * limit);
+
+    const teamProgress: TeamHoursProgressItem[] = [];
+
+    for (const emp of paginatedEmployees) {
+      const progress = await hoursService.getEmployeeProgress(emp.id, {
+        from: filters.from,
+        to: filters.to,
+        proofType: filters.proofType,
+      });
+
+      teamProgress.push({
+        employeeId: emp.id,
+        employeeName: `${emp.firstName} ${emp.lastName}`,
+        employeeEmail: emp.email,
+        progressItems: progress.progressItems,
+        totalTargetHours: progress.totalTargetHours,
+        totalCompletedHours: progress.totalCompletedHours,
+        overallPercentage: progress.overallPercentage,
+      });
+    }
+
+    return {
+      data: teamProgress,
+      total,
+      page,
+      limit,
+    };
   },
 };

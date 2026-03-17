@@ -13,7 +13,7 @@ variable "environment" {
   }
 }
 
-variable "location" {
+variable "region" {
   type        = string
   description = "Azure region for resources"
   default     = "eastus"
@@ -24,9 +24,15 @@ variable "resource_group_name" {
   description = "Resource group name from foundation layer"
 }
 
+variable "key_vault_id" {
+  type        = string
+  description = "Key Vault ID from foundation layer for storing promotion secrets"
+}
+
 variable "container_registry_id" {
   type        = string
   description = "Container registry ID from foundation layer"
+  default     = ""
 }
 
 variable "artifact_retention_days" {
@@ -45,4 +51,10 @@ variable "promotion_approval_required" {
   type        = bool
   description = "Require manual approval for promotions to this environment"
   default     = false
+}
+
+variable "common_tags" {
+  type        = map(string)
+  description = "Common tags applied to all resources"
+  default     = {}
 }

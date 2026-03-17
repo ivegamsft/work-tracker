@@ -16,6 +16,7 @@ import { standardsRouter } from "./modules/standards";
 import { notificationsRouter } from "./modules/notifications";
 import { assignmentsRouter, employeeAssignmentsRouter, fulfillmentsRouter, templatesRouter } from "./modules/templates";
 import { platformRouter } from "./modules/platform";
+import { dashboardRouter } from "./modules/dashboard";
 import { PrismaAuditLogger, type AuditLogger } from "./services/audit";
 
 export interface CreateAppOptions {
@@ -53,6 +54,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/api/templates", templatesRouter);
   app.use("/api/assignments", assignmentsRouter);
   app.use("/api/fulfillments", fulfillmentsRouter);
+  app.use("/api/dashboard", dashboardRouter);
   options.registerRoutes?.(app);
 
   // Error handling

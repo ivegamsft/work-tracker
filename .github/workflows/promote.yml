@@ -1,0 +1,236 @@
+name: Promote artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_environment:
+        description: "Source environment (dev only)"
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+      target_environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - prod
+      image_sha:
+        description: "Build SHA or image tag (e.g., abc123 from sha-abc123)"
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/api
+
+jobs:
+  validate-promotion:
+    name: Validate promotion path
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      approved: ${{ steps.validate.outputs.approved }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: image-tag
+        shell: bash
+        run: |
+          # Compute promotion tags: sha-abc123 → dev-abc123 → staging-abc123 → prod-abc123
+          IMAGE_SHA="${{ inputs.image_sha }}"
+          # Remove sha- prefix if present
+          IMAGE_SHA="${IMAGE_SHA#sha-}"
+          
+          SOURCE_TAG="dev-${IMAGE_SHA}"
+          TARGET_TAG="${{ inputs.target_environment }}-${IMAGE_SHA}"
+          
+          echo "source_tag=${SOURCE_TAG}" >> $GITHUB_OUTPUT
+          echo "target_tag=${TARGET_TAG}" >> $GITHUB_OUTPUT
+          echo "tag=${TARGET_TAG}" >> $GITHUB_OUTPUT
+          echo "image_sha=${IMAGE_SHA}" >> $GITHUB_OUTPUT
+          
+          echo "📦 Promotion Plan:"
+          echo "  Source environment: ${{ inputs.source_environment }}"
+          echo "  Target environment: ${{ inputs.target_environment }}"
+          echo "  Source image tag: ${SOURCE_TAG}"
+          echo "  Target image tag: ${TARGET_TAG}"
+
+      - id: validate
+        shell: bash
+        env:
+          SOURCE_ENV: ${{ inputs.source_environment }}
+          TARGET_ENV: ${{ inputs.target_environment }}
+        run: |
+          # Validate promotion path: only dev→staging and staging→prod allowed
+          if [[ "${SOURCE_ENV}" == "dev" && "${TARGET_ENV}" == "staging" ]]; then
+            echo "✅ Valid: dev → staging"
+            echo "approved=true" >> $GITHUB_OUTPUT
+          elif [[ "${SOURCE_ENV}" == "dev" && "${TARGET_ENV}" == "prod" ]]; then
+            echo "❌ Invalid: cannot promote directly from dev to prod"
+            echo "approved=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "❌ Invalid promotion path"
+            echo "approved=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+  check-ci:
+    name: Verify CI passed
+    runs-on: ubuntu-latest
+    if: inputs.target_environment == 'staging'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check CI status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_SHA: ${{ inputs.image_sha }}
+        run: |
+          # Extract commit SHA from image tag
+          BUILD_SHA="${IMAGE_SHA#sha-}"
+          
+          # Fetch the commit to verify it exists
+          if git rev-parse --verify "${BUILD_SHA}^{commit}" > /dev/null 2>&1; then
+            echo "✅ Commit ${BUILD_SHA} found in repository"
+          else
+            echo "❌ Commit ${BUILD_SHA} not found"
+            exit 1
+          fi
+          
+          # Check CI workflow status for this commit
+          # Using gh run list filtered by commit
+          echo "ℹ️ Checking CI status for commit: ${BUILD_SHA}"
+          CI_RUNS=$(gh run list --branch main --workflow ci.yml --status completed --limit 10 --json headSha,conclusion,createdAt --jq ".[] | select(.headSha == \"${BUILD_SHA}\") | .conclusion")
+          
+          if [ -z "$CI_RUNS" ]; then
+            echo "⚠️ No completed CI runs found for this commit; proceeding with caution"
+          elif echo "$CI_RUNS" | grep -q "success"; then
+            echo "✅ CI passed for commit ${BUILD_SHA}"
+          else
+            echo "❌ CI failed for commit ${BUILD_SHA}"
+            exit 1
+          fi
+
+  approval-staging:
+    name: Approve staging promotion
+    runs-on: ubuntu-latest
+    if: inputs.target_environment == 'staging'
+    needs: [validate-promotion, check-ci]
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: ✅ Staging approval gate passed
+        run: echo "Promotion to staging approved"
+
+  approval-prod:
+    name: Approve production promotion
+    runs-on: ubuntu-latest
+    if: inputs.target_environment == 'prod'
+    needs: validate-promotion
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: ✅ Production approval gate passed
+        run: echo "Promotion to production approved"
+
+  retag-image:
+    name: Retag and promote artifact
+    runs-on: ubuntu-latest
+    needs: [validate-promotion, approval-staging, approval-prod]
+    if: always() && (needs.approval-staging.result == 'success' || needs.approval-prod.result == 'success')
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag image
+        shell: bash
+        env:
+          IMAGE_SHA: ${{ needs.validate-promotion.outputs.image_sha }}
+          SOURCE_TAG: dev-${{ needs.validate-promotion.outputs.image_sha }}
+          TARGET_TAG: ${{ needs.validate-promotion.outputs.target_tag }}
+        run: |
+          SOURCE_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SOURCE_TAG}"
+          TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TARGET_TAG}"
+          
+          echo "🐳 Pulling source image: ${SOURCE_IMAGE}"
+          docker pull "${SOURCE_IMAGE}" || {
+            echo "❌ Failed to pull source image"
+            exit 1
+          }
+          
+          echo "🔗 Retagging to: ${TARGET_IMAGE}"
+          docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+          
+          echo "📤 Pushing target image: ${TARGET_IMAGE}"
+          docker push "${TARGET_IMAGE}"
+          
+          echo "✅ Artifact promoted: ${SOURCE_TAG} → ${TARGET_TAG}"
+
+      - name: Record promotion in artifact metadata
+        shell: bash
+        env:
+          TARGET_ENV: ${{ inputs.target_environment }}
+          IMAGE_SHA: ${{ needs.validate-promotion.outputs.image_sha }}
+          TARGET_TAG: ${{ needs.validate-promotion.outputs.target_tag }}
+        run: |
+          # Create promotion metadata file for audit trail
+          cat > promotion-metadata.json <<EOF
+          {
+            "promotion_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "source_environment": "${{ inputs.source_environment }}",
+            "target_environment": "${TARGET_ENV}",
+            "image_sha": "${IMAGE_SHA}",
+            "image_tag": "${TARGET_TAG}",
+            "promoted_by": "${{ github.actor }}",
+            "workflow_run_id": "${{ github.run_id }}",
+            "commit_sha": "${{ github.sha }}"
+          }
+          EOF
+          cat promotion-metadata.json
+          echo "✅ Promotion metadata recorded"
+
+      - name: Output promotion summary
+        shell: bash
+        run: |
+          echo "## ✅ Artifact Promotion Complete"
+          echo ""
+          echo "| Property | Value |"
+          echo "|----------|-------|"
+          echo "| Source | ${{ inputs.source_environment }} |"
+          echo "| Target | ${{ inputs.target_environment }} |"
+          echo "| Image SHA | ${{ needs.validate-promotion.outputs.image_sha }} |"
+          echo "| Image Tag | ${{ needs.validate-promotion.outputs.target_tag }} |"
+          echo "| Promoted by | ${{ github.actor }} |"
+          echo "| Run ID | ${{ github.run_id }} |"
+
+  notify-promotion:
+    name: Notify deployment
+    runs-on: ubuntu-latest
+    needs: [validate-promotion, retag-image]
+    if: success()
+    steps:
+      - name: Summarize promotion
+        run: |
+          echo "🎯 Artifact successfully promoted to ${{ inputs.target_environment }}"
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-promotion.outputs.target_tag }}"
+          echo "💡 Next: Deploy this image to ${{ inputs.target_environment }} environment"
