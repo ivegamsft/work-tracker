@@ -12,8 +12,6 @@ Team roster: Freamon (Lead), Bunk (Backend), Kima (Frontend), Sydnor (Tester), S
 
 ## Recent Updates
 
-📌 Team hired on 2026-03-13 — cast from The Wire universe.
-
 📌 **Phase 0 Container Pivot (2026-03-14T20:05:00Z)**
 - Freamon delivered MVP scope defaults (8 decisions): core loop is Qualifications + Medical; Documents/Hours/OCR deferred
 - Freamon delivered Container Apps architecture: pivot from App Service; ACR + Log Analytics in foundation; runtime secrets via Key Vault
@@ -31,6 +29,25 @@ Team roster: Freamon (Lead), Bunk (Backend), Kima (Frontend), Sydnor (Tester), S
 - **Decision Inbox merged:** 5 major decisions (Entra auth, user directives × 2, frontend scaffold, CI/CD pipeline) merged to `decisions.md`; older decisions (2026-03-13 and 2026-03-14) archived to `decisions-archive.md`
 - **Orchestration logs created:** Freamon and Kima spawns documented with deliverables and implications
 - **Cross-team context propagated:** Team updates appended to all agent history.md files
+
+📌 **Wave 3: Session Logging & Orchestration (2026-03-17T04:30:00Z)**
+
+**Mission:** Document Wave 3 spec decomposition and manage post-work cleanup (decision merging, orchestration logs, cross-agent history updates).
+
+**Work completed:**
+1. **Orchestration log:** Created `.squad/orchestration-log/2026-03-17T04-30-wave3-issues.md` — 100 new GitHub issues across 5 agents, 27 specs decomposed, cleanup operations
+2. **Session log:** Created `.squad/log/2026-03-17T04-30-wave3-complete.md` — Facts-only summary of who worked, what was decided
+3. **Decision merging:** Merged `.squad/decisions/inbox/copilot-directive-monorepo-separation.md` into `.squad/decisions.md`, deleted inbox file, deduped
+4. **Cross-agent updates:** Appended Wave 3 milestones to Freamon, Bunk, Kima, Daniels, Pearlman history.md files
+5. **Git staging:** Ready for `.squad/` commit
+
+**Documents created:**
+- `.squad/orchestration-log/2026-03-17T04-30-wave3-issues.md`
+- `.squad/log/2026-03-17T04-30-wave3-complete.md`
+
+**Decisions merged:** Monorepo Separation Strategy (2026-03-17) — path to 6 backend service groups
+
+**Result:** All Wave 3 artifacts documented and cross-referenced; Scribe maintains team memory across agent lifespans.
 
 ## Learnings
 

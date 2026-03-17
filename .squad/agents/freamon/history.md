@@ -47,6 +47,22 @@ All project docs now live under category-based structure:
 
 All cross-references updated; 29 files moved with git history preserved; 179 tests passing. Commit 84af84f (pushed).
 
+## 📌 Wave 3: Spec Decomposition (2026-03-17T04:30:00Z)
+
+**Mission:** Decompose 6 architecture specifications into 20 implementation GitHub issues.
+
+**Specs decomposed:**
+1. app-spec.md — Screen catalog (23 web + 9 admin), adaptive navigation, dashboard redesign
+2. rbac-api-spec.md — 65 endpoint catalog, 36 permissions, 5-role scoping, 3-layer enforcement
+3. proof-vault-spec.md — Zero-knowledge encryption (phased), file requests, 7 vault sections, 6+1 web/admin screens
+4. templates-attestation-spec.md — 4-level attestation system, 25 API endpoints, 9+2 web/admin screens
+5. proof-taxonomy.md — 2-axis model (type × level), compound attestation validation
+6. sharing-spec.md — 42 API endpoints, external sharing flows, evidence packages
+
+**Issues created:** 20 (routing, dashboard, RBAC enforcement, Proof Vault infrastructure, template publish/clone/assign, sharing UI, encryption bootstrap, status machines, permission gates, admin dashboards, etc.)
+
+**Result:** All issues linked to GitHub Project #2; ready for team assignment.
+
 ## 📌 Phase 2 Project Board & Epic Issues (2026-03-20T143000Z)
 
 Created GitHub Projects (v2) board for phase 2 architecture work:
@@ -59,6 +75,7 @@ Architecture tracks now visible on board with clear ownership and dependencies. 
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- **Phase 3 Implementation Execution Plan (2026-03-21):** Analyzed 140 open issues across 8 epic domains (templates, qualifications, proofs, real-time, multi-tenancy, identity, data layer, observability) and created 14-week phased execution plan. Foundation Sprint (weeks 1-2): 8 critical path issues establishing observability (OTel SDK #121-#128), identity registry (#134-#135), repository pattern (#181), and health endpoints (#127). Sprints 1-6: Templates (#145-#189, 18 issues), Qualifications (#169-#204, 16 issues), Proofs & Real-Time (#176-#210, 22 issues), Multi-Tenancy (#172-#206, 19 issues), Identity & Auth (#159-#162, 18 issues), Data Layer Polyglot (#212-#216, 20 issues). Squad assignments: Bunk 48 issues (backend), Kima 28 (frontend), Daniels 21 (infra), Pearlman 16 (compliance), Freamon 12 (lead/architecture), Sydnor 8 (testing). Success metrics: 94→140+ endpoints, 415→900+ tests, 65%→80%+ coverage, <200ms p95 latency, 100% audit trail compliance, 27/27 security tests. 13 risk callouts with mitigations (observability delays, SCIM failures, polyglot bugs, real-time scalability, token conflicts, RLS data leakage, audit gaps). Plan document: `docs/plans/phase3-implementation-plan.md`. GitHub meta-issue #217 created. Pattern: Foundation→Templates→Qualifications→Proofs/Real-Time→Multi-Tenancy→Identity→Data Layer. Enables parallel execution with clear dependencies and critical-path issues identified. Ready for squad kickoff.
 - **Phase 2 Architecture Specs Complete (2026-03-21):** Authored 6 comprehensive architecture specifications covering 8 locked decisions. Each spec includes problem statement, proposed design, data model changes, API contracts, security considerations, phased rollout plan (3-4 sprints), and explicit locked decision references. Specs: (1) test-coverage-requirements.md — CRUD matrix for 10 modules, RBAC rules, 20+ security test cases, 80→900 test progression. (2) identity-architecture.md — Multi-IdP (GitHub-style bootstrap, B2B invite, SCIM), PII isolation, semi-anonymous profiles (encrypted Profile table, UUID-only business data). (3) template-management-strategy.md — Lifecycle state machine (DRAFT→PUBLISHED→DEPRECATED→ARCHIVED), industry catalog, group-based assignment, L1-L4 attestation integration, versioning. (4) qualification-engine.md — Layered customization (Standard immutable → Org additive → Dept narrowing → Individual exempt), "strictest wins" composition, 4 override types (EXPIRY_EXTENSION, PROOF_OVERRIDE, WAIVER, GRACE_PERIOD), third-party invite flow. (5) multi-tenant-architecture.md — Tiered isolation (shared=row-level, dedicated=separate DB), nested hierarchy (L0:Platform → L1:Tenant → L2:Environment → L3:Workspace), modular monolith + ring deployment (Canary→Beta→Stable), environment cloning, claim-driven assignment. (6) data-layer-architecture.md — Repository pattern abstraction, tenant-aware connection resolver, polyglot stores (SQL/Postgres, Cosmos/Mongo, Blob/MinIO, Redis, ADX/Prometheus), migration path Prisma→polyglot, store implementations per deployment (SaaS vs on-prem). All specs locked to Decisions 1-12 per charter. Total: 28K+ words, 60+ diagrams, 120+ API endpoints, 4+ data models per spec. Deliverables enable parallel implementation: Bunk (APIs), Daniels (IaC), Kima (UI), Pearlman (compliance validation), Sydnor (testing). Ready for v0.5.0-v0.7.0 execution. Files: `docs/specs/{test-coverage-requirements, identity-architecture, template-management-strategy, qualification-engine, multi-tenant-architecture, data-layer-architecture}.md`.
 - **Phase 2 Board Structure (2026-03-20):** Each of 8 architecture tracks decomposes as: (1) strategy/architecture spec (Freamon lead) → (2) API spec (Bunk) + IaC spec (Daniels) → (3) UX/compliance spec (Kima/Pearlman). Spec issues lock to active decisions (Decisions 1–12) to prevent spec drift. GitHub Projects v2 board enables tracking per track. Pattern: epic contains 3-4 child specs; each spec includes target file path, locked decisions, acceptance criteria.
 - **Implementation Status Classification Rules (2026-03-16):** Status classification: `🔧 API Only` = working backend surface, no routed UI screen. `❌ Not Started` takes precedence over exposed routes when service layer throws `notImplemented(...)`. `📋 Spec Only` = documented in specs, no frontend routes/API modules/Prisma schema. Reusable components without routing ≠ implemented UI screens. Rules prevent overstating progress in hours, labels, auth flows.

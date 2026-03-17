@@ -52,6 +52,21 @@
 
 **Types:** Shared type definitions in `packages/shared/src/types/my-section.ts`. RBAC types in `apps/web/src/rbac.ts`.
 
+### Wave 3: Frontend/UX Decomposition (2026-03-17T04:30:00Z)
+
+**Mission:** Decompose 4 UX specifications into 18 implementation GitHub issues.
+
+**Specs decomposed:**
+1. app-spec.md — 23 web screens + 9 admin screens, role-adaptive navigation, dashboard redesign, self-service constraints
+2. proof-vault-spec.md — 6 vault UI screens (browse, search, share, password entry, external access, admin console), file request flows
+3. templates-attestation-spec.md — 9 web screens + 2 admin screens (publish, clone, assign, fulfillment tracking, approval queues, progress visualization)
+4. sharing-spec.md — 2 UI screens (external sharing invitations, evidence package viewer)
+5. rbac-api-spec.md — Role-adaptive navigation, permission gating, self-service vs. supervisor scoping
+
+**Issues created:** 18 (Proof Vault component library, template assignment workflows, fulfillment progress tracking, sharing invitation flows, encryption password UI, admin dashboards, approval queues, tab navigation, empty states, external access UI, document search, evidence viewers, etc.)
+
+**Result:** All issues linked to GitHub Project #2; component patterns clarified.
+
 ### Known Gaps
 
 - P0 backend gap: `GET /api/documents/employee/:employeeId` blocks W-06, W-13 — **RESOLVED (Agent-84, 2026-03-16T070600Z)**

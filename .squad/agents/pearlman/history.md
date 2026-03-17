@@ -46,6 +46,23 @@
 
 ---
 
+## 📌 Wave 3: Compliance/Regulatory Decomposition (2026-03-17T04:30:00Z)
+
+**Mission:** Decompose 5 compliance/regulatory specifications into 12 implementation GitHub issues.
+
+**Specs decomposed:**
+1. proof-taxonomy.md — 2-axis model validation (6 types × 4 levels), compound attestation rules, GDPR alignment
+2. templates-attestation-spec.md — Compound attestation rules, regulatory dual-approval flows, override framework
+3. proof-vault-spec.md — 7-year audit retention, hash-chaining, SCIM deprovisioning, GDPR SAR export
+4. sharing-spec.md — Issuer trust tiers (T1 authoritative → T4 manual), evidence package governance, external access audit
+5. rbac-api-spec.md — Separation of duties enforcement, dual-approval for regulatory actions, non-self-approval constraints
+
+**Issues created:** 12 (Audit trail hash-chaining, regulatory form validation, issuer trust tier enforcement, override approval workflows, GDPR SAR export, data retention policies (7-year default, 10-year medical/HIPAA), compliance reporting dashboards, escalation rules, non-blocking audit logging, sensitive field redaction, proof evidence preservation, recertification workflows)
+
+**Result:** All issues linked to GitHub Project #2; regulatory constraints mapped to enforcement points.
+
+---
+
 ## 📌 Team Update (2026-03-16T07:06:00Z) — Phase 3 Backend Foundation Ready
 
 **Proof Templates Schema & API Live (Agent-83, Bunk):**

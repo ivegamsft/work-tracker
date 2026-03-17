@@ -62,6 +62,25 @@
 - `data/src/seed.ts` — test data seeding
 - `infra/layers/{00-foundation,10-data,20-compute}/` — Terraform roots
 
+## 📌 Wave 3: API Decomposition (2026-03-17T04:30:00Z)
+
+**Mission:** Decompose 7 API specifications into 32 implementation GitHub issues.
+
+**Specs decomposed:**
+1. eclat-spec.md — PRD → 12 features deferred Phase 2+, terminology aligned (Certifications→Qualifications, Clearance→Medical)
+2. rbac-api-spec.md — 65 endpoints by role/resource, permission matrix, 3-layer enforcement
+3. proof-vault-spec.md — Encryption, file request workflow, zero-knowledge design
+4. templates-attestation-spec.md — 25 new API endpoints, 4 attestation levels, status flows
+5. sharing-spec.md — 42 sharing endpoints, permission gates, evidence packages
+6. App spec endpoints — Document retrieval (P0 blocker: GET /api/documents/employee/:employeeId), batch readiness, compliance reports
+7. Proof Taxonomy — L1–L4 validation, compound rules, attestation floors
+
+**Issues created:** 32 (file request endpoints, encryption key management, template assignments, fulfillment status machines, sharing permission enforcement, batch retrieval, audit trail completion, compliance validation, override workflows, attestation flows, etc.)
+
+**Result:** All issues linked to GitHub Project #2; blocking dependencies mapped.
+
+---
+
 ## Learnings
 
 <!-- Append new learnings below. Recent work summarized to Core Context above. -->

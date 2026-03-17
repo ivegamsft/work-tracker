@@ -28,6 +28,23 @@
 - Infra layered into foundation/platform/application Terraform
 - Route taxonomy: /me/* (self-service), /team/:id/* (supervisor), /standards/*, /reviews/*
 
+## 📌 Wave 3: IaC/Deployment Decomposition (2026-03-17T04:30:00Z)
+
+**Mission:** Decompose 5 infrastructure-as-code specifications into 18 implementation GitHub issues.
+
+**Specs decomposed:**
+1. IaC architecture — Terraform layers, service group boundaries, parallel deployments
+2. Proof Vault IaC — Key Vault bootstrap, storage accounts, encryption key rotation, zero-knowledge encryption
+3. Templates service infrastructure — New compute layer, policy enforcement, status workflow scaling
+4. Sharing service infrastructure — File request storage, bandwidth quotas, external access token management
+5. CI/CD decomposition — Per-subsystem pipelines, feature flags, deployment safety gates
+
+**Issues created:** 18 (Key Vault bootstrap automation, managed identity wiring, service group compute layers, multi-region strategy, backup/archival storage, CI/CD pipeline separation, monitoring/alerting for compliance workflows, encryption key rotation policies, storage account quotas, network isolation, Azure Container Apps scaling, GitHub Actions subsystem pipelines, etc.)
+
+**Result:** All issues linked to GitHub Project #2; deployment topology clarified.
+
+---
+
 ## Learnings
 
 - Parallel-delivery architecture for E-CLAT should be framed as a **modular monolith evolving into service groups**, not as an immediate microservice rewrite.

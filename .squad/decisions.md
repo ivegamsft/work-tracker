@@ -6,6 +6,61 @@
 
 ---
 
+## Monorepo Separation Strategy (2026-03-17)
+
+**Decision:** Begin planning separation of code from infrastructure for eventual microservice architecture while maintaining monorepo structure during transition.
+
+**Decision Maker:** Izzy (via Copilot directive, captured during Wave 3 cleanup)  
+**Status:** Proposed  
+**Related Doc:** `docs/ideas/monorepo-separation-strategy.md`
+
+### Context
+
+E-CLAT currently operates as a monorepo with all code, tests, infrastructure, and dependencies co-located. Future architectural growth may require service extraction and independent deployment topology. Current structure must support this without requiring a complete rewrite.
+
+### Strategy
+
+**Target Architecture:** 6 backend service groups within a modular monolith, progressively extractable:
+1. **Identity Platform** — `auth` module
+2. **Workforce Core** — `employees`, `labels` modules
+3. **Compliance Service** — `qualifications`, `medical`, `templates` modules
+4. **Records Service** — `documents`, `hours` modules
+5. **Reference Data** — `standards` module
+6. **Notification Service** — `notifications` module
+
+**Transition Path:**
+- Phase 1: Reorganize shared dependencies and test structure to support per-service pipelines
+- Phase 2: Split CI/CD by subsystem (keep `00-foundation` + `10-data` shared)
+- Phase 3: Modular monolith with feature flags and independent versioning
+- Phase 4 (future): Extract services as needed using shared infrastructure
+
+### Key Constraints
+
+- Tests, infra, APIs, and apps must have clear, separate homes
+- Each service group maintains own deployment dependencies (no root node_modules)
+- All services share core data layer (`data/prisma/`) until extraction complete
+- Backward compatibility required throughout transition
+
+### Rationale
+
+- User requirement for independent scaling and faster deployment cycles
+- Current architecture already trends toward service boundaries (routes, modules)
+- Feature flags should start as repo-backed schema with environment overrides
+- CI/CD separation before runtime separation accelerates delivery
+
+### Consequences
+
+**Positive:** Clear future path for scaling, faster independent deployments, reduced coupling
+
+**Negative:** Temporary increase in configuration complexity, migration overhead
+
+### Related Decisions
+
+- API v1 Namespace Migration Strategy (2026-03-19) — supports service boundaries
+- Terraform service group stubs (Daniels PR #57) — infrastructure readiness
+
+---
+
 ## API v1 Namespace Migration Strategy (2026-03-19)
 
 **Decision:** Adopt a 4-phase dual-mount migration strategy to move all API routes from `/api/*` to `/api/v1/{service-group}/*` over 3-6 months.
