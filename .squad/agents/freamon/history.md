@@ -47,9 +47,19 @@ All project docs now live under category-based structure:
 
 All cross-references updated; 29 files moved with git history preserved; 179 tests passing. Commit 84af84f (pushed).
 
+## 📌 Phase 2 Project Board & Epic Issues (2026-03-20T143000Z)
+
+Created GitHub Projects (v2) board for phase 2 architecture work:
+- **Project #3:** "E-CLAT Phase 2 — Platform Architecture"
+- **8 Epic Issues** (#77–#84): One per track (Test Coverage, Monitoring, Identity, Templates, Qualifications, Multi-Tenancy, Event-Driven, Data Layer)
+- **31 Spec Issues** (#85–#115): Complete specification deliverables across all 8 tracks, with squad assignments and decision locks documented
+
+Architecture tracks now visible on board with clear ownership and dependencies. Each epic decomposes into 3-4 spec issues (strategy, API, IaC/UX, compliance/testing). All locked decisions referenced in acceptance criteria.
+
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- **Phase 2 Board Structure (2026-03-20):** Each of 8 architecture tracks decomposes as: (1) strategy/architecture spec (Freamon lead) → (2) API spec (Bunk) + IaC spec (Daniels) → (3) UX/compliance spec (Kima/Pearlman). Spec issues lock to active decisions (Decisions 1–12) to prevent spec drift. GitHub Projects v2 board enables tracking per track. Pattern: epic contains 3-4 child specs; each spec includes target file path, locked decisions, acceptance criteria.
 - **Implementation Status Classification Rules (2026-03-16):** Status classification: `🔧 API Only` = working backend surface, no routed UI screen. `❌ Not Started` takes precedence over exposed routes when service layer throws `notImplemented(...)`. `📋 Spec Only` = documented in specs, no frontend routes/API modules/Prisma schema. Reusable components without routing ≠ implemented UI screens. Rules prevent overstating progress in hours, labels, auth flows.
 - **Reusable squad operations skill pack (2026-03-16):** Six runbooks at `.squad/skills/`: `commit-and-push`, `secret-scan`, `spec-review`, `docker-reset`, `prisma-migrate`, `git-status-report`. Standardized recurring coordinator actions with pass/fail criteria.
 - **Proof architecture unified across specs (2026-03-18):** Proof system is shared contract across taxonomy + templates + vault. Must normalize schema, readiness states, RBAC in all specs before implementation. Blocking gaps in taxonomy: `ProofRequirement` contract drift, unsupported quantitative `PARTIAL` progress, broken preset provenance, preset route/RBAC mismatch.

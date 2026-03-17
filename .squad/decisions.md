@@ -1947,3 +1947,1491 @@ Izzy requested an audit of API/app architecture against Terraform and workflows,
 
 These decisions align the proof model with regulated-industry expectations for auditability, trust hierarchy, and controlled disclosure. They also reduce downstream churn by tightening terminology and lifecycle semantics before more UI/API work lands.
 
+
+
+---
+
+# Phase 2 Decisions (2026-03-17)
+
+## bunk-hours-pages
+
+# Decision: Hours Pages Activation Pattern
+
+**Author:** Bunk  
+**Date:** 2026-03-20  
+**Issue:** #20  
+**PR:** #60
+
+## Decision
+
+Removed the `records.hours-ui` feature flag gating from MyHoursPage. The page now always fetches from the hours API and degrades gracefully if the endpoint returns 404/501.
+
+## Rationale
+
+The hours backend is fully built (clock-in/out, manual entry, paginated queries, conflict resolution, audit trail). There's no reason to gate the UI behind a feature flag when the API is ready. The graceful degradation pattern (used by MyDocuments and other pages) handles any API unavailability without needing a separate flag.
+
+## Impact
+
+- `records.hours-ui` feature flag is no longer checked by MyHoursPage
+- The flag still exists in `useFeatureFlags.ts` defaults and may be referenced by other code (e.g., team tab visibility in `useTeamMemberContext`)
+- TeamHoursPage was never gated by a flag — it was a static placeholder
+- Both pages follow the same error-handling patterns as TeamDocumentsPage and MyDocumentsPage
+
+## Files Changed
+
+- `apps/web/src/pages/MyHours.tsx`
+- `apps/web/src/pages/TeamPages.tsx`
+- `apps/web/src/types/my-section.ts`
+
+
+---
+
+## bunk-progress-apis
+
+# Decision: Dashboard Compliance Score Weighting
+
+**Decision Maker:** Bunk (Backend Dev)
+**Date:** 2026-03-21
+**Status:** Proposed
+**Related Issues:** #25, #48
+**PR:** #68
+
+## Context
+
+Issues #25 and #48 required cross-domain aggregation of compliance data for dashboards. The dashboard compliance summary needed a single overall score combining qualifications, hours progress, template assignments, and medical clearances.
+
+## Decision
+
+Use a weighted average for the overall compliance score:
+- **Template completion:** 30%
+- **Hours progress:** 30%
+- **Qualifications:** 25%
+- **Medical clearances:** 15%
+
+## Rationale
+
+- Templates and hours are the primary compliance drivers in the proof-of-work model (together 60%)
+- Qualifications represent foundational credentials (25%)
+- Medical clearances are supporting compliance items (15%)
+- Employees with no data in a category score 100% (no penalty for absence of requirements)
+- At-risk threshold set at score < 70 for team summary
+
+## Impact
+
+- Affects `GET /api/dashboard/compliance-summary` and `GET /api/dashboard/team-summary`
+- Frontend dashboard components should display both the score and individual category breakdowns
+- Weights may need adjustment based on Pearlman's compliance review
+
+
+---
+
+## copilot-directive-2026-03-16T22-26-05
+
+### 2026-03-16T22-26-05: User directive
+**By:** Israel Vega (via Copilot)
+**What:** Use Entra ID groups to represent the RBAC hierarchy (employees, supervisors, auditors, admins). Group membership should drive role assignment. Explore mapping the existing numeric hierarchy (EMPLOYEE(0) < SUPERVISOR(1) < MANAGER(2) < COMPLIANCE_OFFICER(3) < ADMIN(4)) to Entra security groups with nested group support for organizational hierarchy.
+**Why:** User request — eliminates local user management, leverages SSO, ties RBAC to actual org structure
+
+
+---
+
+## copilot-directive-2026-03-16T22-27-08
+
+### 2026-03-16T22-27-08: User directive — Template Management Strategy
+**By:** Israel Vega (via Copilot)
+**What:** Need a comprehensive template management strategy covering: (1) Template sourcing — import from external standards, create from scratch, pull from online regulatory requirement databases. (2) Template authoring RBAC — who can create, edit, publish, retire templates. (3) Template assignment workflow — how templates get assigned to employees/teams/departments, bulk vs individual, auto-assignment rules. (4) Template lifecycle — draft, review, publish, version, deprecate, archive.
+**Why:** User request — templates are the core compliance primitive; this strategy drives the entire proof workflow
+
+
+---
+
+## copilot-directive-2026-03-16T22-28-47
+
+### 2026-03-16T22-28-47: User directive — Qualification Management & Attestation Strategy
+**By:** Israel Vega (via Copilot)
+**What:** Need a comprehensive qualification management strategy covering: (1) Qualification tracking — not just hours; support multiple proof types (hours, certifications, training, clearances, assessments). (2) Attestation model — who can attest to qualification completion: employees (self-attest L1), supervisors (verify L2), external third parties (invited attestors L3), auditors (validated L4). (3) External invites — allow external parties (training providers, certification bodies, medical examiners) to be invited to attest/verify employee qualifications. (4) Supervisor attestation — supervisors verify their direct reports' qualifications. (5) Employee self-attestation — employees claim completion, subject to review. (6) Auditor attestation — compliance officers validate and seal qualifications. (7) Monitoring — ongoing qualification validity checks, expiration tracking, renewal workflows.
+**Why:** User request — qualifications are the core compliance output; attestation levels determine trust and regulatory acceptance
+
+
+---
+
+## copilot-directive-2026-03-16T22-30-34
+
+### 2026-03-16T22-30-34: User directive — Override & Manual Proof Management
+**By:** Israel Vega (via Copilot)
+**What:** Need a strategy for administrative overrides of proof and expiration requirements: (1) Can a supervisor extend/update an expiration date without submitting new proof? (2) Can a supervisor or admin manually override a proof requirement — marking it fulfilled without standard evidence? (3) What audit trail is required for overrides? (4) Are overrides time-limited (temporary grace) or permanent? (5) Who can override whom — supervisor for direct reports only, or admin for anyone? (6) Can overrides be revoked, and by whom? (7) Do overrides require a reason/justification (free text, dropdown categories, or both)?
+**Why:** User request — regulated industries need override escape hatches with strong audit trails; overrides without governance create compliance liability
+
+
+---
+
+## copilot-directive-2026-03-16T22-32-47
+
+### 2026-03-16T22-32-47: User directive — Industry Template Visibility & Delegation at Scale
+**By:** Israel Vega (via Copilot)
+**What:** Need a strategy for managing templates across industries at scale without overwhelming admins. Key questions: (1) Does admin see all templates and toggle visibility per supervisor? (2) Does manager own a template set and delegate visibility downward? (3) Does admin manage groups (industry/department) and assign supervisors to groups? (4) How to reduce admin burden — self-service for supervisors/managers? (5) Industry-specific template catalogs (healthcare, construction, aviation, etc.) — how to scope? (6) Template inheritance — org-wide templates vs industry-specific vs site-specific? (7) Delegation model — admin → manager → supervisor chain vs flat admin-to-everyone?
+**Why:** User request — template management doesn't scale if admin must manually assign every template to every supervisor; need a delegation/inheritance model that works for multi-industry orgs
+
+
+---
+
+## copilot-directive-2026-03-16T22-35-33
+
+### 2026-03-16T22-35-33: User directive — Profile Management & Entra Data Deduplication
+**By:** Israel Vega (via Copilot)
+**What:** Employee profiles should source from Entra ID as primary — not duplicate Entra data locally. Strategy: (1) Core identity fields (name, email, department, manager, job title, groups) come from Entra via Microsoft Graph API — read-only in E-CLAT. (2) Supplemental fields (employee ID, hire date, certifications, site location, shift, compliance-specific metadata) stored locally in E-CLAT. (3) No duplicate data — if Entra has it, E-CLAT reads it live or caches with TTL, never stores a second copy. (4) Consent/permissions required — app registration needs Graph API scopes (User.Read.All, GroupMember.Read.All, Directory.Read.All minimum). (5) IaC updates needed — Terraform must provision Entra app registration with correct API permissions and admin consent grant. (6) Bootstrap updates needed — bootstrap scripts must handle one-time admin consent flow, service principal creation, and secret/certificate provisioning for Graph API access. (7) Profile merge UX — single profile view showing Entra-sourced fields (locked/read-only) alongside E-CLAT supplemental fields (editable).
+**Why:** User request — avoid data drift between Entra and local DB; single source of truth for identity; requires infrastructure changes for consent and Graph API access
+
+
+---
+
+## copilot-directive-2026-03-16T22-36-54
+
+### 2026-03-16T22-36-54: User directive — User-Group-Qualification Mapping & Team Management at Scale
+**By:** Israel Vega (via Copilot)
+**What:** Need a strategy for mapping users → groups → qualifications at scale. Key questions: (1) Do we map users to Entra groups and then map qualification templates to those same groups? (2) Can admins query Entra for users and dynamically create RBAC groups on the fly from search results? (3) How do we manage teams — are teams just Entra groups, or a separate concept layered on top? (4) Group-to-qualification binding — when a user joins a group, do they automatically inherit all qualification requirements mapped to that group? (5) Scale concerns — 1000s of users across 100s of groups, each group with 10-50 qualification templates. How to make this manageable? (6) Team hierarchy — department → team → sub-team, each level inheriting parent qualifications plus adding own? (7) Dynamic group creation — admin searches "all nurses in Building A", creates group, assigns nursing qualifications in one flow? (8) Bulk operations — move 50 users between groups, qualification requirements auto-adjust?
+**Why:** User request — the user→group→qualification triple is the core scaling mechanism; without this, every assignment is manual and doesn't work past ~50 employees
+
+
+---
+
+## copilot-directive-2026-03-16T22-39-55
+
+### 2026-03-16T22-39-55: User directive — Feature Flags, Real-Time Presence & Nudge System
+**By:** Israel Vega (via Copilot)
+**What:** Three interconnected features: (1) Feature flag system — admin-toggleable flags controlling feature availability per tenant/customer. Examples: teams, presence, real-time notifications, nudges, advanced reporting. Flags gate UI components AND API endpoints. (2) Real-time presence via SignalR — if Teams integration or presence feature is enabled, show online/offline/busy status for employees. Supervisors see their team's presence in real-time. Requires SignalR hub on API, WebSocket connection on frontend. (3) Nudge system — supervisors can "ping" employees (qualification expiring, hours needed, document missing). System can auto-nudge based on rules (7-day expiry warning, overdue items). All nudges are audited: who sent, to whom, what type, when, response time. Nudge audit trail required for compliance (proves employer notified employee of requirement). Security: rate-limit nudges to prevent harassment, log all nudge activity, allow employees to report excessive nudging.
+**Why:** User request — feature flags enable multi-tenant flexibility; presence/nudges are high-value supervisor tools; nudge audit trail is a compliance differentiator (proof of notification)
+
+
+---
+
+## copilot-directive-2026-03-16T22-41-37
+
+### 2026-03-16T22-41-37: User directive — Standards, Requirements, Proofs & Required Levels Customization
+**By:** Israel Vega (via Copilot)
+**What:** Need a strategy for managing the standards→requirements→proofs hierarchy with customization: (1) Standards define regulatory baselines (e.g., OSHA, Joint Commission). (2) Requirements are the specific items within a standard (e.g., "500 clinical hours/year"). (3) Proofs are the evidence types accepted for each requirement (hours log, cert upload, attestation). (4) Required levels define minimum attestation level per requirement (L1-L4). (5) Customization: Can orgs ADD extra requirements beyond the standard? Can orgs REDUCE requirements (fewer quals than standard mandates)? (6) Requirement override/exemption: Can a CO disable a specific requirement with a note like "does not apply to this role/site/department"? Must exemptions be audited? (7) Level customization: Can an org require L3 (third-party) where the standard only requires L2 (supervisor)? Can they relax to L1 where standard says L2? (8) Inheritance: Standard → Org customization → Department override → Individual exemption — how do layers compose?
+**Why:** User request — regulated industries need both strict baselines AND local flexibility; the customization model determines whether E-CLAT works for one org or thousands
+
+
+---
+
+## copilot-directive-2026-03-16T22-46-18
+
+### 2026-03-16T22-46-18: User directive — Multi-Tenant Architecture, API Scaling & Nested Deployments
+**By:** Israel Vega (via Copilot)
+**What:** Need architecture for: (1) API deployment separation for independent scaling. (2) Multi-tenant isolation — company deploys E-CLAT, their data is fully isolated. (3) Nested multi-tenancy — admin can create sub-deployments (dev, test, groupA, groupB) within their tenant. (4) Super admin account managing all environments, can assign/invite other admins. (5) User onboarding: search Entra? B2B invite? Separate identity for external users? (6) Support for contractors, M&A scenarios, external users who aren't in the primary Entra tenant. (7) Multi-tenant patterns: database-per-tenant vs schema-per-tenant vs row-level isolation. (8) Nested tenant hierarchy: root → company → environment/group → users. (9) Cross-tenant visibility for super admin without breaking isolation. (10) Invitation flow: Entra B2B guest vs local identity vs federated identity.
+**Why:** User request — multi-tenancy is the foundational architecture decision that affects every layer (data, API, auth, IaC, billing); getting this wrong is extremely expensive to fix later
+
+
+---
+
+## copilot-directive-2026-03-16T22-54-14
+
+### 2026-03-16T22-54-14: User directive — Polyglot Persistence & Deployment Modes
+**By:** Israel Vega (via Copilot)
+**What:** Architecture must support polyglot data stores: SQL Server, PostgreSQL, Cosmos DB, Azure Storage (blobs), MongoDB, Redis, ADX (Azure Data Explorer). Two deployment modes: (1) tenant-deployed (customer hosts in their own Azure tenant) and (2) SaaS-hosted (we host, multi-tenant). Data store selection varies by data type: relational (SQL/Postgres), documents/schemaless (Cosmos/Mongo), blobs (Azure Storage), caching (Redis), telemetry/monitoring (ADX). Architecture must abstract the data layer so stores are swappable per deployment.
+**Why:** User request — polyglot persistence is a hard architectural constraint; self-hosted vs SaaS deployment affects every infra and auth decision
+
+
+---
+
+## copilot-directive-2026-03-16T22-55-33
+
+### 2026-03-16T22-55-33: Decision — Tiered Data Isolation (Customer Choice)
+**By:** Israel Vega
+**Decision:** Isolation tier is a pricing/deployment feature. Enterprise tenants get dedicated resources (own DB, own Cosmos account, own Redis). SMB tenants share infrastructure with row-level/partition-key isolation. Tenant-deployed customers own everything (full isolation by default). The data access layer must abstract this so the application code doesn't care which tier the tenant is on.
+**Impact:** Data access layer needs a tenant-aware connection resolver. IaC must support both shared and dedicated resource provisioning. Billing implications per tier.
+
+
+---
+
+## copilot-directive-2026-03-16T22-58-27
+
+### 2026-03-16T22-58-27: Decision — Multi-IdP with Primary Provider (GitHub-style Setup)
+**By:** Israel Vega
+**Decision:** Identity follows a GitHub-like model: (1) First user bootstraps the tenant and configures the primary identity provider (typically Entra). (2) Admins can add additional supported providers (Okta, Auth0, Google Workspace, SAML generic). (3) External users are invited by email. They authenticate via any configured provider. (4) Profile merge: if an invited user's email matches across providers, profiles merge to a single identity. The invite email is the anchor. (5) SCIM support for enterprise providers that need automated provisioning/deprovisioning. (6) Tenant-deployed: customer configures their own provider(s). SaaS: we host the multi-provider config.
+**Impact:** Need an identity abstraction layer (not Entra-coupled). User table stores canonical profile, linked to 1+ external identities. SCIM endpoint needed for enterprise customers. Provider config is per-tenant.
+
+
+---
+
+## copilot-directive-2026-03-16T23-01-11
+
+### 2026-03-16T23-01-11: Decision — Modular Monolith with Independent Module Versioning
+**By:** Israel Vega
+**Decision:** Modular monolith architecture with: (1) Strict module boundaries (each domain module is independently versionable). (2) Feature flag gating per module, per tenant, per environment — similar to Microsoft Teams/Office model. (3) Modules can be updated independently — one team can rev compliance v2.3 while auth stays at v1.8. (4) Routing supports version-based and tenant/env-based redirection — different tenants can be on different module versions (canary, ring-based deployment). (5) When a module needs to scale independently, it can be extracted to its own service without changing the API contract. (6) Feature teams own modules end-to-end (routes, service, validators, data). The monolith is the deployment unit today; modules are the extraction boundary tomorrow.
+**Impact:** Need module registry (version tracking per module per tenant). Feature flag system gates module availability. API versioning strategy (URL prefix? Header? Query param?). Ring-based deployment model for progressive rollout.
+
+
+---
+
+## copilot-directive-2026-03-16T23-04-16
+
+### 2026-03-16T23-04-16: Decision — Standards Flexibility: Lock Regulatory, Flex Custom (with backend override)
+**By:** Israel Vega
+**Decision:** (1) Start with 'Lock regulatory, flex custom': regulatory standards (OSHA, Joint Commission, etc.) have immutable requirements that cannot be relaxed through the UI. Custom/org standards can be freely modified by authorized admins. (2) Prepare architecture for eventual 'full flexibility' mode — the restriction is a policy flag, not hardcoded logic. (3) Backend override capability: platform admin (L0) can set a requirement as 'mandatory-not-overridable' — even tenant admins cannot exempt it. This is the nuclear option for regulatory requirements. (4) Scale concern acknowledged: typical standards have 10-50 requirements, large frameworks (Joint Commission) can have 200+. Need bulk operations, smart defaults, and template inheritance to avoid admin nightmare. (5) UX must make it easy: show what's locked vs flexible, provide bulk apply, inherit from parent templates.
+**Impact:** Requirement model needs: is_regulatory (boolean), override_policy (enum: locked/flexible/admin-only), source_standard_id. Bulk operations needed for large requirement sets. Template inheritance reduces per-org config work.
+
+
+---
+
+## copilot-directive-2026-03-16T23-05-30
+
+### 2026-03-16T23-05-30: Decision — L1-L4 Attestation Level Model
+**By:** Israel Vega
+**Decision:** Four-level attestation model: L1 self_attest (employee claims), L2 supervisor (supervisor confirms), L3 third_party (external certifier/invitee confirms), L4 validated (Compliance Officer seals after review). Each proof template defines the minimum attestation level required. Higher levels always satisfy lower ones (L3 satisfies L2 requirement). Templates can be configured to accept specific levels or 'minimum of' a level.
+**Impact:** ProofTemplate needs min_attestation_level field. Fulfillment records track actual attestation level achieved. External invite flow needed for L3. CO workflow needed for L4 seal. Audit trail must capture who attested at what level.
+
+
+---
+
+## copilot-directive-2026-03-16T23-06-36
+
+### 2026-03-16T23-06-36: Decision — Full Override with Justification + Audit
+**By:** Israel Vega
+**Decision:** All four override types supported: expiration extension, proof override, requirement waiver, grace period. Every override requires: mandatory justification text, approval chain (supervisor for standard overrides, dual approval CO+admin for regulatory), full audit trail (who, when, why, what was overridden, original value, new value), and expiration date (no permanent overrides without periodic review). Regulatory requirement overrides require dual approval.
+**Impact:** Override model, approval workflow, audit log entries per override, dashboard visibility for COs to review active overrides.
+
+
+---
+
+## copilot-directive-2026-03-16T23-08-15
+
+### 2026-03-16T23-08-15: Decision — Template Distribution: Catalog + Inheritance (extensible to Marketplace + AI)
+**By:** Israel Vega
+**Decision:** Start with Industry Catalog + Hierarchical Inheritance: admin enables industry profiles (healthcare, construction, aviation), templates auto-flow to groups/departments via inheritance chain. Architecture must be extensible to support: (1) Marketplace model (templates published/subscribed like an app store) in a future phase, and (2) AI-assisted recommendations (system suggests templates based on role, department, industry) in a later phase. The template assignment model should use an abstract 'source' field (catalog/marketplace/ai-recommended/manual) to support all distribution methods without refactoring.
+**Impact:** Template assignment needs source_type field. Industry catalog is the first source. API and data model must not assume catalog-only distribution.
+
+
+---
+
+## copilot-directive-2026-03-16T23-11-42
+
+### 2026-03-16T23-11-42: Decision — Group-Based Mapping + Claim-Driven Auto-Assignment
+**By:** Israel Vega
+**Decision:** Start with groups as the join table (Users→Groups→Templates, 4 group types). Extend with claim-driven auto-assignment: when a user authenticates, their IdP claims (Entra attributes, SAML assertions, SCIM attributes) like job_title, department, cost_center can automatically place them in the correct groups. Example: job_title='Field Engineer' → auto-add to 'Field Safety' qualification group → inherits all field safety templates. This is essentially a 'dynamic group' type that evaluates IdP claims at login or SCIM sync. Reduces admin work further: configure the claim→group mapping once, user placement is automatic from HR/IdP data.
+**Impact:** Dynamic group type needs a rules engine (claim field + operator + value → group). SCIM webhook can trigger group re-evaluation. Login flow checks claim-based rules. Admins configure rules, not individual assignments.
+
+
+---
+
+## copilot-directive-2026-03-16T23-13-44
+
+### 2026-03-16T23-13-44: Decision — Event-Driven Architecture + WebSocket-First Real-Time
+**By:** Israel Vega
+**Decision:** (1) Event-driven architecture using Azure Service Bus (commands/queues) + Event Grid (events/topics) for async processing, with an abstraction layer so on-prem can swap to RabbitMQ/NATS. (2) WebSocket-first for real-time (not SignalR-only) — use a WebSocket abstraction that can be backed by Azure SignalR Service (cloud) or raw WebSocket server (on-prem/self-hosted). (3) Feature flags: database-backed (works everywhere) with optional Azure App Configuration sync for cloud deployments. (4) Nudge system uses the event bus for delivery + WebSocket for real-time push. (5) Architecture must support eventual on-prem installation — no hard Azure-only dependencies in the application layer.
+**Impact:** Need event bus abstraction (interface: publish, subscribe, queue). Need WebSocket abstraction (interface: connect, broadcast, room). Feature flag table in DB as source of truth. Service Bus/Event Grid in IaC for cloud. Adapter pattern for all infrastructure services.
+
+
+---
+
+## copilot-directive-2026-03-16T23-14-51
+
+### 2026-03-16T23-14-51: Decision — OTel + ADX + App Insights Observability Stack
+**By:** Israel Vega
+**Decision:** OpenTelemetry for vendor-neutral instrumentation (traces, metrics, logs). Azure Data Explorer (ADX) for compliance analytics and long-term telemetry storage. App Insights for APM (application performance monitoring, live metrics, alerts). On-prem deployments can swap App Insights for Jaeger/Prometheus and ADX for ClickHouse, using the same OTel instrumentation. OTel Collector acts as the routing layer between instrumentation and backends.
+**Impact:** OTel SDK integration in API and web. OTel Collector in IaC. ADX cluster provisioning. App Insights resource. Custom compliance dashboards in ADX. Exporters configurable per deployment mode.
+
+
+---
+
+## copilot-directive-2026-03-16T23-16-02
+
+### 2026-03-16T23-16-02: Decision — Logical Partition Environments
+**By:** Israel Vega
+**Decision:** Environments (dev, staging, groupA, groupB) are logical partitions within the tenant's database. Each environment has: own environment_id on all data rows, own role assignments (admin of staging ≠ admin of prod), own configuration (feature flags, standards config), ability to clone from another environment (snapshot for testing). Environments are cheap to create — no new infrastructure. Admin creates them freely from the UI. Data isolation is via environment_id column + application-level enforcement. No cross-environment data access except for tenant admin dashboard (aggregate views only).
+**Impact:** Every data table needs environment_id. Middleware extracts environment from JWT/session. Environment model in DB. Clone operation for creating test environments from prod data.
+
+
+---
+
+## copilot-directive-2026-03-16T23-18-26
+
+### 2026-03-16T23-18-26: Decision — Semi-Anonymous Profile with Object ID Abstraction
+**By:** Israel Vega
+**Decision:** (1) Internal user_id (UUID) is the only identifier used across the application. No PII (name, email) stored in compliance/operational tables — only user_id references. (2) PII lives in a separate, encrypted Profile table (or separate service) that maps internal user_id → display_name, email, IdP object_id. (3) The IdP object_id (Entra oid, Okta uid, etc.) is stored in a linked_identities table, never in business data. (4) In case of breach: compliance data contains only UUIDs — no PII exposure. Attacker would need both the compliance DB AND the profile DB to deanonymize. (5) IdP-sourced fields (name, department, title) are cached in profile table, refreshed on login/SCIM sync, but marked as IdP-sourced (read-only). Supplemental fields (certifications, preferences) are E-CLAT-owned and editable. (6) Profile table can be in a separate database or encrypted partition for defense-in-depth.
+**Impact:** Two-table (or two-service) profile architecture. All foreign keys reference user_id (UUID), never email/name. Audit logs use user_id, display name resolved at render time. Data export (GDPR) pulls from profile table. Profile table encryption at rest + column-level encryption for PII fields.
+
+
+---
+
+## daniels-preview-environments
+
+# Decision: Preview Environment Architecture for E-CLAT
+
+**Issued by:** Daniels (Microservices Engineer)  
+**Date:** 2026-03-16  
+**Issue:** #50 (Preview environments for records and compliance subsystems)  
+**Status:** Proposed (awaiting team review and approval)  
+**Related Decisions:** DA-02 (artifact promotion pipeline), DA-03 (parallel deployment lanes)
+
+---
+
+## Problem Statement
+
+High-change subsystems (records: documents/hours; compliance: templates/qualifications) need isolated, ephemeral test environments to validate PRs before merge to main. Current workflow:
+1. Developer makes changes to a subsystem
+2. CI runs, tests pass locally
+3. PR merged to main
+4. Issues discovered in dev/staging (too late)
+
+Solution: Auto-provision preview environments on PR open, auto-destroy on close. Reduce deployment risk and enable early cross-subsystem testing.
+
+---
+
+## Context
+
+- Azure Container Apps is the primary compute platform (layered Terraform: foundation → data → compute → promotion)
+- Existing 30-promotion layer handles dev→staging→prod artifact promotion (SHA-based, immutable)
+- Parallel subsystem lanes implemented in CI (#35, #36)
+- Service groups compute modules created (#26)
+- Team values **logical subsystem ownership, rollout safety, independent deployments**
+- Cost constraints: preview must not exceed $5/day per active instance
+
+---
+
+## Decision
+
+### 1. **Use Azure Container Apps Revisions (NOT Dedicated Apps per PR)**
+
+**Selected Approach:** Single Container App per subsystem, each PR = unique revision.
+
+**Rationale:**
+- Native Azure Container Apps feature: no custom orchestration needed
+- Automatic DNS/routing: each revision gets FQDN (`pr-123--eclat-records-dev.azurecontainerapps.io`)
+- Single app resource → single Terraform state, much simpler than N apps per N PRs
+- Built-in revision lifecycle, traffic splitting, auto-deactivation
+
+**Alternative (Rejected):** Dedicated Container App per PR
+- ❌ Terraform state explosion: 1 app × N PRs × M subsystems = large state files
+- ❌ Quota exhaustion: Azure subscriptions have Container App limits
+- ❌ Networking complexity: DNS scaling, certificate management per app
+
+---
+
+### 2. **Use Shared PostgreSQL with Schema Isolation**
+
+**Selected Approach:** All previews connect to single dev database, logically isolated by schema.
+
+**Implementation:**
+```sql
+-- Per-preview schema
+CREATE SCHEMA pr_123_records;
+ALTER SCHEMA pr_123_records OWNER TO app_user;
+```
+
+Container App environment variable: `DATABASE_URL=postgresql://...?schema=pr_123_records`
+
+Cleanup: `DROP SCHEMA IF EXISTS pr_123_records CASCADE;`
+
+**Rationale:**
+- Cost-efficient: N previews share single database infrastructure
+- Fast provisioning: schema creation is instant
+- Trivial cleanup: no backup/restore overhead
+- Single Prisma schema: no custom per-schema migrations
+
+**Alternative (Rejected):** Seeded snapshot per preview
+- ❌ Backup management overhead
+- ❌ Slow restore time
+- ❌ Storage duplication (10 records previews = 10 copies of same snapshot)
+
+**Alternative (Rejected):** Dedicated database per preview
+- ❌ Massive cost (each DB is a full managed instance)
+- ❌ Azure quota exhaustion
+- ❌ Slow spinup/spindown
+
+---
+
+### 3. **Separate GitHub Actions Workflows for Provision/Cleanup**
+
+**Workflows:**
+- `preview-records.yml` (triggered: PR labeled `preview:records`, or path change to `apps/api/src/modules/documents/**`, `apps/api/src/modules/hours/**`)
+  - Build API image → Terraform apply → Seed schema → Smoke tests → PR comment
+- `preview-cleanup.yml` (triggered: PR closed)
+  - Terraform destroy → Drop schemas
+
+**Rationale:**
+- Explicit, independent workflows easier to test and debug
+- Cleanup runs regardless of merge status (cleaner resource management)
+- Parallel provisioning per subsystem (separate state files = no conflicts)
+
+---
+
+### 4. **Per-Preview Terraform State Files**
+
+**Pattern:** Each preview gets isolated state in Azure Storage.
+
+```
+tfstate/
+├── preview-pr-123-records.tfstate
+├── preview-pr-123-compliance.tfstate
+├── preview-pr-124-records.tfstate
+```
+
+**Backend init in GitHub Actions:**
+```bash
+terraform init \
+  -backend-config="key=preview-pr-${{ github.event.pull_request.number }}-${{ matrix.subsystem }}.tfstate"
+```
+
+**Rationale:**
+- No state conflicts when destroying multiple previews in parallel
+- Accidental deletion of main app resources prevented
+- Cross-PR state pollution impossible
+- Each preview is independently tracked and auditable
+
+---
+
+### 5. **Cost Controls: Auto-TTL, Quota, Resource Limits**
+
+**Per-revision resource constraints:**
+- CPU: 0.25 vCPU (half main app)
+- Memory: 512 MB (1/4 main app)
+- Min replicas: 0 (scales to zero when idle)
+- Max replicas: 1
+
+**Retention policies:**
+- Auto-deactivate previews after 7 days of inactivity
+- Max 5 concurrent preview revisions per subsystem
+- Enforce quota in GitHub Actions (warn if exceeded, oldest preview destroyed if needed)
+
+**Cost estimate:**
+- Active preview: $0.15/hour ($3.60/day)
+- Idle preview: $0.04/hour ($0.10/day)
+- 5 concurrent (2 active, 3 idle): ~$302/month
+
+**Tagging for cost visibility:**
+```hcl
+tags = {
+  "cost-center"   = "engineering"
+  "service"       = var.subsystem
+  "pr-number"     = var.pr_number
+  "type"          = "preview"
+}
+```
+
+---
+
+### 6. **Phased Rollout: Records MVP, Then Compliance, Then Full Automation**
+
+**Phase 1 (MVP, This Sprint):**
+- Records subsystem only (`documents`, `hours` modules)
+- Label trigger: `preview:records`
+- Dev environment
+- Manual smoke tests
+- Success criteria: 3 concurrent previews, clean provision/destroy, PR comments working
+
+**Phase 2 (Next Sprint):**
+- Compliance subsystem (`templates`, `qualifications`)
+- Label trigger: `preview:compliance`
+- Reuse records infrastructure pattern
+
+**Phase 3 (Future):**
+- All subsystems
+- Path-based auto-provisioning (no labels)
+- Cross-subsystem previews (single PR provisions both records + compliance)
+- Custom domain names (`pr-123-records.dev.eclat.com`)
+
+---
+
+### 7. **Previews are Pre-Main, Orthogonal to Promotion Pipeline**
+
+**Positioning in workflow:**
+```
+PR opens
+  ↓
+Label: preview:records? → YES
+  ↓
+Preview Records Provision (independent)
+  ↓
+Smoke tests, manual validation
+  ↓
+Merge to main
+  ↓
+CI runs → Build artifact (main branch, subsystem lanes)
+  ↓
+**Promotion pipeline (dev→staging→prod, does NOT include preview artifacts)**
+  ↓
+PR close → Preview Cleanup
+```
+
+**Key principle:** Preview artifacts **NEVER** flow to dev/staging/prod. Previews are ephemeral test environments orthogonal to the main promotion chain.
+
+**Impact on 30-promotion layer:** NONE. Existing SHA-based immutable artifact promotion continues unchanged.
+
+---
+
+## Terraform Architecture
+
+### New Modules
+
+**`infra/modules/compute-preview/`**
+- Outputs computed FQDN for a given PR/subsystem
+- No resource creation (relies on existing Container App from 20-compute)
+- Input variables: subsystem, pr_number, api_image_tag, db_schema, container_app_name, environment
+- Output: preview_url
+
+**`infra/layers/20-compute/preview/`**
+- Orchestrates preview module for a specific PR
+- Instantiated by GitHub Actions with PR number and subsystem as Terraform variables
+- State file isolated per PR/subsystem
+
+### No Changes Required to Existing Layers
+
+- `00-foundation`, `10-data`, `20-compute` (main app) remain unchanged
+- `30-promotion` unchanged (previews not part of promotion)
+
+---
+
+## GitHub Actions Integration
+
+### Required Secrets
+
+```
+AZURE_CLIENT_ID_DEV
+AZURE_TENANT_ID_DEV
+AZURE_SUBSCRIPTION_ID_DEV
+ACR_LOGIN_SERVER
+DATABASE_URL_DEV
+```
+
+### Workflow Skeletons (Full YAML in Design Spec)
+
+**Provision** (`preview-records.yml`)
+1. Check PR label or detect path change
+2. Build API image (tagged `pr-{PR_NUMBER}-records`)
+3. Terraform init (preview-specific state file)
+4. Terraform apply (provision revision)
+5. Seed database schema with test data
+6. Run smoke tests
+7. Post PR comment with preview URL
+
+**Cleanup** (`preview-cleanup.yml`)
+1. Terraform destroy (all preview revisions for this PR)
+2. Drop database schemas
+
+---
+
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| **State file corruption** | Separate state files per preview; versioned backups in Azure Storage |
+| **Cost overrun** | Max 5 concurrent previews per subsystem; 7-day TTL; monitoring alerts |
+| **Database contention** | Separate connection pool per schema; query limits |
+| **Secrets in logs** | Never log request/response bodies in preview revisions |
+| **Stale revisions** | Nightly cleanup job + TTL policy |
+
+---
+
+## Success Criteria
+
+- [ ] Records preview provisions in < 2 minutes
+- [ ] PR comment with valid preview URL appears automatically
+- [ ] Smoke tests pass on preview
+- [ ] Preview auto-destroys within 1 minute of PR close
+- [ ] Cost per preview < $5/day (active)
+- [ ] Zero credential leaks
+- [ ] Documentation tested by a new team member
+
+---
+
+## Future Enhancements
+
+1. Custom domains (`pr-123-records.dev.eclat.com`)
+2. Cross-subsystem previews (records + compliance in one PR)
+3. Staging previews for UAT
+4. APM/logging aggregation (Datadog, Application Insights)
+5. Automated rollback on smoke test failure
+6. Team approval workflows
+7. Capacity management dashboard
+
+---
+
+## Impact
+
+- **Development Speed:** Developers can test changes in isolated environments before merge, reducing deploy-time issues
+- **Cost:** < $5/day per active preview; near-zero when idle
+- **Deployment Risk:** Early validation reduces main branch issues
+- **Maintenance:** Terraform state management simpler than per-PR apps
+- **Pipeline:** No impact on existing dev→staging→prod promotion
+
+---
+
+## References
+
+- **Issue #50:** Preview environments
+- **Issue #26:** Terraform module stubs
+- **Issue #35:** Change detection (parallel lanes)
+- **Design Spec:** `docs/specs/preview-environments.md`
+- **PR #73:** Design spec commit
+
+---
+
+**Decision made by:** Daniels (Microservices Engineer)  
+**Awaiting:** Team review and approval
+
+
+---
+
+## freamon-admin-shell
+
+# Admin Shell Status — E-CLAT
+
+> **Status:** Decision Record (IMPLEMENTED)
+> **Owner:** Freamon (Lead)
+> **Date:** 2026-03-19
+> **Related Issue:** #49 — [Pipeline] Add admin-shell pipeline or mark dormant
+> **Related Specs:** `docs/specs/app-spec.md` § 2.2, `docs/specs/service-architecture-spec.md`
+
+---
+
+## Decision
+
+**Mark `apps/admin` as dormant for MVP releases (v0.4.0–v0.6.0).** Admin functionality will be implemented in `apps/web` with RBAC role guards during MVP, then extracted to a dedicated admin app during service extraction (v0.7.0+).
+
+## Rationale
+
+### Investigation Results
+- `apps/admin` is a pure scaffold: placeholder `package.json` and `README.md`, zero code
+- CI already includes path detection for `admin-shell` but no validation lane
+- Admin is not in root build script or docker-compose
+- **App Spec defines 9 admin screens** (A-01 through A-09), all marked "🆕 New"
+
+### Why Not Add Pipeline Now
+1. **Zero code = wasted CI cycles** — nothing to validate
+2. **Delays MVP** — second build target, second Container App, second Entra ID registration
+3. **RBAC is sufficient** — `requireRole(Roles.ADMIN)` guards provide the same security boundary
+
+### Why Dormant + Web App
+1. **Speed** — admin features ship in MVP as part of `apps/web` build
+2. **Cleaner extraction** — when service boundaries stabilize (v0.7.0+), extract cleanly with full CI/build support
+3. **Aligns with strategy** — incremental service extraction plan already accounts for this
+
+## Implementation
+
+### 1. Mark Dormant ✅
+- Created `apps/admin/DORMANT.md` (developer guide)
+- Explains why dormant, where admin features go, when extraction happens
+
+### 2. No CI Lane ✅
+- Verified `ci.yml` path detection exists but no validation job needed
+- When extraction begins, add: `test-admin` job, admin build step, admin container
+
+### 3. Admin Route Strategy ✅
+- Admin screens (A-01 to A-09) will be implemented in `apps/web` under `/admin/*`
+- All routes guarded with `requireRole(Roles.ADMIN)`
+- Example: `/admin/employees`, `/admin/standards`, `/admin/labels`
+
+## Migration Path (v0.7.0+)
+
+9-step plan documented in `docs/specs/admin-shell-status.md`:
+1. Create admin app scaffold (React + Vite)
+2. Extract admin routes from `apps/web`
+3. Add CI lane
+4. Add deployment pipeline
+5. Configure Entra ID
+6. Update documentation
+7. Test end-to-end
+8. Remove admin routes from `apps/web`
+9. Deploy and validate
+
+---
+
+## Status
+
+✅ **Implemented**
+
+- `apps/admin` marked dormant via `DORMANT.md`
+- Decision documented in `docs/specs/admin-shell-status.md`
+- No CI pipeline added (correct for MVP)
+- Issue #49 recommended for closure
+
+
+---
+
+## freamon-architecture-spikes
+
+# Architecture Spikes: Service Extraction & Event Contracts
+
+> **Status:** Design Complete (Ready for Review)  
+> **Spike IDs:** #28 [SA-07], #29 [SA-08]  
+> **Owner:** Freamon (Lead/Architect)  
+> **Date:** 2026-03-20  
+> **Related Decisions:** service-architecture-spec (Phase 2 baseline)
+
+---
+
+## Summary
+
+Completed two complementary architecture design spikes defining the service extraction pattern and event-driven communication model for E-CLAT Phase 2.
+
+### #28 [SA-07] Service Extraction Plan
+**Document:** `docs/specs/service-extraction-plan.md`
+
+Designed extraction of two services:
+1. **Reference Data Service (Phase 2a)** — standards, labels, taxonomy
+   - Read-only, zero outbound dependencies
+   - HTTP contract client pattern
+   - Feature flag: `reference_data.use_extracted_service`
+   - Infrastructure: `aca-reference-data-service` (0.5 CPU, 512 MB)
+
+2. **Notification Service (Phase 2b)** — notifications, preferences, escalation rules
+   - Cross-cutting, event-triggered (requires #29)
+   - Command + event contract pattern
+   - Feature flag: `notifications.use_extracted_service`
+   - Infrastructure: `aca-notification-service` (1.0 CPU, 1 GB)
+
+**Key decisions:**
+- Shared PostgreSQL until Phase 3 (single schema, service-level write separation)
+- Strangler fig migration with feature flags (safe rollback)
+- Extract Reference Data first (cleaner, proves pattern)
+- Terraform modules ready (compute-reference-data, compute-notifications)
+
+---
+
+### #29 [SA-08] Event Contracts Specification
+**Document:** `docs/specs/event-contracts.md`
+
+Designed event-driven architecture for cross-service communication.
+
+**Event model:**
+- CloudEvents 1.0 compliant (CNCF standard)
+- 16 event types across 6 domains (qualifications, documents, templates, hours, medical)
+- Versioning: forward/backward compatible
+- Deduplication: `externalEventId` in consumer tables
+- Ordering: `correlationId` for tracing
+
+**Transport options:**
+- MVP: in-process `EventEmitter`
+- Production: Azure Service Bus queues (with dead-letter)
+- Future: Event Grid for external webhooks
+
+**Dual-write during Phase 2b:**
+- Both monolithic and extracted paths active simultaneously
+- Feature flag `events.transport` (in-process → service_bus)
+- Ensures no notification loss during cutover
+
+**Key patterns:**
+- Idempotent handlers (must check `externalEventId` before processing)
+- Subscription interface with versioning and retry policy
+- Contract tests for handler compatibility
+- Complete monitoring/alerting strategy
+
+---
+
+## Architecture Decisions
+
+### 1. Extraction Order: Reference Data → Notifications
+**Why this order?**
+- Reference Data has zero outbound dependencies (only reads)
+- Proves the service extraction pattern with minimal risk
+- Notification Service depends on event contracts (#29)
+- Allows parallel development: extract Reference Data while designing events
+
+### 2. Shared Database Until Phase 3
+**Trade-off:** Application-level write separation vs. database-level
+- **Pro:** No schema migration, simpler rollback, single Prisma client
+- **Con:** Eventual need to split if scaling demands
+- **When to split:** After operational metrics show volume justifies separate DB (Phase 3+)
+- **Pattern:** Service-level enforcement: only Reference Data Service writes to reference_* tables
+
+### 3. Strangler Fig Pattern with Feature Flags
+**Rationale:** Safe extraction, instant rollback
+```
+reference_data.use_extracted_service:
+  true  → route to HTTP client → aca-reference-data-service
+  false → route to in-process service → existing codebase
+
+notifications.use_extracted_service:
+  true  → dual-write (both old + new paths active)
+  false → old path only
+```
+
+**Benefit:** Operators can flip a flag in Key Vault, instant rollback, no code deploy.
+
+### 4. CloudEvents 1.0 Standard
+**Why not custom schema?**
+- Industry standard (CNCF, widely adopted)
+- Built-in traceability (id, time, correlationid)
+- Future-proof (Event Grid, external webhooks)
+- Familiar to DevOps teams
+- Good tooling ecosystem (schema registries, validators)
+
+### 5. Event Versioning: Forward/Backward Compatible
+**Rule:** Producers must not break old consumers
+- Adding optional fields = safe (backward compatible)
+- Removing required fields = breaking (requires consumer coordination)
+- Version field in envelope enables schema evolution
+
+**Pattern:** Store version in event; consumers validate against their supported range.
+
+### 6. Idempotency via Event ID Deduplication
+**Pattern:** Store event.id in consumer tables
+```typescript
+const existing = await db.notification.findUnique({
+  where: { externalEventId: event.id }
+});
+if (existing) return; // Already processed
+
+await db.notification.create({
+  data: { externalEventId: event.id, ... }
+});
+```
+
+**Enables:** Automatic replay without duplicates, Message Bus retry without side effects.
+
+---
+
+## Implementation Roadmap
+
+### Phase 2a: Reference Data Service Extraction (v0.6.0)
+1. Deploy Reference Data Service (read-only mirror)
+2. Route consumers through ReferenceDataClient
+3. Feature flag in staging (test caching, latency)
+4. Promote to production with gradual rollout
+5. Decommission monolithic routes (after stable)
+
+### Phase 2b: Notification Service Extraction (v0.6.0 or v0.7.0)
+1. Implement event contracts (#29, complete before starting)
+2. Deploy Notification Service
+3. Dual-write: both old + new paths active (feature flag)
+4. Monitor for duplicates, missing notifications
+5. Cutover: stop writing in monolithic API
+6. Decommission old notification code
+
+### Phase 3: Database Separation (v0.7.0+)
+1. If metrics justify (high volume, scaling needs)
+2. Move Reference Data tables to separate schema/DB
+3. Move Notification tables to separate schema/DB
+4. Update Prisma clients (no change to contracts)
+
+---
+
+## Risk Mitigation
+
+### Rollback Strategy
+- **Reference Data:** Flip feature flag → instant fallback to in-process service
+- **Notifications (Phase 2a):** Flip feature flag → old path active again
+- **No data loss:** Both paths read/write same tables until cutover
+
+### Monitoring
+- Cache hit ratio (Reference Data)
+- Event lag (seconds behind producer)
+- Dead-letter queue depth
+- Duplicate notifications (event ID tracking)
+- Handler error rate by event type
+
+### Testing
+- Unit tests: event handlers (idempotency)
+- Integration tests: full flows (qualification → notification)
+- Contract tests: handler version compatibility
+- Load tests: throughput, latency, failover
+
+---
+
+## Open Questions for Review
+
+1. **Event transport:** Service Bus immediately or in-process MVP first?
+   - Recommendation: in-process for MVP (v0.6.0), Service Bus in Phase 2c if needed
+   
+2. **Schema registry:** Separate tool (Avro, Protobuf) or Zod + TypeScript?
+   - Recommendation: Zod for MVP; external registry Phase 3+
+   
+3. **Read-side projections:** Materialized views for notification digest?
+   - Recommendation: Simple cross-service queries for now; event sourcing Phase 4+
+   
+4. **Service-to-service auth:** Managed identity, API key, or JWT?
+   - Recommendation: Azure managed identity (preferred), documented separately
+   
+5. **Webhook integration:** Should external auditors subscribe to events?
+   - Recommendation: Deferred to Phase 4+ as separate contract
+
+---
+
+## Sign-off Checklist
+
+- [x] Dependency analysis complete (Reference Data zero outbound deps)
+- [x] API contracts defined (ReferenceDataClient, NotificationCommandClient)
+- [x] Prisma ownership matrix documented
+- [x] Migration strategy (strangler fig, feature flags)
+- [x] Infrastructure specs (Terraform, Container Apps)
+- [x] Event schema and versioning rules
+- [x] Transport options analyzed
+- [x] Consumer contracts and subscriptions
+- [x] Testing strategy defined
+- [x] Monitoring and alerts planned
+- [ ] **PENDING:** Review by Bunk (backend), Daniels (infra), Pearlman (compliance)
+
+---
+
+## Related Issues & Decisions
+
+- **#28:** Service Extraction Plan (this spike)
+- **#29:** Event Contracts Specification (this spike)
+- **#23 (SA-01):** Contracts package structure
+- **#24 (SA-02):** Repository interfaces
+- **#26 (SA-05):** Terraform stubs
+- **docs/specs/service-architecture-spec.md:** Phase 2 baseline, domain ownership model
+
+---
+
+## Files Modified/Created
+
+- `docs/specs/service-extraction-plan.md` (26.6 KB)
+- `docs/specs/event-contracts.md` (31.7 KB)
+- `.squad/agents/freamon/history.md` (appended learnings)
+
+---
+
+**Status:** Ready for review and team decision. No implementation started.  
+**Next:** Bunk, Daniels, Pearlman review → v0.6.0 implementation planning.
+
+
+---
+
+## freamon-project-board
+
+# Phase 2 Project Board & Epic Issues
+
+**Decision Maker:** Freamon (Lead)  
+**Status:** Implemented  
+**Date:** 2026-03-20  
+**Related Issues:** #77–#115
+
+## Decision
+
+Created GitHub Projects (v2) board for Phase 2 architecture work with 8 epic issues and 31 spec issues, establishing clear ownership and dependencies across the platform architecture roadmap.
+
+## Implementation
+
+### Project Board
+- **Project #3:** "E-CLAT Phase 2 — Platform Architecture"  
+- URL: https://github.com/users/ivegamsft/projects/3  
+- Format: Board (kanban columns for To Do, In Progress, Done)
+
+### Epic Issues (8 total)
+| Track | Epic Issue | Squad Lead |
+|-------|-----------|-----------|
+| A | #77 Epic: Test Coverage & Quality | Sydnor (tester) |
+| B | #78 Epic: Monitoring & Observability | Daniels (DevOps) |
+| C | #79 Epic: Identity & Multi-IdP | Bunk (backend) |
+| D | #80 Epic: Template Management | Freamon (arch) |
+| E | #81 Epic: Qualification & Compliance Engine | Pearlman (compliance) |
+| F | #82 Epic: Multi-Tenancy & Scaling | Freamon (arch) |
+| G | #83 Epic: Event-Driven & Real-Time | Daniels (DevOps) |
+| H | #84 Epic: Data Layer Abstraction | Freamon (arch) |
+
+### Spec Issues (31 total, by track)
+
+#### Track A — Test Coverage & Quality (#77)
+- #85 [Track A] Spec: Test coverage requirements → squad:freamon
+- #86 [Track A] API negative tests → squad:sydnor
+- #87 [Track A] Page tests for untested screens → squad:kima
+- #88 [Track A] Labels + dashboard negative tests → squad:bunk
+
+#### Track B — Monitoring & Observability (#78)
+- #89 [Track B] Spec: Monitoring & observability IaC → squad:daniels
+- #90 [Track B] Spec: API telemetry → squad:bunk
+- #91 [Track B] Spec: Frontend telemetry → squad:kima
+- #92 [Track B] Spec: Compliance audit events → squad:pearlman
+
+#### Track C — Identity & Multi-IdP (#79)
+- #93 [Track C] Spec: Identity architecture → squad:freamon
+- #94 [Track C] Spec: Identity API → squad:bunk
+- #95 [Track C] Spec: Identity IaC → squad:daniels
+- #96 [Track C] Spec: Identity compliance → squad:pearlman
+
+#### Track D — Template Management (#80)
+- #97 [Track D] Spec: Template management strategy → squad:freamon
+- #98 [Track D] Spec: Template management API → squad:bunk
+- #99 [Track D] Spec: Template management UX → squad:kima
+- #100 [Track D] Spec: Template governance → squad:pearlman
+
+#### Track E — Qualification & Compliance Engine (#81)
+- #101 [Track E] Spec: Qualification engine → squad:freamon
+- #102 [Track E] Spec: Qualification API → squad:bunk
+- #103 [Track E] Spec: Standards customization → squad:pearlman
+- #104 [Track E] Spec: Qualification test plan → squad:sydnor
+
+#### Track F — Multi-Tenancy & Scaling (#82)
+- #105 [Track F] Spec: Multi-tenant architecture → squad:freamon
+- #106 [Track F] Spec: Multi-tenant API → squad:bunk
+- #107 [Track F] Spec: Multi-tenant IaC → squad:daniels
+- #108 [Track F] Spec: Multi-tenant UX → squad:kima
+
+#### Track G — Event-Driven & Real-Time (#83)
+- #109 [Track G] Spec: Event-driven IaC → squad:daniels
+- #110 [Track G] Spec: Event-driven API → squad:bunk
+- #111 [Track G] Spec: Real-time UX → squad:kima
+- #112 [Track G] Spec: Nudge compliance → squad:pearlman
+
+#### Track H — Data Layer Abstraction (#84)
+- #113 [Track H] Spec: Data layer architecture → squad:freamon
+- #114 [Track H] Spec: Data layer API → squad:bunk
+- #115 [Track H] Spec: Data layer IaC → squad:daniels
+
+## Spec Issue Design Pattern
+
+Each spec issue includes:
+1. **Scope:** 2-3 sentence description of what the spec covers
+2. **Target:** Output file path (e.g., `docs/specs/filename.md`)
+3. **Locked Decisions:** Which of the 12 active decisions constrain this spec
+4. **Acceptance Criteria:** 3-5 testable outcomes
+5. **Dependencies:** Child issues or related specs
+
+## Rationale
+
+**Visibility:** Board makes 8 tracks visible at once; squad can see progress per track.
+
+**Decomposition:** Each track follows a consistent pattern:
+- Architecture/strategy spec (owned by Freamon or domain lead)
+- API/implementation spec (owned by Bunk, Daniels, Kima, or Pearlman per domain)
+- Compliance/testing spec (if needed)
+
+**Decision Locks:** Every spec issue references which active decisions (1–12) it must respect. Prevents future spec drift.
+
+**Ownership:** Squad assignments pre-assigned based on domain expertise (Bunk = backend, Kima = frontend, Daniels = DevOps, Pearlman = compliance, Sydnor = testing, Freamon = architecture).
+
+## Consequences
+
+**Positive:**
+- All Phase 2 work visible in one board
+- Clear ownership per track (epic lead + spec owners)
+- Dependencies documented (can track blockers)
+- Decisions locked in acceptance criteria (spec review enforces alignment)
+
+**Negative:**
+- 31 issues may feel large (mitigated by clear grouping)
+- Spec issues created before implementation (may shift during actual work)
+
+## Next Steps
+
+1. Squad reviews epic descriptions to confirm understanding
+2. Squad begins specification work (target: Specs ready by 2026-03-30)
+3. After spec approval, convert specs to implementation issues
+4. Use project board to track progress (move to In Progress, Done as specs complete)
+
+## Related Decisions
+
+- Decisions 1–12 (all active, locked in each spec issue)
+- Phase 2 Route Taxonomy (2026-03-16) — spec issues align with API versioning
+
+
+---
+
+## kima-analytics-dashboard
+
+# Decision: Manager Analytics Dashboard Component Architecture
+
+**Date:** 2026-03-19
+**Author:** Kima (Frontend Dev)
+**Issue:** #22
+**Status:** Implemented
+
+## Context
+
+Managers need a single-page analytics view showing team compliance status, template assignment progress, and expiring items. This required deciding between embedding analytics into the existing Dashboard or creating a separate page.
+
+## Decision
+
+Created a dedicated `/dashboard/manager` route with SUPERVISOR+ RBAC gating, separate from the role-adaptive home dashboard at `/`. This keeps the home dashboard lightweight (personal workspace) and gives managers a purpose-built analytics view with higher information density.
+
+## Reusable Components
+
+Introduced 4 new reusable dashboard components under `components/dashboard/`:
+- **StatCard** — Labeled value card with tone (healthy/warning/critical/neutral)
+- **ProgressBar** — Accessible progress bar with label, fraction, and ARIA attributes
+- **ComplianceStatusBadge** — Compliance status pill (compliant/at_risk/non_compliant)
+- **ExpiryWarningList** — 30/60/90-day bucketed expiry warning panel
+
+These are not dashboard-specific — they can be reused on any page that needs compliance visualization.
+
+## Data Fetching
+
+Uses `Promise.allSettled` across 4 endpoints with partial-failure UX. If some endpoints fail, available data is still shown with a notice. This is consistent with the existing DashboardPage pattern.
+
+## Impact
+
+- Layout nav gains "Analytics" link for supervisor+ roles
+- No breaking changes to existing pages or tests
+- All 145 web tests passing
+
+
+---
+
+## kima-enhancement-spikes-45-46
+
+# Decision: AI Document Extraction (#45) and Access Visibility/Escalation (#46) Design Spikes
+
+**Date:** 2026-03-20  
+**Owner:** Kima (Frontend Designer)  
+**Status:** Submitted for review (PR #75)  
+**Related Issues:** #45, #46  
+**Branch:** squad/45-46-enhancement-spikes  
+
+---
+
+## Summary
+
+Completed comprehensive design specifications for two cross-cutting enhancements with significant UI/UX implications:
+
+1. **Issue #45: AI-Assisted Document Extraction and Review** — End-to-end workflow for employees to upload documents, AI to extract structured fields with confidence scoring, inline human corrections, compliance officer review queue, and automatic Qualification record creation upon approval.
+
+2. **Issue #46: Access Visibility Boundaries and Notification Escalation** — Role-based data visibility (supervisor sees team, manager sees department, compliance officer sees all) combined with automatic notification escalation through organizational hierarchy when tasks remain unacknowledged past configurable timeouts.
+
+---
+
+## Design Approach
+
+### AI Document Extraction (#45)
+
+**UX Strategy: Confidence-Aware Progressive Disclosure**
+- Upload → Extraction (async with progress UI) → Review (confidence-based field editing) → Approval (compliance queue)
+- High-confidence fields (≥90%) shown as read-only with badges; low-confidence (<70%) shown as editable with AI suggestions
+- Inline editing pattern (click "Correct" → text input → save) keeps focus on document review without modal distraction
+- Audit trail timestamps every correction and actor (employee, supervisor, compliance officer)
+
+**Data Model: State Machine-Driven**
+- Document status: UPLOADED → PROCESSING → REVIEW_REQUIRED → APPROVED/REJECTED
+- DocumentProcessing tracks fine-grained steps: OCR → CLASSIFICATION → EXTRACTION → EXPIRATION_DETECTION
+- ExtractionResult stores immutable AI output + human corrections separately (extractedValue vs. correctedValue)
+- ReviewQueueItem bridges document + qualification linking with compliance officer decision
+
+**API Design: Polling + Async Callbacks**
+- Employees/supervisors poll `/api/documents/:id/extraction-status` every 2 seconds during extraction
+- Once complete, fetch `/api/documents/:id/extraction` to display confidence-scored fields
+- Corrections via `PUT /api/documents/:id/extraction/:fieldId/correct` persist immediately
+- Compliance officer browses `/api/admin/review-queue` and submits decisions with optional notes
+- On approval, backend auto-creates Qualification record with corrected field values
+
+**Key Design Decision: Why Polling?**
+- Avoids WebSocket infrastructure complexity; browser polls at 2s intervals (acceptable UX for extraction time of 5-10s)
+- Webhook alternative deferred to v0.6.0 if real-time becomes requirement
+- If extraction fails, fallback to manual field entry form
+
+### Access Visibility & Escalation (#46)
+
+**UX Strategy: Transparent Boundaries + Automatic Escalation**
+- Visibility boundary manifests as "Your team", "Your department", "All employees" copy + implicit 403s
+- Escalated notifications show hierarchy chain ("escalated from Compliance Officer → you as Manager")
+- Admin panel for escalation rules management (trigger, delay, target role, max escalations)
+- Audit log provides compliance-required record of all data access
+
+**Data Model: Hierarchy + Escalation Pipeline**
+- New EmployeeHierarchy table: supervisorId + departmentId relationships (immutable after hire)
+- Enhanced Notification model: escalatedAt, escalatedFrom, escalationPath (JSON array of role progression)
+- New AuditLog table: action, actor, target, details, timestamp (required for regulated industry)
+- EscalationRule: configurable triggers (e.g., "document_pending_review" after 48 hours)
+
+**API Design: Query-Layer Filtering**
+- Backend helper function `getVisibilityScope(user)` returns employee ID list based on role
+- All employee/qualification/document queries filtered: `WHERE employeeId IN (visibleEmployeeIds)`
+- Escalation service runs scheduled task every 15 minutes: find SENT notifications unacknowledged for N hours, create escalated SENT notification to next role
+- Original notification marked ESCALATED; new notification linked via escalatedFrom
+
+**Key Design Decision: Why Query Filtering vs. Row-Level Security?**
+- Simpler to reason about; explicit filters in route handlers over implicit RLS policies
+- Allows temporary visibility grant (e.g., director reviewing employee's folder) without schema changes
+- Audit-friendly: each query can log which scope was applied
+
+---
+
+## Component & Integration Strategy
+
+### Frontend Components
+
+**Issue #45 Components:**
+- DocumentUploadForm (reusable for My Documents + Team Documents)
+- ExtractionProgress (polling status, spinner, error fallback)
+- ExtractionFieldEditor (confidence badge, inline editor, suggestions)
+- ExtractionReviewPage (aggregates editors, shows audit trail, approve button)
+- ReviewQueuePage (compliance officer: filterable list, detail modal, decision form)
+
+**Issue #46 Components:**
+- VisibilityScopedEmployeeList (scope label + conditional rendering)
+- NotificationInbox (filters, escalation status, escalation chain display)
+- EscalationRulesManager (admin: CRUD rules, test/dry-run, active/inactive toggles)
+- AuditLogViewer (searchable, exportable CSV)
+
+### Integration Points
+
+**#45 ↔ Existing Modules:**
+- Documents → Qualifications: approval auto-creates Qualification record
+- Documents → Notifications: extraction completion + approval sent via existing notification service
+- Documents → Review Queue: ReviewQueueItem created on document submission (already integrated)
+
+**#46 ↔ Existing Modules:**
+- Notifications: escalation leverages existing notification model + new escalation fields
+- Documents: document review queue respects manager's department visibility
+- Qualifications/Medical/Hours: all team-level queries respect supervisor/manager boundaries
+
+---
+
+## Test Coverage Strategy
+
+### #45 Testing
+
+**Unit (Backend):**
+- `documentsService.upload()` validates file type/size
+- `documentsService.correctExtraction()` timestamps + attributes corrections
+- `documentsService.reviewDocument()` state transitions (REVIEW_REQUIRED → APPROVED/REJECTED)
+
+**Integration (Backend):**
+- Upload → extraction status poll (complete) → fetch extraction → correct field → approve → Qualification created
+- RBAC: EMPLOYEE can only correct own, SUPERVISOR can correct team's, MANAGER+ can approve
+
+**Frontend:**
+- DocumentUploadForm: drag-drop, file validation, bulk selection
+- ExtractionProgress: step indicators, error handling
+- ExtractionFieldEditor: inline edit, confidence-aware rendering
+- ReviewQueuePage: list, filter, detail modal, decision submission
+
+**E2E:**
+- Full upload → extraction → correction → approval workflow
+- Notification at each stage (completion, approval)
+
+### #46 Testing
+
+**Unit (Backend):**
+- `getVisibilityScope(SUPERVISOR)` returns direct reports
+- `getVisibilityScope(MANAGER)` returns department employees
+- Escalation logic: identify unacknowledged SENT → find rule → create escalated notification
+
+**Integration (Backend):**
+- SUPERVISOR queries /qualifications/team → returns only direct reports
+- EMPLOYEE queries /qualifications/team → 403 FORBIDDEN
+- MANAGER queries documents → returns only department (not other departments)
+- Escalation triggered after delay → new notification created, original marked ESCALATED
+
+**Frontend:**
+- VisibilityScopedEmployeeList disables selection if no access
+- NotificationInbox shows escalation chain
+- EscalationRulesManager CRUD works
+- AuditLogViewer pagination + filtering
+
+**E2E:**
+- Employee receives escalated notification after 48h delay
+- Manager can view all department documents in review queue
+- Compliance officer can view all employees globally
+
+---
+
+## Risk Assessment
+
+### #45 Risks
+
+| Risk | Probability | Mitigation |
+|------|-------------|-----------|
+| Azure Document Intelligence cost overruns | Medium | Batch API calls; implement cost estimation script before production |
+| Poor OCR accuracy on scanned/low-quality docs | Medium | Fallback to manual field entry; implement user feedback loop for model improvement |
+| Extraction timeout >30s causes UX frustration | Low | Show estimated time; offer background queue + email notification option |
+| Compliance officer overwhelmed by queue volume | Medium | Implement filtering/sorting; configurable notification batching |
+
+### #46 Risks
+
+| Risk | Probability | Mitigation |
+|------|-------------|-----------|
+| Escalation notifications overwhelm users | Medium | Batch escalations; implement snooze/delegation; test with realistic data volume |
+| Supervisor/manager out of office causes orphaned tasks | Medium | Out-of-office bypass flag; escalate directly to manager if supervisor away |
+| Historical data visibility after role changes | Low | Document policy: old records stay with original supervisor; new records visible to new supervisor |
+| Audit log storage grows unbounded | Low | Implement retention policy (e.g., 2-year retention for compliance); archive to cold storage |
+
+---
+
+## Decision Points
+
+### Approved Patterns
+
+1. **Confidence-aware rendering:** High (≥90%) = read-only badge; Medium (70-89%) = editable; Low (<70%) = editable + suggestion
+2. **Inline editing over modals:** Keeps focus on document, reduces context switching, matches existing my-section pattern
+3. **Query-layer visibility filtering:** Simpler than RLS; audit-friendly; allows temporary access grants
+4. **Polling for extraction status:** Acceptable UX for typical 5-10s extraction time; WebSocket deferred to future release
+5. **EmployeeHierarchy as separate table:** Future-proof for org restructuring; immutable after hire (soft deletes if needed)
+
+### Open Questions (for team discussion)
+
+1. **Azure OCR Feedback Loop:** Should we implement mechanism for users to flag incorrect extractions to improve model over time?
+2. **Bulk Corrections:** Can supervisor correct multiple fields at once, or field-by-field only?
+3. **Escalation Batching:** If 50 documents hit escalation at same time, should we batch-notify or send individually?
+4. **Delegation:** Can manager delegate review queue to another manager temporarily (e.g., during leave)?
+5. **Out-of-Office Integration:** Manual flag in app or integrated with calendar/Slack status?
+
+---
+
+## Success Criteria
+
+### #45 Success Metrics
+- Document extraction success rate ≥85% on first pass (automated)
+- Average compliance review time <4 hours/document
+- Audit trail 100% complete (no lost corrections)
+- User satisfaction >85% find extraction helpful
+- Compliance team reduction in manual data entry >60%
+
+### #46 Success Metrics
+- Critical compliance tasks never missed (escalation success rate >99%)
+- Average escalation time <24 hours from deadline
+- 0 unauthorized data access attempts (RBAC enforcement verified)
+- Audit trail 100% complete for compliance reporting
+- User satisfaction >80% with escalation system
+
+---
+
+## Next Steps (Implementation Planning)
+
+### Phase 1 (v0.6.0): AI Document Extraction
+1. **Bunk:** Implement documents service + Azure integration; review queue endpoints
+2. **Kima:** Build DocumentUploadForm, ExtractionProgress, ExtractionFieldEditor components
+3. **Sydnor:** Write integration tests; E2E workflow tests
+4. **Pearlman:** Review audit trail implementation; compliance sign-off
+
+### Phase 2 (v0.6.0): Access Visibility & Escalation
+1. **Bunk:** Implement EmployeeHierarchy queries; escalation service; visibility scoping
+2. **Kima:** Build VisibilityScopedEmployeeList, NotificationInbox enhancements, EscalationRulesManager
+3. **Sydnor:** RBAC enforcement tests; escalation timing tests
+4. **Pearlman:** Audit log design review; compliance reporting verification
+
+### Phase 3 (v0.7.0): Integration & Hardening
+- Full end-to-end testing: upload → extraction → qualification linking with visibility boundaries
+- Performance testing: escalation service at scale (100+ pending escalations)
+- Compliance audit: full traceability of corrections + approvals + access logs
+
+---
+
+## Dependencies & Blockers
+
+**No blockers identified.** Both designs use existing data models + new tables; no breaking changes to current API.
+
+**Dependencies:**
+- #45 depends on Document + ExtractionResult models (already in schema)
+- #46 depends on EmployeeHierarchy + AuditLog models (need migration)
+- Both depend on Notification model enhancements (escalation fields)
+
+---
+
+## Files Created
+
+- `docs/specs/ai-document-extraction.md` (30.2 KB, 800+ lines)
+- `docs/specs/access-visibility-escalation.md` (32.8 KB, 850+ lines)
+
+Each spec includes: UI wireframes, API designs, data models, state machines, component architecture, RBAC matrices, testing strategies, success metrics, open questions.
+
+---
+
+## Author Notes
+
+Both specs take a **UX-first approach** with strong emphasis on user workflows and mental models:
+
+- **#45** focuses on **progressive disclosure** (upload → wait → review → approve) with **confidence-aware rendering** to guide users toward corrections that matter most
+- **#46** focuses on **transparency** (clear "you see X employees") and **automatic escalation** to prevent critical tasks from slipping through cracks
+
+The designs balance **simplicity** (polling instead of WebSocket; query filtering instead of RLS) with **auditability** (every correction timestamped + attributed; every data access logged). This is deliberate for regulated industry context.
+
+Both are ready for backend implementation; some aspects may refine during development based on performance testing + user feedback.
+
+
+
+---
+
+## pearlman-compliance-spikes
+
+# Decision: Compliance Design Spikes — Issuer Verification & Evidence Packages
+
+**Date:** 2026-03-20  
+**Author:** Pearlman (Compliance Specialist)  
+**Status:** Proposed  
+**Issues:** #32, #33  
+**Branch:** `squad/32-33-compliance-design-spikes`
+
+---
+
+## Context
+
+Two P1 compliance issues require design work before implementation can begin:
+
+1. **#32 — Issuer Verification Framework (L3 Attestation):** The current L3 attestation has no systemic validation of third-party claims. Without an issuer registry and verification lifecycle, L3's 0.85 trust weight is unearned.
+
+2. **#33 — Evidence Package Sharing Model:** The sharing spec allows raw vault content via share links, contradicting the vault's zero-knowledge guarantees. Evidence packages provide controlled, auditable external disclosure.
+
+## Decisions
+
+### 1. Issuer Trust Tier System
+
+Four trust tiers (T1 authoritative → T4 manual) multiply against the base L3 attestation weight to produce differentiated readiness impact. This prevents a phone call from carrying the same weight as an official registry lookup.
+
+- T1 (authoritative) assignment requires ADMIN role
+- Clearance and license proof types require minimum T2 trust tier
+- All tier changes produce audit entries
+
+### 2. Evidence Packages Replace Raw Vault Share Links
+
+External disclosure of compliance evidence MUST use evidence packages, not raw vault share links. Packages are:
+
+- Curated (specific items selected and optionally redacted)
+- Versioned (immutable after seal; revisions create new versions)
+- Approval-gated (sensitivity determines required approver role)
+- Time-limited (mandatory expiration, max 90 days)
+- Audited (every creation, access, and revocation logged)
+
+### 3. Separation of Duties
+
+Both designs enforce separation of duties:
+- Verification: employee cannot resolve their own manual escalation
+- Packages: creator cannot approve their own package
+- External sharing: only CO+ can generate external access links
+
+### 4. Phased Implementation
+
+Both features follow a foundation-first approach:
+- Phase 1: Schema + CRUD + manual workflows
+- Phase 2: Sealing, checksums, retry logic
+- Phase 3: Real integrations and external access
+- Phase 4: Advanced features (batch, analytics, digital signatures)
+
+## Impact
+
+- **Bunk:** New Prisma models and API endpoints to implement (~36 total endpoints across both features)
+- **Kima:** Package builder UI and issuer management screens (future sprints)
+- **Sydnor:** Test plans for verification scenarios and package lifecycle
+- **Daniels:** Key Vault integration for issuer credentials and package encryption keys
+
+## Spec Documents
+
+- `docs/specs/issuer-verification-framework.md` — Full design for #32
+- `docs/specs/evidence-package-sharing.md` — Full design for #33
+
+
+---
+
+## sydnor-test-coverage
+
+# Decision: Integration Test Strategy for Real Router Coverage
+
+**Author:** Sydnor (Tester)
+**Date:** 2026-03-16
+**Status:** Proposed
+**PR:** #62
+
+## Context
+
+Existing tests used two patterns: test-harness (in-memory Maps with custom routes) and service-spy (`vi.spyOn` on real service exports). The test-harness misses real Zod validators, middleware wiring, and error handling.
+
+## Decision
+
+Adopt the service-spy pattern as the standard for integration tests. Each module gets a `{module}-integration.test.ts` file that tests through the real Express router with mocked service methods.
+
+### Why
+- Tests real Zod validation
+- Tests real RBAC middleware wiring
+- Tests real error handler
+- Complements test-harness pattern for complex workflow logic
+
+### Coverage priority
+1. RBAC boundaries (every role tier for every endpoint)
+2. Zod validation edge cases (empty, invalid, boundary values)
+3. Error handling (404, 400, 403, 409)
+4. Happy path through real middleware
+
+
+
+
