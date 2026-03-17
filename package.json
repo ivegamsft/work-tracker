@@ -11,10 +11,10 @@
   "scripts": {
     "dev": "npm run dev -w @e-clat/api",
     "build": "npm run build -w @e-clat/shared && npm run build -w @e-clat/api && npm run build -w @e-clat/web",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:smoke": "vitest run --config vitest.smoke.config.ts",
+    "test": "vitest run --config tests/vitest.config.ts",
+    "test:watch": "vitest --config tests/vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config tests/vitest.config.ts",
+    "test:smoke": "vitest run --config tests/vitest.smoke.config.ts",
     "typecheck": "npm run typecheck -w @e-clat/shared && npm run typecheck -w @e-clat/api && npm run typecheck -w @e-clat/web",
     "lint": "npm run lint --workspaces --if-present"
   },

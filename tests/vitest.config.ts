@@ -2,8 +2,8 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 
-const rootDir = fileURLToPath(new URL(".", import.meta.url));
-const fromRoot = (...segments: string[]) => resolve(rootDir, ...segments);
+const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+const fromRoot = (...segments: string[]) => resolve(repoRoot, ...segments);
 
 export default defineConfig({
   resolve: {
