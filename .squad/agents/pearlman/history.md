@@ -92,3 +92,32 @@ This affects all squad planning and copilot context:
 - Branch naming standard documented: \copilot/{issue-number}-{slug}\ (cannot enforce server-side on private repo due to GitHub plan limit)
 
 Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squad/decisions/inbox/daniels-branch-rulesets.md\`n
+
+## 📌 Design Spike (2026-03-20) — Issuer Verification Framework & Evidence Package Sharing
+
+Completed design spikes for two P1 compliance issues:
+
+**Issue #32 — Issuer Verification Framework (L3 Attestation):**
+- Designed issuer registry with 6 categories and 4 trust tiers (authoritative T1 → manual T4)
+- Trust tiers multiply against base L3 weight (0.85) for differentiated readiness scoring
+- Verification request lifecycle with retry, escalation, and manual resolution paths
+- Canonical verification response normalizes all issuer outputs; subject match confidence scoring
+- Key guardrail: clearance/license proof types require minimum T2 trust tier
+- Prisma models: `IssuerRegistry`, `VerificationRequest` with 6 new enums
+
+**Issue #33 — Evidence Package Sharing Model:**
+- Evidence packages replace raw vault share links for external disclosure
+- Package lifecycle: DRAFT → PENDING_APPROVAL → APPROVED → SHARED → EXPIRED
+- Approval gates by content sensitivity; separation of duties enforced
+- Sealing: fulfillment snapshots, document re-encryption, SHA-256 manifest checksums
+- External access via time-limited tokens; only CO+ can generate links
+- Redaction support at field level with audit documentation
+- Prisma models: `EvidencePackage`, `PackageItem`, `PackageAccessLink`, `PackageAccessLog`
+
+**Key Learnings:**
+- Sharing-spec §2.4 has architectural tension between raw vault links and zero-knowledge guarantees — evidence packages resolve this
+- Issuer trust tiers interact with attestation floors per proof type
+- Both designs require careful notification system integration
+
+Decision file: `.squad/decisions/inbox/pearlman-compliance-spikes.md`
+Spec files: `docs/specs/issuer-verification-framework.md`, `docs/specs/evidence-package-sharing.md`
