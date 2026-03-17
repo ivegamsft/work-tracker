@@ -93,6 +93,7 @@
 - 2026-03-16: My section pages deliver self-service UI with API response shape normalization in-component. All pages consume `AuthContext.user.id` for personalized queries. Graceful degradation for pending 404/501 endpoints ("Coming Soon" UX).
 - 2026-03-16: Team supervision pages reuse My-section visual system plus PageShell tabs/breadcrumbs, keep employee fetch + record fetch separate for resilient loading/error states, and use inline forms for qualification/medical/document actions instead of introducing a modal pattern.
 - 2026-03-18: ReviewQueue enriches minimal queue payload with document + employee lookups and derives a display-only priority until the backend exposes one. Inline management forms for team supervision pages (card-based vs modal system) keep behavior consistent with My section, reduce implementation risk, and stay responsive.
+- 2026-03-19: Built ManagerDashboardPage at /dashboard/manager (SUPERVISOR+) with 4 reusable dashboard components (StatCard, ProgressBar, ComplianceStatusBadge, ExpiryWarningList). Uses Promise.allSettled for resilient multi-endpoint fetching (/employees, /assignments/team, /qualifications, /medical) with partial-failure UX. ExpiryWarningList buckets items into 30/60/90-day urgency tiers. All 145 web tests passing including 12 new page tests and 27 new component tests.
 
 ## 📌 Team Update (2026-03-16T073200Z — Freamon's Backlog Decomposition)
 
