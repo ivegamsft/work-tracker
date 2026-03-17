@@ -17,6 +17,8 @@
 
 **Phase 2 (2026-03-16):** Route taxonomy migrated from `/employees` to `/team` per app spec. Legacy `/employees/*` routes 301-redirect. My section pages (6 components) deliver self-service UI with API normalization pattern. Build: 179/179 tests passing.
 
+**Foundation Sprint (2026-03-17T04:47:00Z):** Observability foundation + multi-IdP identity module. OpenTelemetry SDK, correlation ID middleware, structured logging, health endpoints (/health, /ready, /detailed-health). TokenValidator strategy pattern with JWKS caching/stale fallback. ClaimsNormalizer presets for Entra/Okta/Auth0. 62 tests passing (20 observability + 42 identity). Commits: `fcdc608` (observability), `6649ec3` (identity).
+
 ### Critical Implementation Patterns
 
 **Database & Prisma:**

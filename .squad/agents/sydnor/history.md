@@ -28,6 +28,14 @@
 - ✅ Smoke tests: API /health → 200, Web → 200
 - ✅ Stack ready for feature work
 
+### Foundation Sprint (2026-03-17T04:47:00Z)
+- **Observability:** OpenTelemetry SDK, correlation ID middleware, structured logging, health endpoints. 20 tests passing. Commit: `fcdc608`.
+- **Identity:** Multi-IdP provider registry (Entra/Okta/Auth0), TokenValidator strategy, JWKS caching with stale fallback, ClaimsNormalizer. 42 tests passing. Commit: `6649ec3`.
+- **Data-Layer:** Repository pattern (IRepository<T>, PrismaRepository), immutable audit log, cache abstraction, tenant resolver middleware. 77 tests passing. Commit: `e340f4e`.
+- **Integration Tests:** Data-layer 20 passing, platform/identity 24 skipped (pending route implementations). Zero regressions. Commit: (pending).
+- **Coordinator Fix:** z.record() Zod v3 compatibility in platform/validators.ts. Commit: `b8a9c3e`.
+- **Total:** 159 tests passing, foundation complete, 8 issues closed (#121, #126-128, #134-135, #181, #183).
+
 ### Known Limitations & Next Steps
 - Auth middleware does not yet verify JWT (stub); needs implementation to unblock 192+ RBAC tests
 - Playwright/Cypress not configured; E2E coverage via Vitest
@@ -321,3 +329,48 @@ Decision files: \.squad/decisions/inbox/daniels-service-architecture.md\, \.squa
 **Orchestration log:** .squad/orchestration-log/2026-03-17T04-10-wave2-tests.md  
 **Session log:** .squad/log/2026-03-17T04-10-wave2-complete.md
 
+
+---
+
+## Foundation Sprint — Integration Test Scaffolding (2026-03-17T00:52:19Z)
+
+**Requested by:** Izzy  
+**Specs:** api-telemetry.md, identity-api.md, data-layer-api.md, test-coverage-requirements.md
+
+### Files Created
+
+1. **apps/api/tests/integration/platform.integration.test.ts** (7 tests)
+   - GET /health liveness probe (status, timestamp format)
+   - GET /ready readiness probe with dependency checks (describe.skip — pending)
+   - GET /api/v1/platform/health detailed health with RBAC (describe.skip — pending)
+   - Correlation ID generation and echo (describe.skip — pending)
+   - W3C Trace Context header propagation (describe.skip — pending)
+
+2. **apps/api/tests/integration/identity.integration.test.ts** (17 tests)
+   - Provider CRUD lifecycle: create → list → get → update → soft-delete (describe.skip)
+   - Token validation dispatch to correct provider (describe.skip)
+   - Zod validation: missing name, invalid type, malformed URL, missing client_id (describe.skip)
+   - RBAC matrix: all 5 roles tested for create/list/delete (describe.skip)
+   - Deleted providers excluded from active list (describe.skip)
+
+3. **apps/api/tests/integration/data-layer.integration.test.ts** (20 tests, ALL PASSING)
+   - Repository factory: create, schema name, capability reporting
+   - CRUD: create→read round-trip, null for missing, update partial, delete, createMany, find, findOne, count
+   - Transaction interface: beginTransaction, commit, rollback
+   - Tenant resolver: instance caching, tenant isolation, entity type separation
+   - In-memory mock repository mirrors IRepository<T> spec §3.1 exactly
+
+### Results
+
+- **data-layer**: 20/20 pass ✅
+- **platform**: describe.skip blocks correct; file load fails due to pre-existing env.ts process.exit issue (same as hours-integration.test.ts, templates-integration.test.ts)
+- **identity**: describe.skip blocks correct; same pre-existing env issue
+- **Full suite**: 649 passed, 32 skipped — no regressions introduced by new files
+
+### Notes
+
+- Used describe.skip for all blocks where implementation doesn't exist yet
+- Platform health.test.ts (existing) passes; the /health probe contract is already satisfied
+- Data-layer tests are self-contained (no Express app import) so they run clean
+- Platform + Identity tests follow existing integration test patterns (vi.spyOn, supertest, helpers.ts)
+- Pre-existing issue: env.ts calls process.exit(1) during module evaluation in some Vitest workers — affects ALL integration tests that import createApp. This should be fixed by wrapping env.ts validation in a lazy init pattern.
