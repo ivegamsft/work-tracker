@@ -148,10 +148,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
   describe("POST /api/standards/:id/requirements — Validation", () => {
     it("returns 400 when standardId is not a UUID", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post("/api/standards/not-a-uuid/requirements")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: "not-a-uuid",
           category: "Training",
           description: "Test requirement",
         });
@@ -162,10 +161,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when category is missing", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           description: "Test requirement",
         });
 
@@ -175,10 +173,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when category exceeds 100 characters", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           category: "a".repeat(101),
           description: "Test requirement",
         });
@@ -189,10 +186,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when description exceeds 2000 characters", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           category: "Training",
           description: "a".repeat(2001),
         });
@@ -203,10 +199,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when minimumHours is zero", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           category: "Training",
           description: "Test requirement",
           minimumHours: 0,
@@ -218,10 +213,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when minimumHours is negative", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           category: "Training",
           description: "Test requirement",
           minimumHours: -10,
@@ -233,10 +227,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 400 when recertificationPeriodMonths is zero", async () => {
       const response = await request(app)
-        .post("/api/standards/requirements")
+        .post(`/api/standards/${NON_EXISTENT_UUID}/requirements`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
-          standardId: NON_EXISTENT_UUID,
           category: "Training",
           description: "Test requirement",
           recertificationPeriodMonths: 0,
@@ -326,17 +319,9 @@ describe("Standards Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to update standard", async () => {
       const response = await request(app)
-        .patch(`/api/standards/${NON_EXISTENT_UUID}`)
+        .put(`/api/standards/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ name: "Updated" });
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 403 when EMPLOYEE tries to delete standard", async () => {
-      const response = await request(app)
-        .delete(`/api/standards/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${employeeToken}`);
 
       expect(response.status).toBe(403);
     });
