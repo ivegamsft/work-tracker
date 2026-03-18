@@ -39,11 +39,18 @@ function parseEnv(source: NodeJS.ProcessEnv) {
   return result.data;
 }
 
-let envState: Env | undefined = process.env.KEY_VAULT_URI ? undefined : parseEnv(process.env);
+// Env state is lazily initialized — never parsed at module evaluation time.
+// This lets test setup files set env vars before validation runs.
+let envState: Env | undefined;
 let envPromise: Promise<Env> | undefined;
 
 export async function loadEnv() {
   if (envState) {
+    return envState;
+  }
+
+  if (!process.env.KEY_VAULT_URI) {
+    envState = parseEnv(process.env);
     return envState;
   }
 
@@ -68,7 +75,10 @@ export async function loadEnv() {
 export const env = new Proxy({} as Env, {
   get(_target, property) {
     if (!envState) {
-      throw new Error("Environment not initialized. Call loadEnv() before accessing env when KEY_VAULT_URI is set.");
+      if (process.env.KEY_VAULT_URI) {
+        throw new Error("Environment not initialized. Call loadEnv() before accessing env when KEY_VAULT_URI is set.");
+      }
+      envState = parseEnv(process.env);
     }
 
     return envState[property as keyof Env];
