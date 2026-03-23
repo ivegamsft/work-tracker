@@ -6,7 +6,7 @@ type GlobalPrisma = typeof globalThis & {
 };
 
 function createPrismaClient() {
-  const prisma = new PrismaClient({
+  const client = new PrismaClient({
     log:
       process.env.NODE_ENV === "development"
         ? [
@@ -18,7 +18,7 @@ function createPrismaClient() {
   });
 
   if (process.env.NODE_ENV === "development") {
-    prisma.$on("query", (event: Prisma.QueryEvent) => {
+    client.$on("query", (event: Prisma.QueryEvent) => {
       logger.debug("Prisma query", {
         durationMs: event.duration,
         query: event.query,
@@ -27,20 +27,40 @@ function createPrismaClient() {
     });
   }
 
-  return prisma;
+  return client;
 }
 
-const globalForPrisma = globalThis as GlobalPrisma;
+// Lazy singleton — PrismaClient is NOT created until first use
+let _client: PrismaClient | undefined;
 
-export const prisma = globalForPrisma.__eClatPrisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.__eClatPrisma = prisma;
+export function getPrismaClient(): PrismaClient {
+  if (!_client) {
+    const g = globalThis as GlobalPrisma;
+    _client = g.__eClatPrisma ?? createPrismaClient();
+    if (process.env.NODE_ENV !== "production") {
+      g.__eClatPrisma = _client;
+    }
+  }
+  return _client;
 }
+
+/**
+ * Lazy proxy over PrismaClient. All property access is deferred until first
+ * use, so the real client is only created after env vars (DATABASE_URL, etc.)
+ * have been set — critical for test setup ordering.
+ */
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, prop);
+    return typeof value === "function" ? (value as Function).bind(client) : value;
+  },
+});
 
 export async function disconnectDatabase(context = "shutdown") {
+  if (!_client) return;
   try {
-    await prisma.$disconnect();
+    await _client.$disconnect();
     logger.info(`Prisma client disconnected (${context})`);
   } catch (error) {
     const disconnectError = error instanceof Error ? error : new Error(String(error));
@@ -51,4 +71,11 @@ export async function disconnectDatabase(context = "shutdown") {
     });
     throw disconnectError;
   }
+}
+
+/** Reset the singleton — for tests only. */
+export function _resetPrismaClient() {
+  _client = undefined;
+  const g = globalThis as GlobalPrisma;
+  delete g.__eClatPrisma;
 }

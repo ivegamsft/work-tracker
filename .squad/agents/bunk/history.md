@@ -375,4 +375,6 @@ Decision file: N/A (straightforward test addition, no architectural decisions)
 
 **Test Results:** 42/42 identity tests passing. No regressions — 785 passing total, pre-existing failures unchanged.
 
+- 2026-07-18: Issue #220 — Lazy Prisma client initialization. Refactored `apps/api/src/config/database.ts` to use a Proxy-based lazy singleton: PrismaClient is NOT instantiated at module evaluation time, only on first property access. Also made `apps/api/src/config/env.ts` fully lazy — env validation no longer runs at import time, deferred to first `env.X` access or `loadEnv()` call. Both changes fix test setup ordering: `setup.ts` env vars are now guaranteed to be set before any Prisma or env initialization. Added `getPrismaClient()` for direct access and `_resetPrismaClient()` for test isolation. Proxy pattern preserves the `prisma` export name — zero consumer changes needed. Branch: squad/220-prisma-lazy-init.
+
 
