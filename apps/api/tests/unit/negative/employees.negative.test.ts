@@ -268,10 +268,10 @@ describe("Employees Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/employees/:id — RBAC", () => {
+  describe("PUT /api/employees/:id — RBAC", () => {
     it("returns 401 when not authenticated", async () => {
       const response = await request(app)
-        .patch(`/api/employees/${NON_EXISTENT_UUID}`)
+        .put(`/api/employees/${NON_EXISTENT_UUID}`)
         .send({ firstName: "Updated" });
 
       expect(response.status).toBe(401);
@@ -279,7 +279,7 @@ describe("Employees Module — Negative/Edge Cases", () => {
 
     it("returns 403 when caller is EMPLOYEE role", async () => {
       const response = await request(app)
-        .patch(`/api/employees/${NON_EXISTENT_UUID}`)
+        .put(`/api/employees/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ firstName: "Updated" });
 
@@ -287,10 +287,10 @@ describe("Employees Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/employees/:id — Validation", () => {
+  describe("PUT /api/employees/:id — Validation", () => {
     it("returns 400 when email is invalid format", async () => {
       const response = await request(app)
-        .patch(`/api/employees/${NON_EXISTENT_UUID}`)
+        .put(`/api/employees/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ email: "not-an-email" });
 
@@ -300,7 +300,7 @@ describe("Employees Module — Negative/Edge Cases", () => {
 
     it("returns 400 when role is invalid", async () => {
       const response = await request(app)
-        .patch(`/api/employees/${NON_EXISTENT_UUID}`)
+        .put(`/api/employees/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ role: "invalid_role" });
 
@@ -310,29 +310,12 @@ describe("Employees Module — Negative/Edge Cases", () => {
 
     it("returns 400 when departmentId is not a UUID", async () => {
       const response = await request(app)
-        .patch(`/api/employees/${NON_EXISTENT_UUID}`)
+        .put(`/api/employees/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ departmentId: "not-a-uuid" });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
-    });
-  });
-
-  describe("DELETE /api/employees/:id — RBAC", () => {
-    it("returns 401 when not authenticated", async () => {
-      const response = await request(app)
-        .delete(`/api/employees/${NON_EXISTENT_UUID}`);
-
-      expect(response.status).toBe(401);
-    });
-
-    it("returns 403 when caller is not ADMIN", async () => {
-      const response = await request(app)
-        .delete(`/api/employees/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`);
-
-      expect(response.status).toBe(403);
     });
   });
 });

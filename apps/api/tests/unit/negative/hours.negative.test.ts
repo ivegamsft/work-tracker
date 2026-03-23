@@ -9,11 +9,13 @@ const NON_EXISTENT_UUID = "00000000-0000-0000-0000-000000000000";
 describe("Hours Module — Negative/Edge Cases", () => {
   let app: Express;
   let supervisorToken: string;
+  let managerToken: string;
   let employeeToken: string;
 
   beforeAll(() => {
     app = createTestApp();
     supervisorToken = generateTestToken(Roles.SUPERVISOR);
+    managerToken = generateTestToken(Roles.MANAGER);
     employeeToken = generateTestToken(Roles.EMPLOYEE);
   });
 
@@ -212,10 +214,10 @@ describe("Hours Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/hours/payroll-import — Validation", () => {
+  describe("POST /api/hours/import/payroll — Validation", () => {
     it("returns 400 when records array is empty", async () => {
       const response = await request(app)
-        .post("/api/hours/payroll-import")
+        .post("/api/hours/import/payroll")
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({
           records: [],
@@ -228,7 +230,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
 
     it("returns 400 when sourceSystemId is missing", async () => {
       const response = await request(app)
-        .post("/api/hours/payroll-import")
+        .post("/api/hours/import/payroll")
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({
           records: [{
@@ -244,11 +246,11 @@ describe("Hours Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/hours/:id — Validation", () => {
+  describe("PUT /api/hours/:id — Validation", () => {
     it("returns 400 when reason is missing", async () => {
       const response = await request(app)
-        .patch(`/api/hours/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .put(`/api/hours/${NON_EXISTENT_UUID}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           hours: 7,
         });
@@ -259,8 +261,8 @@ describe("Hours Module — Negative/Edge Cases", () => {
 
     it("returns 400 when reason is empty string", async () => {
       const response = await request(app)
-        .patch(`/api/hours/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .put(`/api/hours/${NON_EXISTENT_UUID}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           hours: 7,
           reason: "",
@@ -272,8 +274,8 @@ describe("Hours Module — Negative/Edge Cases", () => {
 
     it("returns 400 when hours exceeds 24", async () => {
       const response = await request(app)
-        .patch(`/api/hours/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .put(`/api/hours/${NON_EXISTENT_UUID}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           hours: 25,
           reason: "Correction needed",
@@ -288,7 +290,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
     it("returns 400 when reason is missing", async () => {
       const response = await request(app)
         .delete(`/api/hours/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({});
 
       expect(response.status).toBe(400);
@@ -298,7 +300,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
     it("returns 400 when reason is empty string", async () => {
       const response = await request(app)
         .delete(`/api/hours/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({ reason: "" });
 
       expect(response.status).toBe(400);
@@ -306,10 +308,10 @@ describe("Hours Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("GET /api/hours — Query Validation", () => {
+  describe("GET /api/hours/employee/:id — Query Validation", () => {
     it("returns 400 when page is 0", async () => {
       const response = await request(app)
-        .get("/api/hours")
+        .get(`/api/hours/employee/${NON_EXISTENT_UUID}`)
         .query({ page: 0 })
         .set("Authorization", `Bearer ${supervisorToken}`);
 
@@ -319,7 +321,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
 
     it("returns 400 when limit exceeds 100", async () => {
       const response = await request(app)
-        .get("/api/hours")
+        .get(`/api/hours/employee/${NON_EXISTENT_UUID}`)
         .query({ limit: 101 })
         .set("Authorization", `Bearer ${supervisorToken}`);
 
@@ -329,7 +331,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
 
     it("returns 400 when source is invalid", async () => {
       const response = await request(app)
-        .get("/api/hours")
+        .get(`/api/hours/employee/${NON_EXISTENT_UUID}`)
         .query({ source: "invalid_source" })
         .set("Authorization", `Bearer ${supervisorToken}`);
 
@@ -352,7 +354,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
     it("returns 400 when resolutionMethod is invalid", async () => {
       const response = await request(app)
         .post(`/api/hours/conflicts/${NON_EXISTENT_UUID}/resolve`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           resolutionMethod: "invalid_method",
           attestation: "I attest",
@@ -366,7 +368,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
     it("returns 400 when attestation is missing", async () => {
       const response = await request(app)
         .post(`/api/hours/conflicts/${NON_EXISTENT_UUID}/resolve`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           resolutionMethod: "override",
           reason: "Business need",
@@ -379,7 +381,7 @@ describe("Hours Module — Negative/Edge Cases", () => {
     it("returns 400 when reason is missing", async () => {
       const response = await request(app)
         .post(`/api/hours/conflicts/${NON_EXISTENT_UUID}/resolve`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${managerToken}`)
         .send({
           resolutionMethod: "override",
           attestation: "I attest",
@@ -406,9 +408,9 @@ describe("Hours Module — Negative/Edge Cases", () => {
       expect(response.status).toBe(401);
     });
 
-    it("returns 403 when EMPLOYEE tries to access POST /api/hours/payroll-import", async () => {
+    it("returns 403 when EMPLOYEE tries to access POST /api/hours/import/payroll", async () => {
       const response = await request(app)
-        .post("/api/hours/payroll-import")
+        .post("/api/hours/import/payroll")
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({
           records: [{

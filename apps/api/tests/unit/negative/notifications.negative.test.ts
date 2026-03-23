@@ -165,10 +165,10 @@ describe("Notifications Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/notifications/escalation-rules — Validation", () => {
+  describe("POST /api/notifications/admin/escalation-rules — Validation", () => {
     it("returns 400 when trigger is missing", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           delayHours: 24,
@@ -181,7 +181,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when trigger is invalid", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "invalid_trigger",
@@ -195,7 +195,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when delayHours is missing", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "overdue_requirement",
@@ -208,7 +208,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when delayHours is zero", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "overdue_requirement",
@@ -222,7 +222,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when delayHours is negative", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "overdue_requirement",
@@ -236,7 +236,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when escalateToRole is missing", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "overdue_requirement",
@@ -249,7 +249,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when maxEscalations exceeds 5", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           trigger: "overdue_requirement",
@@ -298,7 +298,7 @@ describe("Notifications Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to create escalation rule", async () => {
       const response = await request(app)
-        .post("/api/notifications/escalation-rules")
+        .post("/api/notifications/admin/escalation-rules")
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({
           trigger: "overdue_requirement",

@@ -19,10 +19,10 @@ describe("Labels Module — Negative/Edge Cases", () => {
     employeeToken = generateTestToken(Roles.EMPLOYEE);
   });
 
-  describe("POST /api/labels — Validation", () => {
+  describe("POST /api/labels/admin — Validation", () => {
     it("returns 400 when code is missing", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           name: "Test Label",
@@ -35,7 +35,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when code is empty string", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "",
@@ -49,7 +49,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when code is not uppercase alphanumeric", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "test-label",
@@ -63,7 +63,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when code contains spaces", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST LABEL",
@@ -77,7 +77,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when code exceeds 50 characters", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "A".repeat(51),
@@ -91,7 +91,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when name is missing", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -104,7 +104,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when name is empty string", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -118,7 +118,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when name exceeds 100 characters", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -132,7 +132,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when description exceeds 500 characters", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -147,7 +147,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when effectiveDate is missing", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -160,7 +160,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when effectiveDate is invalid", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           code: "TEST_LABEL",
@@ -173,10 +173,10 @@ describe("Labels Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/labels/:id/deprecate — Validation", () => {
+  describe("POST /api/labels/admin/:id/deprecate — Validation", () => {
     it("returns 400 when retirementDate is missing", async () => {
       const response = await request(app)
-        .post(`/api/labels/${NON_EXISTENT_UUID}/deprecate`)
+        .post(`/api/labels/admin/${NON_EXISTENT_UUID}/deprecate`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({});
 
@@ -186,7 +186,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 400 when retirementDate is invalid", async () => {
       const response = await request(app)
-        .post(`/api/labels/${NON_EXISTENT_UUID}/deprecate`)
+        .post(`/api/labels/admin/${NON_EXISTENT_UUID}/deprecate`)
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ retirementDate: "not-a-date" });
 
@@ -302,9 +302,9 @@ describe("Labels Module — Negative/Edge Cases", () => {
   });
 
   describe("RBAC Tests", () => {
-    it("returns 401 when not authenticated on POST /api/labels", async () => {
+    it("returns 401 when not authenticated on POST /api/labels/admin", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .send({
           code: "TEST_LABEL",
           name: "Test Label",
@@ -316,7 +316,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to create label", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({
           code: "TEST_LABEL",
@@ -329,7 +329,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 403 when SUPERVISOR tries to create label", async () => {
       const response = await request(app)
-        .post("/api/labels")
+        .post("/api/labels/admin")
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({
           code: "TEST_LABEL",
@@ -342,7 +342,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to update label", async () => {
       const response = await request(app)
-        .patch(`/api/labels/${NON_EXISTENT_UUID}`)
+        .put(`/api/labels/admin/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ name: "Updated" });
 
@@ -351,7 +351,7 @@ describe("Labels Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to deprecate label", async () => {
       const response = await request(app)
-        .post(`/api/labels/${NON_EXISTENT_UUID}/deprecate`)
+        .post(`/api/labels/admin/${NON_EXISTENT_UUID}/deprecate`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ retirementDate: "2027-01-01" });
 

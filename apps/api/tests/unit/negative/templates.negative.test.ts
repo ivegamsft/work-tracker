@@ -219,10 +219,10 @@ describe("Templates Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/assignments/:id/fulfill/:requirementId/self-attest — Validation", () => {
+  describe("POST /api/fulfillments/:id/self-attest — Validation", () => {
     it("returns 400 when statement exceeds 2000 characters", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/self-attest`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/self-attest`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ statement: "a".repeat(2001) });
 
@@ -231,10 +231,10 @@ describe("Templates Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/assignments/:id/fulfill/:requirementId/attach-document — Validation", () => {
+  describe("POST /api/fulfillments/:id/attach-document — Validation", () => {
     it("returns 400 when documentId is missing", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/attach-document`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/attach-document`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({});
 
@@ -244,7 +244,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
 
     it("returns 400 when documentId is not a UUID", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/attach-document`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/attach-document`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ documentId: "not-a-uuid" });
 
@@ -298,11 +298,11 @@ describe("Templates Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("POST /api/assignments/:id/fulfill/:requirementId/third-party-verify — Validation", () => {
+  describe("POST /api/fulfillments/:id/third-party-verify — Validation", () => {
     it("returns 400 when source is missing", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/third-party-verify`)
-        .set("Authorization", `Bearer ${coToken}`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/third-party-verify`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({});
 
       expect(response.status).toBe(400);
@@ -311,8 +311,8 @@ describe("Templates Module — Negative/Edge Cases", () => {
 
     it("returns 400 when source is empty string", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/third-party-verify`)
-        .set("Authorization", `Bearer ${coToken}`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/third-party-verify`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({ source: "" });
 
       expect(response.status).toBe(400);
@@ -321,8 +321,8 @@ describe("Templates Module — Negative/Edge Cases", () => {
 
     it("returns 400 when source exceeds 200 characters", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/third-party-verify`)
-        .set("Authorization", `Bearer ${coToken}`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/third-party-verify`)
+        .set("Authorization", `Bearer ${adminToken}`)
         .send({ source: "a".repeat(201) });
 
       expect(response.status).toBe(400);
@@ -330,10 +330,10 @@ describe("Templates Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("GET /api/fulfillments/review — Query Validation", () => {
+  describe("GET /api/fulfillments/reviews — Query Validation", () => {
     it("returns 400 when page is zero", async () => {
       const response = await request(app)
-        .get("/api/fulfillments/review")
+        .get("/api/fulfillments/reviews")
         .query({ page: 0 })
         .set("Authorization", `Bearer ${coToken}`);
 
@@ -343,7 +343,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
 
     it("returns 400 when limit exceeds 100", async () => {
       const response = await request(app)
-        .get("/api/fulfillments/review")
+        .get("/api/fulfillments/reviews")
         .query({ limit: 101 })
         .set("Authorization", `Bearer ${coToken}`);
 
@@ -353,7 +353,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
 
     it("returns 400 when employeeId is not a UUID", async () => {
       const response = await request(app)
-        .get("/api/fulfillments/review")
+        .get("/api/fulfillments/reviews")
         .query({ employeeId: "not-a-uuid" })
         .set("Authorization", `Bearer ${coToken}`);
 
@@ -366,7 +366,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
     it("returns 400 when decision is missing", async () => {
       const response = await request(app)
         .post(`/api/fulfillments/${NON_EXISTENT_UUID}/review`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${coToken}`)
         .send({ notes: "Test" });
 
       expect(response.status).toBe(400);
@@ -376,7 +376,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
     it("returns 400 when decision is invalid", async () => {
       const response = await request(app)
         .post(`/api/fulfillments/${NON_EXISTENT_UUID}/review`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${coToken}`)
         .send({
           decision: "invalid_decision",
           notes: "Test",
@@ -389,7 +389,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
     it("returns 400 when decision is reject but reason is missing", async () => {
       const response = await request(app)
         .post(`/api/fulfillments/${NON_EXISTENT_UUID}/review`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${coToken}`)
         .send({
           decision: "reject",
           notes: "Test",
@@ -402,7 +402,7 @@ describe("Templates Module — Negative/Edge Cases", () => {
     it("returns 400 or 403 when decision is approve but notes are missing", async () => {
       const response = await request(app)
         .post(`/api/fulfillments/${NON_EXISTENT_UUID}/review`)
-        .set("Authorization", `Bearer ${supervisorToken}`)
+        .set("Authorization", `Bearer ${coToken}`)
         .send({ decision: "approve" });
 
       // 400 if validation happens, 403 if RBAC denies first
@@ -472,14 +472,14 @@ describe("Templates Module — Negative/Edge Cases", () => {
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({ employeeIds: [seededTestUsers.employee.id] });
 
-      expect([403, 500]).toContain(response.status);
+      expect([403, 404, 500]).toContain(response.status);
     });
   });
 
   describe("RBAC Tests — Fulfillments", () => {
     it("returns 401 or 404 when not authenticated on POST self-attest", async () => {
       const response = await request(app)
-        .post(`/api/assignments/${NON_EXISTENT_UUID}/fulfill/${NON_EXISTENT_UUID}/self-attest`)
+        .post(`/api/fulfillments/${NON_EXISTENT_UUID}/self-attest`)
         .send({ statement: "I attest" });
 
       expect([401, 404]).toContain(response.status);

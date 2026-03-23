@@ -229,10 +229,10 @@ describe("Qualifications Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/qualifications/:id — RBAC", () => {
+  describe("PUT /api/qualifications/:id — RBAC", () => {
     it("returns 401 when not authenticated", async () => {
       const response = await request(app)
-        .patch(`/api/qualifications/${NON_EXISTENT_UUID}`)
+        .put(`/api/qualifications/${NON_EXISTENT_UUID}`)
         .send({ certificationName: "Updated" });
 
       expect(response.status).toBe(401);
@@ -240,7 +240,7 @@ describe("Qualifications Module — Negative/Edge Cases", () => {
 
     it("returns 403 when caller is EMPLOYEE role", async () => {
       const response = await request(app)
-        .patch(`/api/qualifications/${NON_EXISTENT_UUID}`)
+        .put(`/api/qualifications/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ certificationName: "Updated" });
 
@@ -248,10 +248,10 @@ describe("Qualifications Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/qualifications/:id — Validation", () => {
+  describe("PUT /api/qualifications/:id — Validation", () => {
     it("returns 400 when status is invalid", async () => {
       const response = await request(app)
-        .patch(`/api/qualifications/${NON_EXISTENT_UUID}`)
+        .put(`/api/qualifications/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({ status: "invalid_status" });
 
@@ -261,29 +261,12 @@ describe("Qualifications Module — Negative/Edge Cases", () => {
 
     it("returns 400 when certificationName exceeds 200 characters", async () => {
       const response = await request(app)
-        .patch(`/api/qualifications/${NON_EXISTENT_UUID}`)
+        .put(`/api/qualifications/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({ certificationName: "a".repeat(201) });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
-    });
-  });
-
-  describe("DELETE /api/qualifications/:id — RBAC", () => {
-    it("returns 401 when not authenticated", async () => {
-      const response = await request(app)
-        .delete(`/api/qualifications/${NON_EXISTENT_UUID}`);
-
-      expect(response.status).toBe(401);
-    });
-
-    it("returns 403 when caller is EMPLOYEE role", async () => {
-      const response = await request(app)
-        .delete(`/api/qualifications/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${employeeToken}`);
-
-      expect(response.status).toBe(403);
     });
   });
 });

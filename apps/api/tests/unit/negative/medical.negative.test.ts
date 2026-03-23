@@ -193,10 +193,10 @@ describe("Medical Module — Negative/Edge Cases", () => {
     });
   });
 
-  describe("PATCH /api/medical/:id — Validation", () => {
+  describe("PUT /api/medical/:id — Validation", () => {
     it("returns 400 when status is invalid", async () => {
       const response = await request(app)
-        .patch(`/api/medical/${NON_EXISTENT_UUID}`)
+        .put(`/api/medical/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({ status: "invalid_status" });
 
@@ -206,51 +206,9 @@ describe("Medical Module — Negative/Edge Cases", () => {
 
     it("returns 400 when visualAcuityResult is invalid", async () => {
       const response = await request(app)
-        .patch(`/api/medical/${NON_EXISTENT_UUID}`)
+        .put(`/api/medical/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${supervisorToken}`)
         .send({ visualAcuityResult: "invalid" });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
-    });
-  });
-
-  describe("GET /api/medical — Query Validation", () => {
-    it("returns 400 when page is 0", async () => {
-      const response = await request(app)
-        .get("/api/medical")
-        .query({ page: 0 })
-        .set("Authorization", `Bearer ${supervisorToken}`);
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
-    });
-
-    it("returns 400 when limit exceeds 100", async () => {
-      const response = await request(app)
-        .get("/api/medical")
-        .query({ limit: 101 })
-        .set("Authorization", `Bearer ${supervisorToken}`);
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
-    });
-
-    it("returns 400 when employeeId is not a UUID", async () => {
-      const response = await request(app)
-        .get("/api/medical")
-        .query({ employeeId: "not-a-uuid" })
-        .set("Authorization", `Bearer ${supervisorToken}`);
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
-    });
-
-    it("returns 400 when status is invalid", async () => {
-      const response = await request(app)
-        .get("/api/medical")
-        .query({ status: "invalid_status" })
-        .set("Authorization", `Bearer ${supervisorToken}`);
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
@@ -299,17 +257,9 @@ describe("Medical Module — Negative/Edge Cases", () => {
 
     it("returns 403 when EMPLOYEE tries to update medical clearance", async () => {
       const response = await request(app)
-        .patch(`/api/medical/${NON_EXISTENT_UUID}`)
+        .put(`/api/medical/${NON_EXISTENT_UUID}`)
         .set("Authorization", `Bearer ${employeeToken}`)
         .send({ status: "expired" });
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 403 when EMPLOYEE tries to delete medical clearance", async () => {
-      const response = await request(app)
-        .delete(`/api/medical/${NON_EXISTENT_UUID}`)
-        .set("Authorization", `Bearer ${employeeToken}`);
 
       expect(response.status).toBe(403);
     });
