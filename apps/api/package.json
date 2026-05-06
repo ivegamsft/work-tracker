@@ -16,7 +16,7 @@
     "typecheck": "node --stack_size=65500 ../../node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.0",
+    "@azure/identity": "^4.13.1",
     "@azure/keyvault-secrets": "^4.10.0",
     "@e-clat/shared": "file:../../packages/shared",
     "@opentelemetry/api": "^1.9.0",
@@ -31,7 +31,7 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
