@@ -137,7 +137,8 @@ export default function TemplateFulfillmentPage() {
     return sortTemplateRequirements(template?.requirements ?? []).map((requirement) => {
       const fulfillment = fulfillments.find((item) => item.requirementId === requirement.id) ?? null;
       const attachedDocumentId = fulfillment?.documentId ?? fulfillment?.attachedDocumentId ?? null;
-      const evidenceDocuments = attachedDocumentId ? [documentMap.get(attachedDocumentId)].filter(Boolean) : [];
+      const doc = attachedDocumentId ? documentMap.get(attachedDocumentId) : undefined;
+      const evidenceDocuments = doc ? [doc] : [];
 
       return {
         requirement,

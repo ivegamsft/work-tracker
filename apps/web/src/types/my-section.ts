@@ -93,6 +93,15 @@ export interface MedicalRecord {
   updatedAt?: string;
 }
 
+export interface MedicalClearance {
+  id: string;
+  clearanceType: string;
+  status: string;
+  expiresAt?: string | null;
+  expirationDate?: string | null;
+  documentCount?: number;
+}
+
 export interface EmployeeDocument {
   id: string;
   employeeId?: string;

@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom';
 import MyHoursPage from '../MyHours';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { FeatureFlagsProvider } from '../../hooks/useFeatureFlags';
-import { ApiError } from '../../api/client';
 
 vi.mock('../../api/client', () => ({
   api: {
