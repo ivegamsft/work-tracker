@@ -6,7 +6,6 @@ import MyDocumentsPage from '../MyDocuments';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { FeatureFlagsProvider } from '../../hooks/useFeatureFlags';
 import type { EmployeeDocument } from '../../types/my-section';
-import { ApiError } from '../../api/client';
 
 vi.mock('../../api/client', () => ({
   api: {
